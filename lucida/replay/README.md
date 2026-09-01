@@ -3,7 +3,8 @@
 Este módulo define un contrato append-only para conservar una sesión VJ como
 pares `VJEvent` + `SignalEnvelope`. El replay reutiliza el orquestador y las
 tres capacidades actuales; no crea un motor alternativo ni abre Resolume o
-sockets.
+sockets. El envelope puede conservar señales `osc` o eventos `xio` ya
+inyectados por un consumidor.
 
 ## Flujo
 

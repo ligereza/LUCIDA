@@ -15,7 +15,7 @@ Source provenance:
 
 - source repository: MOSAIK (`C:\IA\VJ`);
 - source branch: `LUCIDA`;
-- source commits: `e43422d`, `7daa9fb`, `206b844`;
+- source commits: `e43422d`, `7daa9fb`, `206b844`, `f4e9f21`;
 - copied files exclude media, presets, models, caches and private runtime data.
 
 Run from this repository root:
@@ -24,5 +24,6 @@ Run from this repository root:
 python -m pytest -q
 ```
 
-The test suite validates the adapter contract only. A live Resolume host
-connection remains an explicit integration step for a future host adapter.
+The test suite validates the adapter and the XIO application-event consumer
+offline. A live Resolume host connection remains an explicit integration step
+for a future host adapter.

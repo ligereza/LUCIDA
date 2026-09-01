@@ -80,8 +80,8 @@ class SignalEnvelope:
         envelope_id = _ascii_text(value.get("envelope_id"), "envelope_id")
         event_id = _ascii_text(value.get("event_id"), "event_id")
         transport = value.get("transport", "osc")
-        if transport != "osc":
-            raise SessionReplayError("transport must be osc.")
+        if transport not in {"osc", "xio"}:
+            raise SessionReplayError("transport must be osc or xio.")
         return cls(
             envelope_id=envelope_id,
             event_id=event_id,
@@ -195,6 +195,8 @@ class SessionReplay:
         event: VJEvent | Mapping[str, Any],
         signal: SignalEnvelope | Mapping[str, Any],
         results: tuple[VJResult | Mapping[str, Any], ...] | list[VJResult | Mapping[str, Any]] = (),
+        *,
+        metadata: Mapping[str, Any] | None = None,
     ) -> SessionReplayRecord:
         parsed_event = event if isinstance(event, VJEvent) else VJEvent.from_dict(event)
         parsed_signal = signal if isinstance(signal, SignalEnvelope) else SignalEnvelope.from_dict(signal)
@@ -232,6 +234,7 @@ class SessionReplay:
             "sequence": parsed_signal.sequence,
             "source": parsed_signal.source,
             "event_source": parsed_event.source,
+            "metadata": dict(metadata or {}),
             "proposal_ids": [proposal.proposal_id for proposal in proposals],
             "result_ids": [result.result_id for result in parsed_results],
             "mode": "proposal_only",

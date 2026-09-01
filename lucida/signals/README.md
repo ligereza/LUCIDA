@@ -29,6 +29,17 @@ Sin sender, el mensaje se devuelve en el resultado con `sender_called=false`.
 Esto permite usar el boundary en tests, replay y hosts que quieran decidir por
 separado cómo transportar la notificación.
 
+## Consumer XIO
+
+`xio_bridge.py` consume un `ApplicationEvent` canónico con todos sus campos de
+identidad, reloj, secuencia, hash y provenance. Valida el schema, exige clocks
+con timezone y convierte el evento a `VJEvent` + `SignalEnvelope` para
+`SessionReplay`. El evento original queda en `payload.xio_provenance` y en el
+audit metadata.
+
+El consumidor sólo acepta un dict o un objeto ya validado. No abre sockets, no
+necesita Resolume y no ejecuta acciones.
+
 ## Errores de frontera
 
 - `EnvelopeValidationError`: envelope o argumento inválido.
