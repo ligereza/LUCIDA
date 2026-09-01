@@ -1,0 +1,149 @@
+{
+  "fixture_type": "LucidaSessionReplayFixture",
+  "schema_version": "0.1",
+  "session_id": "fictional-session-replay-001",
+  "entries": [
+    {
+      "event": {
+        "event_id": "evt-001",
+        "timestamp": "2026-01-10T20:00:00Z",
+        "phase": "preflight",
+        "event_type": "signal.instar",
+        "payload": {"transport": "osc", "address": "/lucida/instar/preflight", "arguments": ["ready"], "sequence": 1, "route": "instar"},
+        "source": "osc:fixture"
+      },
+      "signal": {
+        "envelope_id": "sig-001",
+        "event_id": "evt-001",
+        "timestamp": "2026-01-10T20:00:00Z",
+        "sequence": 1,
+        "source": "fixture",
+        "address": "/lucida/instar/preflight",
+        "arguments": ["ready"],
+        "transport": "osc"
+      },
+      "results": [
+        {"result_id": "res-001", "proposal_id": "lucida-instar-evt-001", "recorded_at": "2026-01-10T20:01:00Z", "status": "accepted", "notes": "INSTAR preflight accepted."}
+      ]
+    },
+    {
+      "event": {
+        "event_id": "evt-002",
+        "timestamp": "2026-01-10T20:20:00Z",
+        "phase": "preparation",
+        "event_type": "signal.nayade",
+        "payload": {"transport": "osc", "address": "/lucida/nayade/soundcheck", "arguments": ["stable"], "sequence": 2, "route": "nayade"},
+        "source": "osc:fixture"
+      },
+      "signal": {
+        "envelope_id": "sig-002",
+        "event_id": "evt-002",
+        "timestamp": "2026-01-10T20:20:00Z",
+        "sequence": 2,
+        "source": "fixture",
+        "address": "/lucida/nayade/soundcheck",
+        "arguments": ["stable"],
+        "transport": "osc"
+      },
+      "results": [
+        {"result_id": "res-002", "proposal_id": "lucida-nayade-evt-002", "recorded_at": "2026-01-10T20:21:00Z", "status": "accepted", "notes": "NAYADE soundcheck accepted."}
+      ]
+    },
+    {
+      "event": {
+        "event_id": "evt-003",
+        "timestamp": "2026-01-10T22:00:00Z",
+        "phase": "show",
+        "event_type": "show.started",
+        "payload": {"transport": "osc", "address": "/composition/1/layer/1/clip/1/connect", "arguments": [1], "sequence": 3, "route": "imago", "mode": "improvised"},
+        "source": "osc:fixture"
+      },
+      "signal": {
+        "envelope_id": "sig-003",
+        "event_id": "evt-003",
+        "timestamp": "2026-01-10T22:00:00Z",
+        "sequence": 3,
+        "source": "fixture",
+        "address": "/composition/1/layer/1/clip/1/connect",
+        "arguments": [1],
+        "transport": "osc"
+      },
+      "results": [
+        {"result_id": "res-003a", "proposal_id": "proposal-evt-003-observe-show", "recorded_at": "2026-01-10T22:00:01Z", "status": "observed", "notes": "Show start observed."},
+        {"result_id": "res-003b", "proposal_id": "lucida-imago-evt-003", "recorded_at": "2026-01-10T22:00:02Z", "status": "accepted", "notes": "IMAGO live state accepted."}
+      ]
+    },
+    {
+      "event": {
+        "event_id": "evt-004",
+        "timestamp": "2026-01-10T22:37:14Z",
+        "phase": "incident",
+        "event_type": "incident.detected",
+        "payload": {"transport": "osc", "address": "/lucida/imago/incident", "arguments": ["signal_color_mismatch"], "sequence": 4, "route": "imago", "category": "signal_color_mismatch"},
+        "source": "osc:fixture"
+      },
+      "signal": {
+        "envelope_id": "sig-004",
+        "event_id": "evt-004",
+        "timestamp": "2026-01-10T22:37:14Z",
+        "sequence": 4,
+        "source": "fixture",
+        "address": "/lucida/imago/incident",
+        "arguments": ["signal_color_mismatch"],
+        "transport": "osc"
+      },
+      "results": [
+        {"result_id": "res-004a", "proposal_id": "proposal-evt-004-capture-incident", "recorded_at": "2026-01-10T22:37:20Z", "status": "accepted", "notes": "Incident captured without intervention."},
+        {"result_id": "res-004b", "proposal_id": "lucida-imago-evt-004", "recorded_at": "2026-01-10T22:37:21Z", "status": "accepted", "notes": "IMAGO incident state accepted."}
+      ]
+    },
+    {
+      "event": {
+        "event_id": "evt-005",
+        "timestamp": "2026-01-10T22:39:00Z",
+        "phase": "recovery",
+        "event_type": "recovery.started",
+        "payload": {"transport": "osc", "address": "/lucida/imago/recovery", "arguments": ["operator_approved"], "sequence": 5, "route": "imago", "checkpoint_id": "checkpoint-evt-002"},
+        "source": "osc:fixture"
+      },
+      "signal": {
+        "envelope_id": "sig-005",
+        "event_id": "evt-005",
+        "timestamp": "2026-01-10T22:39:00Z",
+        "sequence": 5,
+        "source": "fixture",
+        "address": "/lucida/imago/recovery",
+        "arguments": ["operator_approved"],
+        "transport": "osc"
+      },
+      "results": [
+        {"result_id": "res-005a", "proposal_id": "proposal-evt-005-prepare-recovery", "recorded_at": "2026-01-10T22:39:10Z", "status": "accepted", "notes": "Recovery preparation accepted."},
+        {"result_id": "res-005b", "proposal_id": "lucida-imago-evt-005", "recorded_at": "2026-01-10T22:39:11Z", "status": "accepted", "notes": "IMAGO recovery state accepted."}
+      ]
+    },
+    {
+      "event": {
+        "event_id": "evt-006",
+        "timestamp": "2026-01-11T00:00:00Z",
+        "phase": "closure",
+        "event_type": "show.closed",
+        "payload": {"transport": "osc", "address": "/lucida/imago/closed", "arguments": ["complete"], "sequence": 6, "route": "imago"},
+        "source": "osc:fixture"
+      },
+      "signal": {
+        "envelope_id": "sig-006",
+        "event_id": "evt-006",
+        "timestamp": "2026-01-11T00:00:00Z",
+        "sequence": 6,
+        "source": "fixture",
+        "address": "/lucida/imago/closed",
+        "arguments": ["complete"],
+        "transport": "osc"
+      },
+      "results": [
+        {"result_id": "res-006a", "proposal_id": "proposal-evt-006-close-session", "recorded_at": "2026-01-11T00:00:01Z", "status": "observed", "notes": "Session closure observed."},
+        {"result_id": "res-006b", "proposal_id": "lucida-imago-evt-006", "recorded_at": "2026-01-11T00:00:02Z", "status": "accepted", "notes": "IMAGO closure accepted."}
+      ]
+    }
+  ]
+}

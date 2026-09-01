@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:vj-interface-layer:contracts:vj-state",
+  "title": "VJ State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["session_id", "phase", "status", "sequence", "pending_proposal_ids", "results"],
+  "properties": {
+    "session_id": { "type": "string", "minLength": 1 },
+    "phase": { "enum": ["preflight", "preparation", "show", "incident", "recovery", "closure"] },
+    "status": { "type": "string", "minLength": 1 },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "last_event_id": { "type": ["string", "null"] },
+    "last_timestamp": { "type": ["string", "null"], "format": "date-time" },
+    "checkpoint_id": { "type": ["string", "null"] },
+    "completed_phases": { "type": "array", "items": { "type": "string" } },
+    "open_incidents": { "type": "array", "items": { "type": "string" } },
+    "pending_proposal_ids": { "type": "array", "items": { "type": "string" } },
+    "results": { "type": "array", "items": { "type": "object" } },
+    "metadata": { "type": "object" }
+  }
+}

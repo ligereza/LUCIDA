@@ -1,0 +1,61 @@
+{
+  "fixture_type": "LucidaOscFixture",
+  "schema_version": "0.1",
+  "session_id": "fictional-osc-session-001",
+  "envelopes": [
+    {
+      "address": "/lucida/instar/preflight",
+      "arguments": ["ready"],
+      "timestamp": "2026-01-10T20:00:00Z",
+      "sequence": 1,
+      "source": "fixture"
+    },
+    {
+      "address": "/lucida/nayade/soundcheck",
+      "arguments": ["stable"],
+      "timestamp": "2026-01-10T20:20:00Z",
+      "sequence": 2,
+      "source": "fixture"
+    },
+    {
+      "address": "/composition/1/layer/1/clip/1/connect",
+      "arguments": [1],
+      "timestamp": "2026-01-10T22:00:00Z",
+      "sequence": 3,
+      "source": "fixture"
+    },
+    {
+      "address": "/lucida/imago/incident",
+      "arguments": ["signal_color_mismatch"],
+      "timestamp": "2026-01-10T22:37:14Z",
+      "sequence": 4,
+      "source": "fixture"
+    },
+    {
+      "address": "/lucida/imago/recovery",
+      "arguments": ["operator_approved"],
+      "timestamp": "2026-01-10T22:39:00Z",
+      "sequence": 5,
+      "source": "fixture"
+    },
+    {
+      "address": "/lucida/imago/closed",
+      "arguments": ["complete"],
+      "timestamp": "2026-01-11T00:00:00Z",
+      "sequence": 6,
+      "source": "fixture"
+    }
+  ],
+  "results": [
+    {"after_sequence": 1, "result_id": "res-001", "proposal_id": "lucida-instar-osc-fixture-000001", "recorded_at": "2026-01-10T20:01:00Z", "status": "accepted", "notes": "INSTAR preflight accepted."},
+    {"after_sequence": 2, "result_id": "res-002", "proposal_id": "lucida-nayade-osc-fixture-000002", "recorded_at": "2026-01-10T20:21:00Z", "status": "accepted", "notes": "NAYADE soundcheck accepted."},
+    {"after_sequence": 3, "result_id": "res-003a", "proposal_id": "proposal-osc-fixture-000003-observe-show", "recorded_at": "2026-01-10T22:00:01Z", "status": "observed", "notes": "Show start observed."},
+    {"after_sequence": 3, "result_id": "res-003b", "proposal_id": "lucida-imago-osc-fixture-000003", "recorded_at": "2026-01-10T22:00:02Z", "status": "accepted", "notes": "IMAGO live state accepted."},
+    {"after_sequence": 4, "result_id": "res-004a", "proposal_id": "proposal-osc-fixture-000004-capture-incident", "recorded_at": "2026-01-10T22:37:20Z", "status": "accepted", "notes": "Incident captured without intervention."},
+    {"after_sequence": 4, "result_id": "res-004b", "proposal_id": "lucida-imago-osc-fixture-000004", "recorded_at": "2026-01-10T22:37:21Z", "status": "accepted", "notes": "IMAGO incident state accepted."},
+    {"after_sequence": 5, "result_id": "res-005a", "proposal_id": "proposal-osc-fixture-000005-prepare-recovery", "recorded_at": "2026-01-10T22:39:10Z", "status": "accepted", "notes": "Recovery preparation accepted."},
+    {"after_sequence": 5, "result_id": "res-005b", "proposal_id": "lucida-imago-osc-fixture-000005", "recorded_at": "2026-01-10T22:39:11Z", "status": "accepted", "notes": "IMAGO recovery state accepted."},
+    {"after_sequence": 6, "result_id": "res-006a", "proposal_id": "proposal-osc-fixture-000006-close-session", "recorded_at": "2026-01-11T00:00:01Z", "status": "observed", "notes": "Session closure observed."},
+    {"after_sequence": 6, "result_id": "res-006b", "proposal_id": "lucida-imago-osc-fixture-000006", "recorded_at": "2026-01-11T00:00:02Z", "status": "accepted", "notes": "IMAGO closure accepted."}
+  ]
+}
