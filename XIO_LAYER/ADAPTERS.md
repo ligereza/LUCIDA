@@ -21,3 +21,12 @@ The snapshot contains no adapter instances, callables, records, paths,
 credentials or network state. LUCIDA/MULTI may cache or serialize it to select
 an already registered source route. Mutating a returned snapshot cannot change
 the registry.
+
+## Candidate discovery
+
+`SourceAdapterRegistry.candidates(event_type, required_capabilities=())`
+filters the frozen declarations without inspecting or executing adapters. It
+returns a new JSON-safe list containing only `source_app`,
+`supported_event_types` and `capabilities`, sorted deterministically. An empty
+list is the explicit no-match result. Query identifiers use the same ASCII
+rules as registration; invalid queries are rejected before routing.

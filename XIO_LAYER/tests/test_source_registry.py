@@ -112,6 +112,74 @@ class SourceAdapterRegistryTests(unittest.TestCase):
         self.assertNotIn("adapter", json.dumps(snapshot))
         self.assertNotIn("convert", json.dumps(snapshot))
 
+    def test_candidates_match_event_type_and_required_capabilities(self):
+        registry = SourceAdapterRegistry()
+        resolume = _TestAdapter()
+        resolume.source_app = "resolume"
+        resolume.supported_event_types = {"timeline.cue"}
+        resolume.capabilities = {"source.observe", "source.render"}
+        adobe = _TestAdapter()
+        adobe.source_app = "adobe"
+        adobe.supported_event_types = {"timeline.cue"}
+        adobe.capabilities = {"source.observe"}
+        other = _TestAdapter()
+        other.source_app = "other-app"
+        other.supported_event_types = {"timeline.frame"}
+        other.capabilities = {"source.observe"}
+        for adapter in (resolume, adobe, other):
+            registry.register(adapter)
+
+        self.assertEqual(
+            [item["source_app"] for item in registry.candidates("timeline.cue")],
+            ["adobe", "resolume"],
+        )
+        self.assertEqual(
+            [item["source_app"] for item in registry.candidates(
+                "timeline.cue", {"source.render"}
+            )],
+            ["resolume"],
+        )
+        self.assertEqual(registry.candidates("timeline.cue", {"source.missing"}), [])
+
+    def test_candidates_are_sorted_json_safe_and_copy_isolated(self):
+        registry = SourceAdapterRegistry()
+        for name in ("z-app", "a-app"):
+            adapter = _TestAdapter()
+            adapter.source_app = name
+            adapter.supported_event_types = {"z.event", "a.event"}
+            adapter.capabilities = {"z.cap", "a.cap"}
+            registry.register(adapter)
+
+        first = registry.candidates("a.event")
+        second = registry.candidates("a.event")
+        first[0]["supported_event_types"].append("leaked.event")
+        first[0]["capabilities"].clear()
+        first.append({"source_app": "leaked", "supported_event_types": [], "capabilities": []})
+
+        self.assertEqual(second, registry.candidates("a.event"))
+        self.assertEqual([item["source_app"] for item in second], ["a-app", "z-app"])
+        self.assertEqual(json.loads(json.dumps(second, sort_keys=True)), second)
+
+    def test_empty_and_no_match_candidates_are_explicit_empty_lists(self):
+        self.assertEqual(SourceAdapterRegistry().candidates("timeline.cue"), [])
+        registry = SourceAdapterRegistry()
+        registry.register(_TestAdapter())
+
+        self.assertEqual(registry.candidates("timeline.frame"), [])
+
+    def test_invalid_candidate_queries_are_rejected(self):
+        registry = SourceAdapterRegistry()
+        registry.register(_TestAdapter())
+
+        with self.assertRaises(InvalidSourceAdapterError):
+            registry.candidates("evento." + chr(0xE9))
+        with self.assertRaises(InvalidSourceAdapterError):
+            registry.candidates("")
+        with self.assertRaises(InvalidSourceAdapterError):
+            registry.candidates("timeline.cue", {"cap." + chr(0xE9)})
+        with self.assertRaises(InvalidSourceAdapterError):
+            registry.candidates("timeline.cue", "source.observe")
+
     def test_route_preserves_canonical_event_metadata(self):
         registry = SourceAdapterRegistry()
         adapter = _TestAdapter()
