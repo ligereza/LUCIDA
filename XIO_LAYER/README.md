@@ -36,7 +36,7 @@ XIO_LAYER/
 │   ├── transport/   política, transporte y probe de conectividad inyectable
 │   └── sessions/    peers, handshake y fan-out dirigido
 ├── adapters/xio/    frontera de observación y ejecución explícita
-├── adapters/        puentes de protocolo inyectables, incluido LUCIDA/MULTI
+├── adapters/        puentes de protocolo y registro de adaptadores por app
 └── tests/           pruebas unitarias e integración ligera
 ```
 
@@ -67,6 +67,11 @@ ApplicationEvent
 ```
 
 La conversión nunca crea una ruta `event -> action`.
+
+`SourceAdapterRegistry` is the app-agnostic extension point for future Adobe,
+Resolume, and other host adapters. It snapshots ASCII declarations, routes only
+declared event types, and preserves the canonical event metadata. It performs
+no discovery or network I/O.
 
 ## Ejecución
 

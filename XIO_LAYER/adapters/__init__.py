@@ -16,6 +16,16 @@ from .lucida_bridge import (
     transport_to_application_event,
 )
 from .protocol_events import ProtocolEventAdapter
+from .source_registry import (
+    DuplicateSourceAdapterError,
+    InvalidSourceAdapterError,
+    SourceAdapter,
+    SourceAdapterDeclaration,
+    SourceAdapterRegistry,
+    SourceAdapterRegistryError,
+    UndeclaredEventTypeError,
+    UnknownSourceAdapterError,
+)
 
 __all__ = [
     "CONNECTIVITY_EVENT_CHANNEL",
@@ -26,8 +36,16 @@ __all__ = [
     "LucidaApplicationEnvelope",
     "LucidaBridgeError",
     "ProtocolEventAdapter",
+    "DuplicateSourceAdapterError",
+    "InvalidSourceAdapterError",
+    "SourceAdapter",
+    "SourceAdapterDeclaration",
+    "SourceAdapterRegistry",
+    "SourceAdapterRegistryError",
     "application_event_to_transport",
     "ConnectivityEventError",
     "connectivity_status_to_event",
     "transport_to_application_event",
+    "UndeclaredEventTypeError",
+    "UnknownSourceAdapterError",
 ]
