@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://generic-interface-layer.local/schemas/context/v1",
+  "title": "Generic context snapshot",
+  "type": "object",
+  "required": ["schemaVersion", "contextId", "sessionId", "host", "document", "selection", "layers", "palette", "occupiedRegions", "safeRegions", "unknown", "contextHash"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contextId": { "type": ["string", "null"] },
+    "sessionId": { "type": ["string", "null"] },
+    "host": { "type": ["string", "null"] },
+    "hostVersion": { "type": ["string", "null"] },
+    "source": { "type": "string" },
+    "document": { "$ref": "#/$defs/document" },
+    "selection": { "$ref": "#/$defs/selection" },
+    "layers": { "type": "array", "items": { "$ref": "#/$defs/layer" }, "maxItems": 200 },
+    "palette": { "type": "array", "items": { "type": "string" }, "maxItems": 24 },
+    "occupiedRegions": { "type": "array", "items": { "$ref": "#/$defs/bounds" }, "maxItems": 200 },
+    "safeRegions": { "type": "array", "items": { "$ref": "#/$defs/bounds" }, "maxItems": 200 },
+    "unknown": { "type": "object", "additionalProperties": { "$ref": "#/$defs/unknown" } },
+    "capturedAt": { "type": ["string", "null"] },
+    "contextHash": { "type": "string" }
+  },
+  "$defs": {
+    "unknown": {
+      "type": "object",
+      "required": ["value", "reason"],
+      "properties": { "value": { "type": "null" }, "reason": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "bounds": {
+      "type": "object",
+      "required": ["left", "top", "right", "bottom"],
+      "properties": {
+        "left": { "type": "number" }, "top": { "type": "number" },
+        "right": { "type": "number" }, "bottom": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "document": {
+      "type": "object",
+      "required": ["id", "name", "path", "width", "height", "unit"],
+      "properties": {
+        "id": { "type": ["string", "null"] }, "name": { "type": ["string", "null"] },
+        "path": { "type": ["string", "null"] }, "width": { "type": ["number", "null"] },
+        "height": { "type": ["number", "null"] }, "unit": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "selection": {
+      "type": "object",
+      "required": ["id", "name", "kind", "text", "bounds"],
+      "properties": {
+        "id": { "type": ["string", "null"] }, "name": { "type": ["string", "null"] },
+        "kind": { "type": ["string", "null"] }, "text": { "type": ["string", "null"] },
+        "bounds": { "anyOf": [{ "$ref": "#/$defs/bounds" }, { "type": "null" }] }
+      },
+      "additionalProperties": false
+    },
+    "layer": {
+      "type": "object",
+      "required": ["id", "parentId", "name", "kind", "visible", "locked", "bounds", "text"],
+      "properties": {
+        "id": { "type": ["string", "null"] }, "parentId": { "type": ["string", "null"] },
+        "name": { "type": ["string", "null"] }, "kind": { "type": ["string", "null"] },
+        "visible": { "type": "boolean" }, "locked": { "type": "boolean" },
+        "bounds": { "anyOf": [{ "$ref": "#/$defs/bounds" }, { "type": "null" }] },
+        "text": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

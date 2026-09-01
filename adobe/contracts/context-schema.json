@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.lucida/schemas/adobe-context/v1",
+  "title": "Adobe Context Shelf snapshot",
+  "type": "object",
+  "required": ["schemaVersion", "sessionId", "host", "document", "location", "selection", "layers", "palette", "occupiedRegions", "safeRegions"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sessionId": { "type": "string", "minLength": 3, "maxLength": 128 },
+    "host": { "enum": ["photoshop", "illustrator", "after-effects", "premiere"] },
+    "hostVersion": { "type": ["string", "null"] },
+    "project": { "type": ["object", "null"] },
+    "document": {
+      "type": "object",
+      "properties": {
+        "id": { "type": ["string", "null"] },
+        "name": { "type": ["string", "null"] },
+        "path": { "type": ["string", "null"] },
+        "width": { "type": ["number", "null"] },
+        "height": { "type": ["number", "null"] },
+        "unit": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string" },
+        "index": { "type": ["number", "null"] },
+        "label": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "selection": { "$ref": "#/$defs/selection" },
+    "layers": { "type": "array", "items": { "$ref": "#/$defs/selection" }, "maxItems": 200 },
+    "palette": { "type": "array", "items": { "type": "string", "pattern": "^#[0-9a-fA-F]{3,8}$" }, "maxItems": 24 },
+    "occupiedRegions": { "type": "array", "items": { "$ref": "#/$defs/bounds" }, "maxItems": 200 },
+    "safeRegions": { "type": "array", "items": { "$ref": "#/$defs/bounds" }, "maxItems": 200 },
+    "time": { "type": ["object", "null"] }
+  },
+  "$defs": {
+    "bounds": {
+      "type": "object",
+      "required": ["left", "top", "right", "bottom"],
+      "properties": {
+        "left": { "type": "number" },
+        "top": { "type": "number" },
+        "right": { "type": "number" },
+        "bottom": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "selection": {
+      "type": "object",
+      "properties": {
+        "kind": { "type": ["string", "null"] },
+        "id": { "type": ["string", "null"] },
+        "name": { "type": ["string", "null"] },
+        "text": { "type": ["string", "null"] },
+        "bounds": { "anyOf": [{ "$ref": "#/$defs/bounds" }, { "type": "null" }] },
+        "visible": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

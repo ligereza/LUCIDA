@@ -1,0 +1,25 @@
+# Dependencies and local runtime state
+node_modules/
+.venv/
+__pycache__/
+*.py[cod]
+.cache/
+*.log
+
+# Local secrets and machine-specific state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.sqlite
+*.db
+credentials.*
+secrets.*
+
+# Generated local outputs
+dist/
+build/
+artifacts/
+coverage/

@@ -1,0 +1,6 @@
+{
+  "objects": [
+    { "name": "subject-left", "bounds": { "left": 120, "top": 180, "right": 620, "bottom": 1280 } },
+    { "name": "network-right", "bounds": { "left": 760, "top": 420, "right": 1320, "bottom": 1080 } }
+  ]
+}

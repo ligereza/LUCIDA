@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="panel">
+    <header class="header">
+      <div><div class="eyebrow">LOCAL ADOBE TOOL</div><h1>Context Shelf</h1></div>
+      <span id="status" class="status offline">offline</span>
+    </header>
+    <section class="context-card">
+      <div id="documentName">Sin documento</div>
+      <div id="selectionName" class="muted">Selecciona una capa</div>
+      <div id="selectionText" class="selection-text">La app flotante usará el texto y la capa activa para sugerir assets.</div>
+    </section>
+    <div class="actions"><button id="refresh" type="button">Leer contexto</button><button id="send" type="button" class="secondary">Sincronizar</button></div>
+    <pre id="log" class="log">Inicia el bridge local y pulsa Leer contexto.</pre>
+  </main>
+  <script src="index.js"></script>
+</body>
+</html>

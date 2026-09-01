@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Context Shelf</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shelf">
+    <header class="topbar">
+      <div><div class="eyebrow">ADOBE CONTEXT SHELF</div><h1>Assets para tu capa</h1></div>
+      <div class="topbar-actions">
+        <div id="connection" class="pill offline">bridge offline</div>
+        <div id="semantic-status" class="semantic-status pending" title="MobileCLIP: comprobando" aria-label="Estado de búsqueda semántica">◌</div>
+        <div class="window-controls" aria-label="Controles de ventana">
+          <button class="window-control" data-window-action="minimize" title="Minimizar" aria-label="Minimizar">−</button>
+          <button class="window-control" data-window-action="maximize" title="Maximizar o restaurar" aria-label="Maximizar o restaurar">□</button>
+          <button class="window-control close" data-window-action="close" title="Cerrar" aria-label="Cerrar">×</button>
+        </div>
+      </div>
+    </header>
+    <section class="context">
+      <strong id="document">Esperando Photoshop…</strong>
+      <span id="selection">Selecciona una capa de texto</span>
+      <p id="copy">La shelf va a leer el contexto activo y buscar recursos relacionados.</p>
+      <div id="analysis" class="analysis">Esperando análisis de contenido y espacio libre…</div>
+    </section>
+    <nav class="tabs" aria-label="Modos">
+      <button class="tab active" data-mode="suggested">Sugeridos</button>
+      <button class="tab" data-mode="explore">Explorar</button>
+      <button class="tab" data-mode="project">Proyecto</button>
+      <button class="tab" data-mode="similar">Similares</button>
+      <button class="tab" data-mode="layers">Diagnóstico</button>
+    </nav>
+    <section id="explore-controls" class="explore-controls" hidden aria-label="Filtros de exploración">
+      <div class="explore-search-row">
+        <span class="search-mark" aria-hidden="true">⌕</span>
+        <input id="explore-query" type="search" autocomplete="off" placeholder="Buscar en la biblioteca…" aria-label="Buscar en la biblioteca">
+        <button id="explore-reset" class="icon-button" type="button" title="Volver a filtros" aria-label="Volver a filtros">↺</button>
+      </div>
+      <div id="explore-filter-types" class="explore-filter-types" aria-label="Filtrar por"></div>
+      <div id="selection-scope" class="selection-scope" hidden></div>
+    </section>
+    <section id="project-controls" class="project-controls" hidden aria-label="Inventario del proyecto">
+      <div class="project-toolbar">
+        <label class="project-picker"><span>Proyecto</span><select id="project-select" aria-label="Elegir proyecto"></select></label>
+        <button id="project-refresh" class="icon-button" type="button" title="Actualizar inventario" aria-label="Actualizar inventario">↻</button>
+      </div>
+      <div id="project-summary" class="project-summary"></div>
+      <div id="project-slides" class="project-slides" aria-label="Elegir lámina"></div>
+      <div class="project-query-row">
+        <span class="search-mark" aria-hidden="true">⌕</span>
+        <input id="project-query" type="search" autocomplete="off" placeholder="Filtrar capas o variaciones…" aria-label="Filtrar capas o variaciones">
+      </div>
+      <div id="project-status-filter" class="project-status-filter" aria-label="Filtrar estado"></div>
+      <div id="project-selection-scope" class="selection-scope" hidden></div>
+    </section>
+    <section id="results" class="results"><div class="empty">Selecciona una capa para generar sugerencias.</div></section>
+    <footer class="footer">Local-first · sin subir tus archivos</footer>
+  </main>
+  <div id="peek" class="peek" hidden aria-hidden="true">
+    <div id="peek-backdrop" class="peek-backdrop"></div>
+    <section class="peek-card" role="dialog" aria-modal="true" aria-labelledby="peek-title">
+      <button id="peek-close" class="peek-close" type="button" title="Cerrar" aria-label="Cerrar">×</button>
+      <button id="peek-previous" class="peek-nav previous" type="button" title="Anterior" aria-label="Recurso anterior">‹</button>
+      <div id="peek-image" class="peek-image"></div>
+      <button id="peek-next" class="peek-nav next" type="button" title="Siguiente" aria-label="Recurso siguiente">›</button>
+      <div class="peek-footer">
+        <div id="peek-title" class="peek-title">Recurso</div>
+        <div id="peek-meta" class="peek-meta"></div>
+        <div class="peek-actions">
+          <button id="peek-select" class="peek-select" type="button" title="Seleccionar para esta lámina" aria-label="Seleccionar para esta lámina">□</button>
+          <button id="peek-favorite" class="peek-favorite" type="button" title="Guardar recurso" aria-label="Guardar recurso">☆</button>
+          <button id="peek-insert" class="peek-insert" type="button">Insertar</button>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

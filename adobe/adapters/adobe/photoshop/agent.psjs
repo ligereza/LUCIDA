@@ -1,0 +1,376 @@
+// Photoshop UXP queue consumer.
+// Run from File > Scripts > Browse, or debug with UXP Developer Tools.
+const { app, action, core, constants } = require("photoshop");
+const { storage } = require("uxp");
+const fs = storage.localFileSystem;
+
+const TOOLKIT_ROOT = "C:/IA/LUCIDA/adobe";
+
+function fileUrl(nativePath) {
+  const normalized = String(nativePath).replace(/\\/g, "/");
+  return "file:///" + encodeURI(normalized);
+}
+
+function timestamp() {
+  return new Date().toISOString();
+}
+
+function isAllowedPath(nativePath) {
+  const value = String(nativePath).replace(/\\/g, "/").toLowerCase();
+  const root = TOOLKIT_ROOT.replace(/\\/g, "/").toLowerCase();
+  return value === root || value.indexOf(root + "/") === 0;
+}
+
+async function getEntry(nativePath) {
+  if (!isAllowedPath(nativePath)) {
+    throw new Error("Path is outside the toolkit root: " + nativePath);
+  }
+  return fs.getEntryWithUrl(fileUrl(nativePath));
+}
+
+function parentPath(nativePath) {
+  return String(nativePath).replace(/[\\/][^\\/]*$/, "");
+}
+
+function baseName(nativePath) {
+  return String(nativePath).split(/[\\/]/).pop();
+}
+
+async function createFileEntry(nativePath) {
+  const folder = await getEntry(parentPath(nativePath));
+  return folder.createFile(baseName(nativePath), { overwrite: true });
+}
+
+async function readJson(entry) {
+  return JSON.parse(await entry.read({ encoding: "utf-8" }));
+}
+
+async function writeJson(entry, value) {
+  await entry.write(JSON.stringify(value, null, 2));
+}
+
+async function resultFor(commandFile, command, state, data, error) {
+  const resultsUrl = commandFile.url.replace(/\/commands\/[^/]+$/, "/results");
+  const results = await fs.getEntryWithUrl(resultsUrl);
+  const resultFile = await results.createFile(command.id + ".json", { overwrite: true });
+  const result = {
+    id: command.id,
+    app: "photoshop",
+    state,
+    data: data || {},
+    error: error || null,
+    finishedAt: timestamp(),
+  };
+  await writeJson(resultFile, result);
+  return result;
+}
+
+async function finish(commandFile, command, state, data, error) {
+  command.state = state;
+  command.finishedAt = timestamp();
+  command.error = error || null;
+  await writeJson(commandFile, command);
+  return resultFor(commandFile, command, state, data, error);
+}
+
+async function saveDocument(document, output) {
+  if (!output) return null;
+  const target = await createFileEntry(output);
+  const extension = output.toLowerCase().split(".").pop();
+  if (extension === "psd") await document.saveAs.psd(target, {}, true);
+  else if (extension === "png") await document.saveAs.png(target, {}, true);
+  else if (extension === "jpg" || extension === "jpeg") await document.saveAs.jpg(target, { quality: 12 }, true);
+  else throw new Error("Unsupported Photoshop output format: " + extension);
+  return output;
+}
+
+async function importSvg(command) {
+  if (!command.input) throw new Error("Command input is required");
+  const source = await getEntry(command.input);
+  const document = await app.open(source);
+  const options = command.options || {};
+  const output = await saveDocument(document, options.output || null);
+  return { document: document.name, output };
+}
+
+function safeName(value, fallback) {
+  const normalized = String(value || fallback || "object")
+    .replace(/[^a-z0-9áéíóúñü _-]/gi, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 64);
+  return normalized || fallback || "object";
+}
+
+function layerTree(layers, output = []) {
+  for (const layer of layers || []) {
+    output.push(layer);
+    if (layer.layers && layer.layers.length) layerTree(layer.layers, output);
+  }
+  return output;
+}
+
+function findLayer(document, name) {
+  return layerTree(document.layers).find((layer) => layer.name === name) || null;
+}
+
+async function selectLayer(layer) {
+  await action.batchPlay([{
+    _obj: "select",
+    _target: [{ _ref: "layer", _id: layer.id }],
+    makeVisible: false,
+    _options: { dialogOptions: "dontDisplay" },
+  }], { synchronousExecution: true, modalBehavior: "execute" });
+}
+
+async function selectSubject() {
+  await action.batchPlay([{
+    _obj: "autoCutout",
+    sampleAllLayers: false,
+    _options: { dialogOptions: "dontDisplay" },
+  }], { synchronousExecution: true, modalBehavior: "execute" });
+}
+
+async function revealSelectionMask() {
+  await action.batchPlay([{
+    _obj: "make",
+    at: { _enum: "channel", _ref: "channel", _value: "mask" },
+    new: { _class: "channel" },
+    using: { _enum: "userMaskEnabled", _value: "revealSelection" },
+    _options: { dialogOptions: "dontDisplay" },
+  }], { synchronousExecution: true, modalBehavior: "execute" });
+}
+
+async function deselect() {
+  await action.batchPlay([{
+    _obj: "set",
+    _target: [{ _property: "selection", _ref: "channel" }],
+    to: { _enum: "ordinal", _value: "none" },
+    _options: { dialogOptions: "dontDisplay" },
+  }], { synchronousExecution: true, modalBehavior: "execute" });
+}
+
+function normalizeBounds(raw, width, height, padding) {
+  const source = raw && raw.bounds ? raw.bounds : raw;
+  if (!source) throw new Error("Each object region needs bounds");
+  const left = Number(source.left ?? source.x ?? 0);
+  const top = Number(source.top ?? source.y ?? 0);
+  const right = Number(source.right ?? (left + Number(source.width || 0)));
+  const bottom = Number(source.bottom ?? (top + Number(source.height || 0)));
+  const pad = Math.max(0, Number(padding || 0));
+  return {
+    left: Math.max(0, Math.floor(left - pad)),
+    top: Math.max(0, Math.floor(top - pad)),
+    right: Math.min(width, Math.ceil(right + pad)),
+    bottom: Math.min(height, Math.ceil(bottom + pad)),
+  };
+}
+
+function numericBounds(raw) {
+  if (!raw) return null;
+  return {
+    left: Number(raw.left),
+    top: Number(raw.top),
+    right: Number(raw.right),
+    bottom: Number(raw.bottom),
+  };
+}
+
+async function exportMaskedLayer(document, layerName, cropBounds, outputDir, sourceWidth, sourceHeight, index, placementBounds = cropBounds, selectionMethod = "mask") {
+  const exportDocument = await document.duplicate(safeName(layerName, "object") + " export", false);
+  try {
+    const exportLayer = findLayer(exportDocument, layerName);
+    if (!exportLayer) throw new Error("Duplicated layer not found: " + layerName);
+    for (const layer of layerTree(exportDocument.layers)) layer.visible = layer === exportLayer;
+    await exportDocument.crop(cropBounds);
+    const file = outputDir + "/" + String(index + 1).padStart(2, "0") + "-" + safeName(layerName, "object") + ".png";
+    await saveDocument(exportDocument, file);
+    return {
+      id: safeName(layerName, "object"),
+      name: layerName,
+      file,
+      bounds: placementBounds,
+      sourceCanvas: { width: sourceWidth, height: sourceHeight },
+      placement: {
+        x: placementBounds.left / sourceWidth,
+        y: placementBounds.top / sourceHeight,
+        width: (placementBounds.right - placementBounds.left) / sourceWidth,
+        height: (placementBounds.bottom - placementBounds.top) / sourceHeight,
+      },
+      anchor: "full",
+      fit: "contain",
+      importMode: "raster",
+      role: "illustration",
+      singleSlide: true,
+      selectionMethod,
+    };
+  } finally {
+    await exportDocument.closeWithoutSaving();
+  }
+}
+
+async function separateRegionAsObject(document, sourceBounds, layerName, outputDir, sourceWidth, sourceHeight, index, padding) {
+  const regionDocument = await document.duplicate(safeName(layerName, "object") + " detect", false);
+  try {
+    await regionDocument.crop(sourceBounds);
+    const regionLayer = regionDocument.layers[0];
+    if (!regionLayer) throw new Error("Region copy has no source layer");
+    await selectLayer(regionLayer);
+    await selectSubject();
+    const selectionBounds = numericBounds(regionDocument.selection.bounds);
+    if (!selectionBounds) throw new Error("Select Subject returned no region selection");
+    const regionWidth = Number(regionDocument.width);
+    const regionHeight = Number(regionDocument.height);
+    if (regionDocument.selection.solid && selectionBounds.left <= 0 && selectionBounds.top <= 0 && selectionBounds.right >= regionWidth - 1 && selectionBounds.bottom >= regionHeight - 1) {
+      throw new Error("Select Subject returned the whole region; rectangle fallback used");
+    }
+    const localBounds = normalizeBounds(selectionBounds, regionWidth, regionHeight, padding);
+    const layer = await regionLayer.duplicate();
+    layer.name = layerName;
+    await selectLayer(layer);
+    await revealSelectionMask();
+    for (const candidate of layerTree(regionDocument.layers)) candidate.visible = candidate === layer;
+    await layer.copy(true);
+    const outputLayer = await document.paste();
+    outputLayer.name = layerName;
+    const currentBounds = numericBounds(outputLayer.bounds);
+    const placementBounds = {
+      left: sourceBounds.left + localBounds.left,
+      top: sourceBounds.top + localBounds.top,
+      right: sourceBounds.left + localBounds.right,
+      bottom: sourceBounds.top + localBounds.bottom,
+    };
+    if (currentBounds) await outputLayer.translate(placementBounds.left - currentBounds.left, placementBounds.top - currentBounds.top);
+    return await exportMaskedLayer(regionDocument, layerName, localBounds, outputDir, sourceWidth, sourceHeight, index, placementBounds, "select-subject-in-region-transparent-copy");
+  } finally {
+    await regionDocument.closeWithoutSaving();
+  }
+}
+
+async function separateObjects(command) {
+  if (!command.input) throw new Error("Command input is required");
+  const options = command.options || {};
+  const source = await getEntry(command.input);
+  const document = await app.open(source);
+  const sourceWidth = Number(document.width);
+  const sourceHeight = Number(document.height);
+  const mode = String(options.mode || (options.objects ? "regions" : "subject")).toLowerCase();
+  const outputDir = String(options.outputDir || parentPath(options.output || ""));
+  const objects = Array.isArray(options.objects) ? options.objects : [];
+  const baseLayer = document.layers[0];
+  if (!baseLayer) throw new Error("Photoshop document has no source layer");
+  const assets = [];
+
+  try {
+    await core.executeAsModal(async () => {
+      if (mode === "subject") {
+        await selectLayer(baseLayer);
+        await selectSubject();
+        const selectionBounds = document.selection.bounds;
+        if (!selectionBounds) throw new Error("Photoshop Select Subject returned no selection");
+        const name = safeName(options.subjectName, "subject-01");
+        const layer = await baseLayer.duplicate();
+        layer.name = name;
+        await selectLayer(layer);
+        await revealSelectionMask();
+        assets.push(await exportMaskedLayer(document, name, normalizeBounds(selectionBounds, sourceWidth, sourceHeight, options.padding), outputDir, sourceWidth, sourceHeight, 0));
+      } else if (mode === "regions") {
+        if (!objects.length) throw new Error("regions mode requires options.objects with named bounds");
+        for (let index = 0; index < objects.length; index += 1) {
+          const item = objects[index] || {};
+          const bounds = normalizeBounds(item, sourceWidth, sourceHeight, options.padding);
+          const name = safeName(item.name, "object-" + String(index + 1).padStart(2, "0"));
+          const selectionMode = String(item.selectionMode || options.selectionMode || "object").toLowerCase();
+          let selectionError = null;
+          if (selectionMode === "object") {
+            try {
+              assets.push(await separateRegionAsObject(document, bounds, name, outputDir, sourceWidth, sourceHeight, index, Number(options.objectPadding ?? 2)));
+              continue;
+            } catch (error) {
+              selectionError = String(error);
+              // Keep the deterministic rectangle fallback when Photoshop's AI
+              // cannot isolate a usable subject in this region.
+            }
+          }
+          await document.selection.selectRectangle(bounds, constants.SelectionType.REPLACE);
+          const layer = await baseLayer.duplicate();
+          layer.name = name;
+          await selectLayer(layer);
+          await revealSelectionMask();
+          const fallback = await exportMaskedLayer(document, name, bounds, outputDir, sourceWidth, sourceHeight, index, bounds, "rectangle-fallback");
+          if (selectionError) fallback.selectionError = selectionError;
+          assets.push(fallback);
+        }
+      } else {
+        throw new Error("Unsupported Photoshop separation mode: " + mode);
+      }
+      await deselect();
+    }, { commandName: "Agent Toolkit: separate Photoshop objects" });
+
+    const psd = options.psdOutput ? await saveDocument(document, options.psdOutput) : null;
+    const manifest = {
+      version: 1,
+      app: "photoshop",
+      operation: "separate-objects",
+      mode,
+      source: command.input,
+      canvas: { width: sourceWidth, height: sourceHeight },
+      singleSlide: true,
+      psd,
+      assets,
+    };
+    const manifestFile = await createFileEntry(options.output);
+    await writeJson(manifestFile, manifest);
+    return manifest;
+  } finally {
+    await document.closeWithoutSaving();
+  }
+}
+
+async function findNextCommand() {
+  const jobs = await getEntry(TOOLKIT_ROOT + "/jobs");
+  const folders = await jobs.getEntries();
+  let selectedFile = null;
+  let selectedCommand = null;
+  for (const folder of folders) {
+    if (!folder.isFolder) continue;
+    let commands;
+    try {
+      commands = await folder.getEntry("adobe/commands");
+    } catch (_) {
+      continue;
+    }
+    const files = await commands.getEntries();
+    for (const file of files) {
+      if (!file.isFile || !file.name.toLowerCase().endsWith(".json")) continue;
+      const candidate = await readJson(file);
+      if (candidate.app !== "photoshop" || candidate.state !== "queued") continue;
+      if (!selectedCommand || String(candidate.createdAt) > String(selectedCommand.createdAt)) {
+        selectedFile = file;
+        selectedCommand = candidate;
+      }
+    }
+  }
+  return { file: selectedFile, command: selectedCommand };
+}
+
+async function consumeNext() {
+  const next = await findNextCommand();
+  if (!next.file || !next.command) return { state: "empty" };
+  try {
+    const data = next.command.operation === "import-svg" ? await importSvg(next.command) :
+      next.command.operation === "separate-objects" ? await separateObjects(next.command) : null;
+    if (!data) throw new Error("Unsupported Photoshop operation: " + next.command.operation);
+    return finish(next.file, next.command, "completed", data, null);
+  } catch (error) {
+    return finish(next.file, next.command, "failed", {}, String(error));
+  }
+}
+
+consumeNext().catch(async (error) => {
+  try {
+    const diagnostic = await fs.createEntryWithUrl(fileUrl(TOOLKIT_ROOT + "/adapters/adobe/photoshop/last-error.txt"), { overwrite: true });
+    await diagnostic.write(timestamp() + "\n" + String(error));
+  } catch (_) {}
+  throw error;
+});

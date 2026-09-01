@@ -1,0 +1,14 @@
+{
+  "sessionId": "offline-demo",
+  "host": null,
+  "source": "fixture",
+  "document": { "name": "board-demo", "width": 1200, "height": 800 },
+  "selection": { "name": "headline", "kind": "text", "text": "Explore the visual space" },
+  "layers": [
+    { "id": "layer-1", "name": "headline", "kind": "text", "bounds": { "x": 60, "y": 50, "width": 400, "height": 90 } },
+    { "id": "layer-2", "name": "visual-anchor", "kind": "image", "bounds": { "left": 700, "top": 180, "right": 1120, "bottom": 620 } }
+  ],
+  "palette": ["#102a43", "#f26b38"],
+  "occupiedRegions": [],
+  "safeRegions": []
+}

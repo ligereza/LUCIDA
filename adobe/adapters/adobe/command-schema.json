@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Toolkit Adobe Command",
+  "type": "object",
+  "required": ["id", "app", "operation", "state", "createdAt"],
+  "properties": {
+    "id": { "type": "string" },
+    "app": { "enum": ["photoshop", "illustrator", "after-effects", "premiere"] },
+    "operation": { "type": "string", "minLength": 1 },
+    "input": { "type": ["string", "null"] },
+    "options": { "type": "object" },
+    "createdAt": { "type": "string" },
+    "state": { "enum": ["queued", "running", "completed", "failed"] }
+  },
+  "additionalProperties": false
+}

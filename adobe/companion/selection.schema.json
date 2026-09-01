@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://context-shelf.local/schemas/checked-selection.json",
+  "title": "Context Shelf checked selection",
+  "description": "Selecciones de recursos guardadas por documento y lámina.",
+  "type": "object",
+  "required": ["schemaVersion", "updatedAt", "documents"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "updatedAt": { "type": ["string", "null"], "format": "date-time" },
+    "documents": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["slides"],
+        "properties": {
+          "documentId": { "type": ["string", "null"] },
+          "documentName": { "type": ["string", "null"] },
+          "documentPath": { "type": ["string", "null"] },
+          "slides": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["label", "checkedAssets", "updatedAt"],
+              "properties": {
+                "label": { "type": "string" },
+                "contextHash": { "type": ["string", "null"] },
+                "checkedAssets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["assetId", "provider", "label", "checkedAt"],
+                    "properties": {
+                      "assetId": { "type": "string", "minLength": 1 },
+                      "provider": { "type": "string", "minLength": 1 },
+                      "id": { "type": ["string", "null"] },
+                      "file": { "type": ["string", "null"] },
+                      "label": { "type": "string" },
+                      "format": { "type": ["string", "null"] },
+                      "width": { "type": ["number", "null"] },
+                      "height": { "type": ["number", "null"] },
+                      "local": { "type": "boolean" },
+                      "previewUrl": { "type": ["string", "null"] },
+                      "license": {},
+                      "checkedAt": { "type": "string", "format": "date-time" }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "updatedAt": { "type": ["string", "null"], "format": "date-time" }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

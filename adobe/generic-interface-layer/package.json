@@ -1,0 +1,12 @@
+{
+  "name": "generic-interface-layer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first generic context, proposal and explicit-action layer.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "smoke": "node tests/smoke-offline.mjs"
+  }
+}

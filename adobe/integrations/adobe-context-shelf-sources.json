@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "name": "adobe-context-shelf-reference-sources",
+  "fetchedAt": "2026-08-28",
+  "downloadRoot": "C:/IA/svg/_downloads/adobe-context-shelf",
+  "policy": {
+    "runtimeDependencies": false,
+    "referenceSnapshots": true,
+    "auditBeforeBundling": true,
+    "notes": "Snapshots are ignored by the workspace Git repository. Copy code into production only after reviewing license, host compatibility and security."
+  },
+  "sources": [
+    {
+      "id": "adobe-uxp-photoshop-plugin-samples",
+      "repository": "https://github.com/AdobeDocs/uxp-photoshop-plugin-samples",
+      "localPath": "uxp-photoshop-plugin-samples",
+      "commit": "d937f1a36f3a2149a92c3f5af56181a3caaae036",
+      "license": "MIT",
+      "role": "official Photoshop UXP APIs, WebSocket, events, layer operations and Electron desktop-helper pattern",
+      "selectedPaths": [
+        "desktop-helper-sample",
+        "io-websocket-example",
+        "layer-creation-js-sample",
+        "direct-action-js-sample",
+        "typescript-webpack-sample",
+        "ui-react-starter"
+      ],
+      "adopt": "Use desktop-helper and contract patterns; do not copy arbitrary command execution."
+    },
+    {
+      "id": "adobe-cep-samples",
+      "repository": "https://github.com/Adobe-CEP/Samples",
+      "localPath": "cep-samples",
+      "commit": "e4946b73ac1e566dced8e95dba10811c31036927",
+      "license": "MIT",
+      "role": "official legacy-compatible HTML panel and ExtendScript bridge examples",
+      "selectedPaths": [
+        "AfterEffectsPanel",
+        "PProPanel",
+        "PhotoshopEvents",
+        "Websocket",
+        "UISamples"
+      ],
+      "adopt": "Use host bridge and event patterns; never expose the sample's browser-driven arbitrary ExtendScript surface."
+    },
+    {
+      "id": "bolt-uxp",
+      "repository": "https://github.com/hyperbrew/bolt-uxp",
+      "localPath": "bolt-uxp",
+      "commit": "e9eaa7d7a031f2ea546c489a106be01638e4e481",
+      "license": "MIT",
+      "role": "optional UXP TypeScript/Vite/build and CCX packaging boilerplate",
+      "adopt": "Evaluate as the Photoshop/Premiere UXP build shell after the protocol works in the official sample."
+    },
+    {
+      "id": "shapearator",
+      "repository": "https://github.com/tsevis/shapearator",
+      "localPath": "shapearator",
+      "commit": "5f880188412eb4ce97f0c9516216f5fbf1988681",
+      "license": "MIT",
+      "role": "SVG/PNG sheet extraction, palette metadata, manifests and optional local VLM naming",
+      "adopt": "Use as an offline preprocessing tool or implementation reference; do not make the runtime depend on Inkscape, Potrace or Ollama initially."
+    },
+    {
+      "id": "i0",
+      "repository": "https://github.com/marcoripa96/i0",
+      "localPath": "i0",
+      "commit": "f2d30130484fa2321bccca2de2e14f63f3dcdbfe",
+      "license": "MIT",
+      "role": "icon catalog schema, FTS5 plus vector ranking, license filters and batch retrieval",
+      "adopt": "Borrow schema and ranking ideas; do not bring its Next.js/Turso/Gemini stack into the local toolkit without a measured need."
+    }
+  ]
+}

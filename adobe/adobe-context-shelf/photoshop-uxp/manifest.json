@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 4,
+  "id": "com.lucida.adobe.context-shelf.photoshop",
+  "name": "LUCIDA Context Shelf Photoshop",
+  "version": "0.1.0",
+  "main": "index.html",
+  "host": [{ "app": "PS", "minVersion": "23.0.0" }],
+  "requiredPermissions": {
+    "localFileSystem": "fullAccess",
+    "network": { "domains": ["http://127.0.0.1:47921"] }
+  },
+  "entrypoints": [{
+    "type": "panel",
+    "id": "contextShelf",
+    "label": { "default": "LUCIDA Context Shelf" },
+    "minimumSize": { "width": 260, "height": 180 },
+    "maximumSize": { "width": 1000, "height": 1200 },
+    "preferredDockedSize": { "width": 320, "height": 420 },
+    "preferredFloatingSize": { "width": 360, "height": 480 }
+  }]
+}

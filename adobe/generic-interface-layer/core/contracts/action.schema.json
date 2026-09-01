@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://generic-interface-layer.local/schemas/action/v1",
+  "title": "Explicit action envelope",
+  "type": "object",
+  "required": ["schemaVersion", "actionId", "idempotencyKey", "type", "state", "origin", "destination", "permissions", "risk", "payload"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "actionId": { "type": "string" },
+    "idempotencyKey": { "type": "string" },
+    "type": { "type": "string", "pattern": "^[a-z0-9._-]+$" },
+    "state": { "enum": ["proposed", "authorized", "running", "completed", "failed", "cancelled", "rolled-back"] },
+    "origin": { "type": "object" },
+    "destination": { "type": "object" },
+    "permissions": { "type": "array", "items": { "type": "string" } },
+    "risk": { "type": "object" },
+    "payload": { "type": "object" },
+    "rollback": { "type": "object" },
+    "approval": { "type": ["object", "null"] }
+  },
+  "additionalProperties": true
+}

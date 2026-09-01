@@ -1,0 +1,31 @@
+{
+  "bundle": "GDKB_0_6_1_COMPLETE",
+  "description": "Complete accumulated GDKB 0.6.1 artifacts produced in this conversation.",
+  "contents": [
+    {
+      "file": "gdkb_v0_6_1_core.zip",
+      "bytes": 5491,
+      "sha256": "74f4fca3a352b4bbde3faebc1d1d087e826127a79ea92c44dcf02ad38ef11f9e"
+    },
+    {
+      "file": "gdkb_v0_6_1_import_engine.zip",
+      "bytes": 5435,
+      "sha256": "a96a18fae74bb721979abe62624bc93c16f2037eb6b3bdf10b91fca891fb17a9"
+    },
+    {
+      "file": "gdkb_v0_6_1_identity_evidence_restructure.zip",
+      "bytes": 9936,
+      "sha256": "4674cc1ffeccae74ad9f5ce6a6a10918271b64654cefb6962a3217be078d7078"
+    },
+    {
+      "file": "gdkb_v0_6_1_event_state_engine.zip",
+      "bytes": 6086,
+      "sha256": "eaba55f0910e31b8b430ce8499ad967cc69ac77ff4036c62b99e58f150175b6c"
+    },
+    {
+      "file": "a_high_resolution_infographic_diagram_on_a_white_b.png",
+      "bytes": 2225812,
+      "sha256": "e0d0ff5cf70d02e27863cd0648512f6f95a0704e45c8edd38d5fc87007879016"
+    }
+  ]
+}

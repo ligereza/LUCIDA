@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "project": "CHEMSEX",
+  "pending": [
+    {
+      "disposition": "excluded-group",
+      "source": "agent-toolkit/projects/chemsex/context-shelf-library/01-generated/01-selected-icons",
+      "count": 24,
+      "reason": "selected third-party icons; public source/license exists but they are not Codex-generated"
+    },
+    {
+      "disposition": "excluded-group",
+      "source": "agent-toolkit/projects/chemsex/context-shelf-library/01-generated/03-editable-previews",
+      "count": 3,
+      "reason": "all-slides preview has no reliable single-slide assignment"
+    },
+    {
+      "disposition": "excluded-group",
+      "source": "agent-toolkit/projects/chemsex/context-shelf-library/01-generated/04-history",
+      "count": 258,
+      "reason": "historical resources originate from rd_database_complete and are not verified as Codex-generated"
+    },
+    {
+      "disposition": "excluded-group",
+      "source": "agent-toolkit/projects/chemsex/assets",
+      "count": 24,
+      "reason": "project assets are external/public library resources, not Codex-generated"
+    },
+    {
+      "disposition": "excluded-group",
+      "source": "rd_database_complete/assets/generated_icons",
+      "count": 96,
+      "reason": "origin is not identified as Codex-generated; excluded to avoid copying private/third-party corpus"
+    },
+    {
+      "disposition": "excluded-group",
+      "source": "_tmp_chemsex_render",
+      "count": 3,
+      "reason": "temporary render output has no reliable source/provenance or slide assignment"
+    }
+  ]
+}

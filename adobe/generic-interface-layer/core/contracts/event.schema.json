@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://generic-interface-layer.local/schemas/event/v1",
+  "title": "Replayable event",
+  "type": "object",
+  "required": ["schemaVersion", "sequence", "eventId", "type", "payload", "previousHash", "eventHash"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "eventId": { "type": "string" },
+    "type": { "type": "string" },
+    "payload": { "type": "object" },
+    "timestamp": { "type": ["string", "null"] },
+    "previousHash": { "type": ["string", "null"] },
+    "eventHash": { "type": "string" }
+  },
+  "additionalProperties": false
+}

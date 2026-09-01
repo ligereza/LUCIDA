@@ -1,0 +1,454 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "id": "job.create",
+      "status": "implemented",
+      "description": "Create an isolated job workspace.",
+      "entrypoint": "src/jobs.mjs",
+      "input": { "name": "string", "request": "object" },
+      "output": { "jobId": "string", "directory": "path" }
+    },
+    {
+      "id": "svg.create",
+      "status": "implemented",
+      "description": "Create a deterministic SVG from a small scene specification.",
+      "entrypoint": "src/tools/svg.mjs",
+      "input": { "width": "number", "height": "number", "elements": "array" },
+      "output": { "svg": "path" }
+    },
+    {
+      "id": "svg.embed-image",
+      "status": "implemented",
+      "description": "Embed a raster image as an SVG image element.",
+      "entrypoint": "src/tools/svg.mjs",
+      "input": { "image": "path", "width": "number", "height": "number" },
+      "output": { "svg": "path" }
+    },
+    {
+      "id": "svg.rasterize",
+      "status": "implemented",
+      "description": "Rasterize a complex SVG with CairoSVG while preserving filters, text and gradients for exact visual fallback.",
+      "entrypoint": "src/tools/svg.mjs",
+      "input": { "input": "svg path", "width": "number", "background": "color|null" },
+      "output": { "png": "path" }
+    },
+    {
+      "id": "svg.vectorize",
+      "status": "implemented",
+      "description": "Convert a raster image into deterministic SVG paths.",
+      "entrypoint": "src/tools/vectorize.mjs",
+      "input": { "image": "path", "maxSize": "number", "threshold": "number" },
+      "output": { "svg": "path", "paths": "number" }
+    },
+    {
+      "id": "svg.animate",
+      "status": "implemented",
+      "description": "Add a reusable CSS animation to an SVG.",
+      "entrypoint": "src/tools/svg.mjs",
+      "input": { "svg": "path", "animation": "pulse|float|rotate", "durationMs": "number" },
+      "output": { "svg": "path" }
+    },
+    {
+      "id": "svg.particles",
+      "status": "implemented",
+      "description": "Generate deterministic animated particles in SVG.",
+      "entrypoint": "src/tools/svg.mjs",
+      "input": { "width": "number", "height": "number", "count": "number", "seed": "number" },
+      "output": { "svg": "path" }
+    },
+    {
+      "id": "svg.validate",
+      "status": "implemented",
+      "description": "Validate SVG/XML structure, embedded resources and accessibility metadata.",
+      "entrypoint": "src/tools/svg.mjs",
+      "input": { "svg": "path" },
+      "output": { "valid": "boolean", "errors": "array", "warnings": "array" }
+    },
+    {
+      "id": "svg.preview",
+      "status": "implemented",
+      "description": "Create a self-contained HTML preview for an SVG.",
+      "entrypoint": "src/tools/svg.mjs",
+      "input": { "svg": "path" },
+      "output": { "html": "path" }
+    },
+    {
+      "id": "svg.thi-ng-geom",
+      "status": "implemented",
+      "description": "Generate SVG from declarative circles and rectangles using the local thi.ng geometry source.",
+      "entrypoint": "src/tools/source-runtime.mjs",
+      "input": { "spec": "geometry JSON path", "width": "number", "height": "number", "shapes": "array" },
+      "output": { "svg": "path", "engine": "thi-ng-geom-local", "shapes": "number" }
+    },
+    {
+      "id": "data.chart",
+      "status": "implemented",
+      "description": "Create a deterministic bar chart SVG from JSON or CSV data.",
+      "entrypoint": "src/tools/chart.mjs",
+      "input": { "input": "json|csv path", "x": "string", "y": "string" },
+      "output": { "svg": "path", "rows": "number" }
+    },
+    {
+      "id": "data.animate",
+      "status": "implemented",
+      "description": "Animate bars in a generated chart SVG with reduced-motion support.",
+      "entrypoint": "src/tools/chart.mjs",
+      "input": { "svg": "path", "durationMs": "number" },
+      "output": { "svg": "path" }
+    },
+    {
+      "id": "data.d3-chart",
+      "status": "implemented",
+      "description": "Create a deterministic SVG chart using the local D3 source for scales and numeric domains.",
+      "entrypoint": "src/tools/d3.mjs",
+      "input": { "input": "json|csv path", "x": "string", "y": "string", "width": "number", "height": "number" },
+      "output": { "svg": "path", "engine": "d3-local", "rows": "number" }
+    },
+    {
+      "id": "scene3d.create",
+      "status": "implemented",
+      "description": "Create an editable browser preview scene from the local three.js build and a declarative object manifest.",
+      "entrypoint": "src/tools/source-runtime.mjs",
+      "input": { "spec": "scene JSON path", "objects": "array", "canvas": "object" },
+      "output": { "html": "path", "threeModule": "path", "engine": "three-local", "objectCount": "number" }
+    },
+    {
+      "id": "math.stdlib-stats",
+      "status": "implemented",
+      "description": "Compute mean, variance and standard deviation through local stdlib statistical modules.",
+      "entrypoint": "src/tools/source-runtime.mjs",
+      "input": { "values": "number[]|json path", "correction": "number" },
+      "output": { "mean": "number", "variance": "number", "standardDeviation": "number", "engine": "stdlib-local" }
+    },
+    {
+      "id": "workflow.rxjs-events",
+      "status": "implemented",
+      "description": "Process a declarative event timeline through a local RxJS Subject and return an auditable aggregation.",
+      "entrypoint": "src/tools/source-runtime.mjs",
+      "input": { "events": "array|json path" },
+      "output": { "received": "array", "byType": "object", "completed": "boolean", "engine": "rxjs-local" }
+    },
+    {
+      "id": "workflow.effect-retry",
+      "status": "implemented",
+      "description": "Run a bounded retry policy through the local Effect runtime without executing arbitrary user code.",
+      "entrypoint": "src/tools/source-runtime.mjs",
+      "input": { "failuresBeforeSuccess": "number", "maxRetries": "number", "value": "json" },
+      "output": { "status": "succeeded|failed", "attempts": "number", "engine": "effect-local" }
+    },
+    {
+      "id": "image.split",
+      "status": "implemented",
+      "description": "Split a raster image or sprite sheet into reusable PNG tiles and an asset manifest.",
+      "entrypoint": "src/tools/image.mjs",
+      "input": { "input": "image path", "rows": "number", "columns": "number", "mode": "grid|horizontal|vertical", "overlap": "number" },
+      "output": { "manifest": "json path", "files": "array" }
+    },
+    {
+      "id": "image.extract-checkerboard-matte",
+      "status": "implemented",
+      "description": "Extract transparent icon PNGs from baked checkerboard mattes by detecting their repeated grid, using it as background seeds, and refining the alpha with GrabCut. Bright or neutral pixels are never erased by a global color threshold.",
+      "entrypoint": "src/tools/image.mjs|adapters/image/remove_background.py",
+      "input": { "input": "image path", "rows": "number", "columns": "number", "lightThreshold": "number (deprecated compatibility)", "neutralThreshold": "number (deprecated compatibility)", "orphanArea": "number", "grabcutIterations": "number", "padding": "number" },
+      "output": { "manifest": "json path", "files": "array", "alpha": "true" }
+    },
+    {
+      "id": "blender.run",
+      "status": "implemented",
+      "description": "Run an allowlisted Blender Python adapter in background mode.",
+      "entrypoint": "src/adapters/blender.mjs",
+      "input": { "operation": "create-scene|render|import-svg|import-glb|export-glb|layout-scene", "spec": "path", "output": "path" },
+      "output": { "files": "array", "stdout": "string", "formats": "blend|glb|png" }
+    },
+    {
+      "id": "blender.create-scene",
+      "status": "implemented",
+      "description": "Create a Blender scene from a JSON scene specification.",
+      "entrypoint": "src/adapters/blender.mjs",
+      "input": { "spec": "scene spec path", "output": "blend path" },
+      "output": { "files": "array" }
+    },
+    {
+      "id": "blender.render",
+      "status": "implemented",
+      "description": "Create and render a Blender scene from a JSON specification.",
+      "entrypoint": "src/adapters/blender.mjs",
+      "input": { "spec": "scene spec path", "output": "blend path", "renderOutput": "png path" },
+      "output": { "files": "array" }
+    },
+    {
+      "id": "blender.import-svg",
+      "status": "implemented",
+      "description": "Import an SVG into Blender and optionally render a preview.",
+      "entrypoint": "src/adapters/blender.mjs",
+      "input": { "spec": "svg path", "output": "blend path", "renderOutput": "png path" },
+      "output": { "files": "array" }
+    },
+    {
+      "id": "blender.layout-scene",
+      "status": "implemented",
+      "description": "Build an editable Geometry Nodes overview from a storyboard and place referenced SVG/raster assets into the matching slide zones.",
+      "entrypoint": "src/adapters/blender.mjs",
+      "input": { "spec": "storyboard or manifest path", "output": "blend path", "renderOutput": "png path|null" },
+      "output": { "files": "array" }
+    },
+    {
+      "id": "blender.import-glb",
+      "status": "implemented",
+      "description": "Import a GLB scene into a Blender file with an optional preview render.",
+      "entrypoint": "src/adapters/blender.mjs",
+      "input": { "glb": "path", "output": "blend path", "renderOutput": "path|null" },
+      "output": { "files": "array" }
+    },
+    {
+      "id": "blender.export-glb",
+      "status": "implemented",
+      "description": "Export a JSON scene specification as a GLB asset.",
+      "entrypoint": "src/adapters/blender.mjs",
+      "input": { "spec": "scene spec path", "output": "glb path" },
+      "output": { "files": "array" }
+    },
+    {
+      "id": "adobe.enqueue",
+      "status": "implemented",
+      "description": "Create a command envelope for an Adobe host adapter.",
+      "entrypoint": "src/adapters/adobe.mjs",
+      "input": { "app": "photoshop|illustrator|after-effects|premiere", "operation": "string", "input": "object" },
+      "output": { "command": "path", "status": "queued" }
+    },
+    {
+      "id": "photoshop.separate-objects",
+      "status": "implemented-unverified",
+      "description": "Queue Photoshop object separation into masked PSD layers, cropped PNG assets and a placement manifest.",
+      "entrypoint": "src/dispatcher.mjs|adapters/adobe/photoshop/agent.psjs|adapters/adobe/photoshop/agent.jsx",
+      "input": { "input": "raster or SVG path", "mode": "subject|regions", "objects": "named bounds array|null", "selectionMode": "object|rectangle", "output": "manifest path", "psdOutput": "PSD path|null" },
+      "output": { "manifest": "JSON path", "assets": "cropped PNG paths", "psd": "PSD path|null", "status": "waiting for Photoshop host" }
+    },
+    {
+      "id": "adobe.status",
+      "status": "implemented",
+      "description": "Read result envelopes written by an Adobe host adapter.",
+      "entrypoint": "src/adapters/adobe.mjs",
+      "input": { "jobId": "string" },
+      "output": { "results": "array" }
+    },
+    {
+      "id": "adobe.consume",
+      "status": "implemented-unverified",
+      "description": "Consume one queued command inside an Adobe host-specific script.",
+      "entrypoint": "adapters/adobe/{app}/agent.jsx|agent.psjs",
+      "input": { "app": "photoshop|illustrator|after-effects|premiere", "jobId": "string" },
+      "output": { "result": "json", "state": "completed|failed|empty" }
+    },
+    {
+      "id": "adobe.after-effects-render",
+      "status": "implemented-unverified",
+      "description": "Render an existing After Effects project through aerender.exe.",
+      "entrypoint": "src/adapters/after-effects.mjs",
+      "input": { "project": "aep path", "output": "path", "composition": "string" },
+      "output": { "output": "path", "stdout": "string" }
+    },
+    {
+      "id": "gdkb.health",
+      "status": "implemented",
+      "description": "Report the integrated GDKB 0.6.1 runtime and its operations.",
+      "entrypoint": "adapters/gdkb/bridge.py",
+      "input": {},
+      "output": { "version": "string", "operations": "array" }
+    },
+    {
+      "id": "gdkb.normalize",
+      "status": "implemented",
+      "description": "Normalize a name deterministically without overwriting the original value.",
+      "entrypoint": "adapters/gdkb/bridge.py",
+      "input": { "value": "string" },
+      "output": { "value": "string", "normalized": "string" }
+    },
+    {
+      "id": "gdkb.resolve",
+      "status": "implemented",
+      "description": "Resolve candidates conservatively; fuzzy similarity never auto-confirms an identity.",
+      "entrypoint": "adapters/gdkb/bridge.py",
+      "input": { "query": "string", "candidates": "array" },
+      "output": { "decision": "confirmed|candidate|needs_review", "candidates": "array", "reason": "string" }
+    },
+    {
+      "id": "gdkb.import",
+      "status": "implemented",
+      "description": "Canonicalize fixture or API records with deterministic payload hashes and derived normalized names.",
+      "entrypoint": "adapters/gdkb/bridge.py",
+      "input": { "records": "array", "input": "jsonl path" },
+      "output": { "count": "number", "records": "array", "json": "path" }
+    },
+    {
+      "id": "gdkb.replay",
+      "status": "implemented",
+      "description": "Rebuild event-sourced state deterministically and optionally emit a snapshot and diff.",
+      "entrypoint": "adapters/gdkb/bridge.py",
+      "input": { "events": "array", "input": "json path", "snapshotId": "string|null", "compareState": "object|null" },
+      "output": { "state": "object", "snapshot": "object|null", "json": "path" }
+    },
+    {
+      "id": "gdkb.merge-event",
+      "status": "implemented",
+      "description": "Create an auditable, evidence-backed non-destructive merge event.",
+      "entrypoint": "adapters/gdkb/bridge.py",
+      "input": { "source_entity_id": "string", "target_entity_id": "string", "reason": "string", "evidence_ids": "array" },
+      "output": { "event_type": "string", "entity_id": "string", "target_entity_id": "string", "payload": "object" }
+    },
+    {
+      "id": "asset.search",
+      "status": "implemented",
+      "description": "Resolve a concept through PubChem, ChEBI and OLS, then search editable SVG candidates in Iconify and Bioicons.",
+      "entrypoint": "src/tools/asset-search.mjs",
+      "input": { "query": "string", "terms": "array", "providers": "visual|semantic|all|array", "limit": "number", "ancla": "string|null", "role": "string|null" },
+      "output": { "search": "json path", "semantic.results": "array", "visual.results": "array", "visual.suggestedQueries": "array", "errors": "array" }
+    },
+    {
+      "id": "asset.fetch",
+      "status": "implemented",
+      "description": "Download one editable SVG from Iconify or Bioicons while preserving its source URL and provider id.",
+      "entrypoint": "src/tools/asset-search.mjs",
+      "input": { "provider": "iconify|bioicons", "id": "string", "output": "svg path" },
+      "output": { "output": "svg path", "url": "string", "editable": "boolean" }
+    },
+    {
+      "id": "asset.select",
+      "status": "implemented",
+      "description": "Materialize selected visual assets and write a provenance manifest linked to exact text, ancla and Illustrator import.",
+      "entrypoint": "src/tools/asset-search.mjs",
+      "input": { "selection": "object|selectionPath", "selected": "array of provider/id records", "ancla": "string|null", "exactText": "string|null", "output": "json path" },
+      "output": { "manifest": "json path", "assets": "array", "files": "array" }
+    },
+    {
+      "id": "asset.catalog-index",
+      "status": "implemented",
+      "description": "Index authored/generated local SVG, PNG and raster resources with searchable names and dimensions. Downloaded public icon libraries are intentionally excluded from the default catalog.",
+      "entrypoint": "src/tools/local-catalog.mjs",
+      "input": { "roots": "array|null", "maxFiles": "number|null", "refresh": "boolean|null" },
+      "output": { "cachePath": "path", "files": "number", "reused": "number", "byFormat": "object", "byKind": "object" }
+    },
+    {
+      "id": "asset.search-local",
+      "status": "implemented",
+      "description": "Search the local Context Shelf catalog first, returning directly insertable file paths and match reasons.",
+      "entrypoint": "src/tools/local-catalog.mjs",
+      "input": { "query": "string", "terms": "array", "preferredTerms": "array", "excludePatterns": "array", "limit": "number", "refresh": "boolean" },
+      "output": { "results": "array", "total": "number", "catalogGeneratedAt": "string|null" }
+    },
+    {
+      "id": "asset.catalog-groups",
+      "status": "implemented",
+      "description": "List local catalog groups by file size, dimensions, aspect, format, kind, detected theme and sampled color.",
+      "entrypoint": "src/tools/catalog-groups.mjs",
+      "input": { "refresh": "boolean" },
+      "output": { "total": "number", "groups": "object", "generatedAt": "string" }
+    },
+    {
+      "id": "asset.catalog-assets",
+      "status": "implemented",
+      "description": "Page through local assets filtered by a catalog group or free-text query for review and browsing.",
+      "entrypoint": "src/tools/catalog-groups.mjs",
+      "input": { "type": "string|null", "key": "string|null", "query": "string", "page": "number", "pageSize": "number" },
+      "output": { "results": "array", "total": "number", "page": "number", "pageSize": "number" }
+    },
+    {
+      "id": "asset.semantic-status",
+      "status": "implemented",
+      "description": "Report whether the pinned Apple MobileCLIP checkpoint, Python runtime, CUDA and local vector index are ready.",
+      "entrypoint": "src/tools/mobileclip.mjs",
+      "input": { "modelName": "string|null" },
+      "output": { "ready": "boolean", "modelFile": "object", "code": "object", "runtime": "object" }
+    },
+    {
+      "id": "asset.semantic-index",
+      "status": "implemented",
+      "description": "Generate or incrementally update a local float32 MobileCLIP embedding index for SVG and raster resources.",
+      "entrypoint": "src/tools/mobileclip.mjs",
+      "input": { "modelName": "string|null", "roots": "array|null", "refresh": "boolean|null", "batchSize": "number|null" },
+      "output": { "indexPath": "path", "vectorsFile": "path", "total": "number", "encoded": "number", "reused": "number", "failed": "array" }
+    },
+    {
+      "id": "asset.semantic-search",
+      "status": "implemented",
+      "description": "Search the local MobileCLIP index by visual meaning and return directly insertable asset paths.",
+      "entrypoint": "src/tools/mobileclip.mjs",
+      "input": { "query": "string", "terms": "array", "modelName": "string|null", "limit": "number|null" },
+      "output": { "ready": "boolean", "results": "array", "queryVariants": "array|null", "device": "string|null" }
+    },
+    {
+      "id": "context.analyze",
+      "status": "implemented",
+      "description": "Detect semantic topics, visual roles, occupied regions, blank areas, placement candidates and available palette data from an Adobe context snapshot.",
+      "entrypoint": "src/tools/context-analysis.mjs",
+      "input": { "context": "object" },
+      "output": { "content": "object", "layout": "object", "palette": "object", "suggestions": "array" }
+    },
+    {
+      "id": "workflow.image-to-svg-preview",
+      "status": "implemented",
+      "description": "Stage an image, embed or vectorize it, animate it and create a browser preview.",
+      "entrypoint": "src/orchestrator.mjs",
+      "input": { "image": "path", "animation": "pulse|float|rotate", "vectorize": "boolean", "blender": "boolean", "adobeApp": "photoshop|illustrator|after-effects|premiere|null" },
+      "output": { "jobId": "string", "files": "array" }
+    },
+    {
+      "id": "workflow.image-to-svg-blender-illustrator",
+      "status": "implemented",
+      "description": "Vectorize and animate an image, render the SVG in Blender, and queue the vector artwork for Illustrator.",
+      "entrypoint": "src/orchestrator.mjs",
+      "input": { "image": "path", "animation": "pulse|float|rotate", "vectorize": "boolean" },
+      "output": { "jobId": "string", "files": "array", "illustrator": "waiting-for-host|completed|failed" }
+    },
+    {
+      "id": "integration.sources",
+      "status": "implemented",
+      "description": "Inspect the local source inventory and report which libraries, host adapters and entrypoints are actually present.",
+      "entrypoint": "src/tools/integration.mjs",
+      "input": {},
+      "output": { "sources": "array", "metadata": "object", "entrypointStatus": "array" }
+    },
+    {
+      "id": "integration.scripting-map",
+      "status": "implemented",
+      "description": "Return the machine-readable contracts and scripting surfaces for document, SVG, Adobe and Blender stages.",
+      "entrypoint": "src/tools/integration.mjs",
+      "input": {},
+      "output": { "contracts": "object", "surfaces": "array", "sourceRoles": "object" }
+    },
+    {
+      "id": "integration.validate",
+      "status": "implemented",
+      "description": "Validate source roots, declared entrypoints, scripts and cross-application contracts without scanning whole repositories.",
+      "entrypoint": "src/tools/integration.mjs",
+      "input": {},
+      "output": { "ok": "boolean", "issues": "array", "checked": "array" }
+    },
+    {
+      "id": "integration.plan",
+      "status": "implemented",
+      "description": "Build a reusable multi-application execution plan with Adobe separation, Geometry Nodes composition and Cycles rendering controls.",
+      "entrypoint": "src/tools/integration.mjs",
+      "input": { "source": "string|null", "storyboard": "string|null", "useAdobe": "boolean", "useGeometryNodes": "boolean", "useCycles": "boolean" },
+      "output": { "status": "planned", "stages": "array", "contracts": "array", "validation": "object" }
+    },
+    {
+      "id": "workflow.document-to-animated-post",
+      "status": "implemented",
+      "description": "Extract a document, divide it into visual parts, generate animated SVG scenes, and assemble a browser-ready post.",
+      "entrypoint": "src/document-workflow.mjs",
+      "input": { "document": "pdf|docx|html|txt path", "title": "string|null", "maxParts": "number", "minChars": "number", "splitBy": "auto|pages|blocks", "splitPlan": "json path|null", "designPath": "design json path|null", "design": "object|null", "blender": "boolean", "adobeApp": "illustrator|photoshop|null" },
+      "output": { "jobId": "string", "files": "array", "parts": "number", "format": "string", "state": "completed|waiting-for-adobe" },
+      "notes": "PDF input accepts pdfProvider=local|adobe|auto; Adobe mode uses PDF Services credentials from environment variables or an explicit credential JSON path."
+    },
+    {
+      "id": "workflow.multi-app-composition",
+      "status": "implemented-unverified",
+      "description": "Stage a storyboard and assets, build an editable Blender Geometry Nodes/Cycles scene, and optionally queue Illustrator or Photoshop commands in the same job.",
+      "entrypoint": "src/multi-app-workflow.mjs",
+      "input": { "storyboard": "json path|object", "adobeApp": "photoshop|illustrator|null", "adobeOperation": "string", "adobeInput": "path|array|null", "render": "boolean" },
+      "output": { "jobId": "string", "integrationManifest": "path", "blend": "path", "render": "path|null", "state": "completed|waiting-for-adobe" }
+    }
+  ]
+}

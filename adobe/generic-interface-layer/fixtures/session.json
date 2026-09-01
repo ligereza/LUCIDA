@@ -1,0 +1,6 @@
+[
+  { "type": "context.received", "payload": { "context": { "contextId": "ctx-demo", "sessionId": "offline-demo" }, "analysis": { "analysisHash": "sha256:analysis-demo" } } },
+  { "type": "proposal.created", "payload": { "proposal": { "proposalId": "proposal-demo", "assetId": "asset-demo", "state": "proposed" } } },
+  { "type": "action.created", "payload": { "action": { "actionId": "action-demo", "state": "proposed", "type": "asset.insert" } } },
+  { "type": "action.updated", "payload": { "action": { "actionId": "action-demo", "state": "cancelled", "type": "asset.insert" } } }
+]

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.lucida/schemas/adobe-context-messages/v1",
+  "title": "Adobe Context Shelf messages",
+  "oneOf": [
+    {
+      "title": "Context update",
+      "type": "object",
+      "required": ["type", "context"],
+      "properties": {
+        "type": { "const": "context.update" },
+        "context": { "$ref": "context-schema.json" }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Insert request",
+      "type": "object",
+      "required": ["type", "sessionId", "asset"],
+      "properties": {
+        "type": { "const": "insert.request" },
+        "sessionId": { "type": "string" },
+        "asset": { "type": "object" },
+        "mode": { "enum": ["unitary", "layer-stack"] },
+        "placement": { "enum": ["safe-region", "cursor", "center"] },
+        "scale": { "type": ["string", "number"] },
+        "colorPolicy": { "enum": ["original", "palette", "monochrome"] }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

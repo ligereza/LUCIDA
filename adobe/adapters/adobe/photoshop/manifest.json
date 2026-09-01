@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 5,
+  "id": "com.lucida.adobe.photoshop",
+  "name": "Agent Toolkit Photoshop Adapter",
+  "version": "0.1.0",
+  "main": "agent.psjs",
+  "host": [
+    { "app": "PS", "minVersion": "22.0.0" }
+  ],
+  "requiredPermissions": {
+    "localFileSystem": "fullAccess"
+  }
+}

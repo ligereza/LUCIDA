@@ -1,0 +1,4 @@
+[
+  { "assetId": "asset-blue-circle", "path": "fixtures/blue-circle.svg", "label": "Blue circle", "format": "svg", "width": 256, "height": 256, "tags": ["shape", "calm"], "dominantColors": ["#102a43"], "sourceKind": "generated", "local": true },
+  { "assetId": "asset-orange-wave", "path": "fixtures/orange-wave.svg", "label": "Orange wave", "format": "svg", "width": 512, "height": 192, "tags": ["motion", "signal"], "dominantColors": ["#f26b38"], "sourceKind": "generated", "local": true }
+]

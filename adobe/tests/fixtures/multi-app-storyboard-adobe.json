@@ -1,0 +1,22 @@
+{
+  "canvas": { "width": 320, "height": 240, "resolution": 1, "unit": "px" },
+  "design": { "cyclesSamples": 4 },
+  "parts": [
+    {
+      "index": 0,
+      "theme": "integration-test",
+      "textBox": { "x": 0.08, "y": 0.1, "width": 0.38, "height": 0.5 },
+      "artBox": { "x": 0.55, "y": 0.16, "width": 0.32, "height": 0.58 }
+    }
+  ],
+  "assets": [
+    {
+      "id": "sample-svg",
+      "kind": "svg",
+      "file": "multi-app-asset.svg",
+      "singleSlide": true,
+      "placement": { "x": 0.55, "y": 0.16, "width": 0.32, "height": 0.58 }
+    }
+  ],
+  "render": { "mode": "slide", "slide": 0, "showGuides": false }
+}
