@@ -24,6 +24,26 @@ from .xio import ApplicationEvent, XioConsumerError, XioEventConsumer
 
 
 HOST_RESULT_STATUSES = ("accepted", "rejected", "unknown")
+HOST_RESULT_FIELDS = frozenset(
+    {
+        "contract_type",
+        "schema_version",
+        "status",
+        "reason",
+        "sequence",
+        "timestamp",
+        "source",
+        "event_id",
+        "provenance",
+        "proposal_ids",
+        "result_ids",
+        "overlay",
+        "mode",
+    }
+)
+HOST_RESULT_REQUIRED_FIELDS = frozenset(
+    {"status", "reason", "sequence", "timestamp", "source", "provenance", "mode"}
+)
 
 
 class HostContractError(ValueError):
@@ -74,6 +94,14 @@ def _safe_signal_details(value: Any) -> tuple[int | None, str | None, str | None
 
 
 def _safe_xio_details(value: Any) -> tuple[int | None, str | None, str | None, str | None, dict[str, Any]]:
+    if isinstance(value, ApplicationEvent):
+        return (
+            value.sequence,
+            value.source_timestamp,
+            value.source_app,
+            value.event_id,
+            value.trace_metadata(),
+        )
     if not isinstance(value, Mapping):
         return None, None, None, None, {}
     sequence = value.get("sequence") if isinstance(value.get("sequence"), int) else None
@@ -105,28 +133,20 @@ class HostResult:
     def from_dict(cls, value: Mapping[str, Any]) -> "HostResult":
         if not isinstance(value, Mapping):
             raise HostContractError("host result must be an object.")
+        for key in value:
+            _ascii_text(key, "host result key")
+        unexpected = sorted(set(value) - HOST_RESULT_FIELDS)
+        if unexpected:
+            raise HostContractError(f"host result has unsupported fields: {unexpected}.")
         if value.get("contract_type", "HostResult") != "HostResult":
             raise HostContractError("contract_type must be HostResult.")
         if value.get("schema_version", "0.1") != "0.1":
             raise HostContractError("schema_version must be 0.1.")
-        required = {
-            "status",
-            "reason",
-            "sequence",
-            "timestamp",
-            "source",
-            "event_id",
-            "provenance",
-            "proposal_ids",
-            "result_ids",
-            "overlay",
-            "mode",
-        }
-        missing = sorted(required - set(value))
+        missing = sorted(HOST_RESULT_REQUIRED_FIELDS - set(value))
         if missing:
             raise HostContractError(f"host result missing fields: {missing}.")
-        proposal_ids = value.get("proposal_ids")
-        result_ids = value.get("result_ids")
+        proposal_ids = value.get("proposal_ids", ())
+        result_ids = value.get("result_ids", ())
         if not isinstance(proposal_ids, (list, tuple)) or not all(
             isinstance(item, str) for item in proposal_ids
         ):
@@ -135,7 +155,10 @@ class HostResult:
             isinstance(item, str) for item in result_ids
         ):
             raise HostContractError("result_ids must be a list of strings.")
-        overlay = value.get("overlay")
+        provenance = value.get("provenance")
+        if not isinstance(provenance, Mapping):
+            raise HostContractError("provenance must be an object.")
+        overlay = value.get("overlay", {})
         if not isinstance(overlay, Mapping):
             raise HostContractError("overlay must be an object.")
         source = value.get("source")
@@ -147,7 +170,7 @@ class HostResult:
             timestamp=value.get("timestamp"),
             source=source,
             event_id=event_id,
-            provenance=value.get("provenance"),
+            provenance=dict(provenance),
             proposal_ids=tuple(proposal_ids),
             result_ids=tuple(result_ids),
             overlay=dict(overlay),

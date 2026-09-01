@@ -1,6 +1,11 @@
+import json
+
 import pytest
 
-from lucida.signals.host import HostContractError, HostResult
+from adapters.vj.contracts import VJEvent
+from adapters.vj.contracts.models import ContractError
+from lucida.replay.session import SignalEnvelope
+from lucida.signals.host import HostContractError, HostResult, HostSignalBoundary
 
 
 def _host_result(**overrides):
@@ -32,6 +37,29 @@ def test_host_result_round_trip_for_all_statuses(status):
     assert result.mode == "proposal_only"
 
 
+def test_host_result_round_trip_serialization_is_deterministic():
+    result = HostResult.from_dict(_host_result())
+    serialized = json.dumps(result.to_dict(), sort_keys=True, separators=(",", ":"))
+    restored = HostResult.from_dict(json.loads(serialized))
+
+    assert json.dumps(restored.to_dict(), sort_keys=True, separators=(",", ":")) == serialized
+
+
+def test_host_result_accepts_schema_optional_fields_when_omitted():
+    raw = _host_result()
+    raw.pop("event_id")
+    raw.pop("proposal_ids")
+    raw.pop("result_ids")
+    raw.pop("overlay")
+
+    result = HostResult.from_dict(raw)
+
+    assert result.event_id is None
+    assert result.proposal_ids == ()
+    assert result.result_ids == ()
+    assert result.overlay == {}
+
+
 def test_host_result_rejects_invalid_status_and_contract_metadata():
     with pytest.raises(HostContractError, match="Unknown host result status"):
         HostResult.from_dict(_host_result(status="executed"))
@@ -41,6 +69,26 @@ def test_host_result_rejects_invalid_status_and_contract_metadata():
 
     with pytest.raises(HostContractError, match="schema_version"):
         HostResult.from_dict(_host_result(schema_version="9.9"))
+
+    with pytest.raises(HostContractError, match="unsupported fields"):
+        HostResult.from_dict(_host_result(phase="unknown"))
+
+
+@pytest.mark.parametrize("payload", [None, [], "host-result"])
+def test_host_result_rejects_malformed_payload(payload):
+    with pytest.raises(HostContractError, match="object"):
+        HostResult.from_dict(payload)
+
+
+def test_host_result_rejects_missing_or_empty_reason():
+    raw = _host_result()
+    del raw["reason"]
+
+    with pytest.raises(HostContractError, match="missing fields"):
+        HostResult.from_dict(raw)
+
+    with pytest.raises(HostContractError, match="non-empty"):
+        HostResult.from_dict(_host_result(reason="  "))
 
 
 def test_host_result_rejects_execution_mode():
@@ -75,4 +123,56 @@ def test_host_result_requires_timezone_and_is_not_an_execution_command():
         HostResult.from_dict(_host_result(timestamp="2026-01-10T20:01:00"))
 
     result = HostResult.from_dict(_host_result())
+    assert not hasattr(result, "execute")
+
+
+def test_unknown_phase_becomes_a_rejected_auditable_host_result():
+    signal = SignalEnvelope.from_dict(
+        {
+            "envelope_id": "signal-001",
+            "event_id": "event-001",
+            "timestamp": "2026-01-10T20:01:00Z",
+            "sequence": 1,
+            "source": "host-test",
+            "address": "/lucida/instar/preflight",
+            "arguments": ["ready"],
+            "transport": "osc",
+        }
+    )
+    result = HostSignalBoundary("session-001").receive(
+        signal,
+        event={
+            "event_id": "event-001",
+            "timestamp": "2026-01-10T20:01:00Z",
+            "phase": "unknown",
+            "event_type": "phase.completed",
+            "payload": {},
+            "source": "host-test",
+        },
+    )
+
+    assert result.status == "rejected"
+    assert "phase" in result.reason
+    assert HostResult.from_dict(result.to_dict()) == result
+
+
+def test_vj_event_rejects_unknown_phase_before_host_result_creation():
+    with pytest.raises(ContractError, match="phase"):
+        VJEvent.from_dict(
+            {
+                "event_id": "event-001",
+                "timestamp": "2026-01-10T20:01:00Z",
+                "phase": "unknown",
+                "event_type": "phase.completed",
+                "payload": {},
+                "source": "host-test",
+            }
+        )
+
+
+def test_host_result_round_trip_does_not_create_an_execution_command():
+    result = HostResult.from_dict(_host_result(status="rejected"))
+
+    assert result.status == "rejected"
+    assert result.mode == "proposal_only"
     assert not hasattr(result, "execute")
