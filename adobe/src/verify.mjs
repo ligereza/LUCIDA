@@ -1,11 +1,11 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 import { TOOLKIT_ROOT, readJson } from "./utils.mjs"
-import { validateIntegration } from "./tools/integration.mjs"
+import { integrationSources, validateIntegration } from "./tools/integration.mjs"
 
-const requiredDirectories = ["tools", "skills", "adapters", "templates", "jobs", "memory", "logs", "scripts", "integrations", "adapters/gdkb/runtime/gdkb"]
-const requiredFiles = ["CAPABILITIES.md", "PROJECT-STATUS.md", "registry.json", "WEB-BRIDGE.md", "package.json", "adapters/gdkb/bridge.py", "integrations/gdkb/v0.6.1/BUNDLE_MANIFEST.json", "integrations/gdkb/v0.6.1/gdkb-architecture.png"]
-const sourceDirectories = ["umbrella", "d3", "three.js", "effect", "rxjs", "stdlib"]
+const requiredDirectories = ["generic-interface-layer", "companion", "adobe-context-shelf", "contracts", "adapters", "src", "tools", "tests", "docs", "ICONOS", "jobs", "logs", "scripts", "integrations", "adapters/gdkb/runtime/gdkb"]
+const requiredFiles = ["README.md", "registry.json", "package.json", "adapters/gdkb/bridge.py", "integrations/gdkb/v0.6.1/BUNDLE_MANIFEST.json", "integrations/tool-sources.json", "integrations/scripting-map.json", "ICONOS/CHEMSEX/manifest.json"]
+const optionalSourceDirectories = ["umbrella", "d3", "three.js", "effect", "rxjs", "stdlib"]
 
 async function exists(target) {
   try {
@@ -27,15 +27,12 @@ async function verify() {
     if (!(await exists(path.join(TOOLKIT_ROOT, entry)))) missing.push(entry)
   }
   const sourceRoot = path.dirname(TOOLKIT_ROOT)
-  for (const entry of sourceDirectories) {
-    if (!(await exists(path.join(sourceRoot, entry)))) missingSources.push(entry)
+  for (const entry of optionalSourceDirectories) {
+    if (!(await exists(path.join(sourceRoot, entry)))) warnings.push({ source: entry, message: "Optional external source is not bundled" })
   }
-  if (!(await exists(path.join(TOOLKIT_ROOT, "integrations/gdkb/v0.6.1/core"))) || !(await exists(path.join(TOOLKIT_ROOT, "integrations/gdkb/v0.6.1/event_state")))) {
-    missingSources.push("gdkb-0.6.1")
-  }
-
   const registry = await readJson(path.join(TOOLKIT_ROOT, "registry.json"))
   const integration = await validateIntegration()
+  const sourceInventory = await integrationSources()
   const entrypoints = []
   for (const tool of registry.tools || []) {
     if (!tool.entrypoint || tool.entrypoint.includes("{")) continue
@@ -64,7 +61,7 @@ async function verify() {
     ok: missing.length === 0 && missingSources.length === 0 && entrypoints.length === 0 && integration.ok,
     root: TOOLKIT_ROOT,
     sourceRoot,
-    installedSources: sourceDirectories,
+    installedSources: sourceInventory.sources.filter((source) => source.exists).map((source) => source.id),
     integratedKnowledge: ["gdkb-0.6.1"],
     registryTools: registry.tools?.length || 0,
     missing,
