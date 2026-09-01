@@ -247,18 +247,9 @@ class XioEventConsumer:
         if event.session_id != self._session_id:
             raise XioSchemaError(
                 f"session_id mismatch: {event.session_id} != {self._session_id}."
-            )
-        vj_event = self.to_vj_event(event)
-        signal = SignalEnvelope(
-            envelope_id=f"xio-{event.event_id}",
-            event_id=event.event_id,
-            timestamp=event.source_timestamp,
-            sequence=event.sequence,
-            source=event.source_app,
-            address=f"/xio/{event.channel}/{event.event_type}",
-            arguments=(event.event_id, event.sequence, event.raw_hash),
-            transport="xio",
         )
+        vj_event = self.to_vj_event(event)
+        signal = self.to_signal(event)
         record = self._replay.append(
             vj_event,
             signal,
@@ -288,6 +279,21 @@ class XioEventConsumer:
             event_type=event_type,
             payload=payload,
             source=f"xio:{event.source_app}",
+        )
+
+    @staticmethod
+    def to_signal(event: ApplicationEvent) -> SignalEnvelope:
+        from ..replay.session import SignalEnvelope
+
+        return SignalEnvelope(
+            envelope_id=f"xio-{event.event_id}",
+            event_id=event.event_id,
+            timestamp=event.source_timestamp,
+            sequence=event.sequence,
+            source=event.source_app,
+            address=f"/xio/{event.channel}/{event.event_type}",
+            arguments=(event.event_id, event.sequence, event.raw_hash),
+            transport="xio",
         )
 
     def report(self) -> dict[str, Any]:

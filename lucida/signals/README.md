@@ -40,6 +40,18 @@ audit metadata.
 El consumidor sólo acepta un dict o un objeto ya validado. No abre sockets, no
 necesita Resolume y no ejecuta acciones.
 
+## Host result receipt
+
+Una propuesta puede recibir un `ProposalDecision` con estado `accepted`,
+`rejected` o `unknown`. La confirmación explícita es obligatoria para los dos
+primeros estados y está prohibida para `unknown`. El receipt conserva razón,
+secuencia, timestamp, fuente y provenance.
+
+El receipt es evidencia de una decisión del host, no prueba de que Resolume o
+un procesador haya ejecutado algo. `ProposalDecisionRecorder` puede recibir un
+sink inyectado —por ejemplo `SessionReplay.record_audit`— para anexar el receipt
+al audit log sin mutar `VJProposal` ni convertirlo en una acción.
+
 ## Errores de frontera
 
 - `EnvelopeValidationError`: envelope o argumento inválido.

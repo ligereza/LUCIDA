@@ -299,6 +299,19 @@ class SessionReplay:
             },
         }
 
+    def record_audit(self, entry: Mapping[str, Any]) -> None:
+        """Append an external receipt without changing replay proposals or state."""
+
+        if not isinstance(entry, Mapping):
+            raise SessionReplayError("Audit entry must be an object.")
+        audit_entry = dict(entry)
+        audit_entry.setdefault("mode", "proposal_only")
+        audit_entry.setdefault("external_side_effects", False)
+        self._state = replace(
+            self._state,
+            audit_log=(*self._state.audit_log, audit_entry),
+        )
+
     def _validate_pair(self, event: VJEvent, signal: SignalEnvelope) -> None:
         if event.event_id != signal.event_id:
             raise EventSignalMismatchError(

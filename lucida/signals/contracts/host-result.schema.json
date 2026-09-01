@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lucida:signals:host-result",
+  "title": "HostResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "reason", "sequence", "timestamp", "source", "provenance", "mode"],
+  "properties": {
+    "contract_type": { "const": "HostResult" },
+    "schema_version": { "const": "0.1" },
+    "status": { "enum": ["accepted", "rejected", "unknown"] },
+    "reason": { "type": "string", "minLength": 1 },
+    "sequence": { "type": ["integer", "null"], "minimum": 0 },
+    "timestamp": { "type": ["string", "null"] },
+    "source": { "type": ["string", "null"] },
+    "event_id": { "type": ["string", "null"] },
+    "provenance": { "type": "object" },
+    "proposal_ids": { "type": "array", "items": { "type": "string" } },
+    "result_ids": { "type": "array", "items": { "type": "string" } },
+    "overlay": { "type": "object" },
+    "mode": { "const": "proposal_only" }
+  }
+}
