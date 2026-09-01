@@ -44,13 +44,16 @@ necesita Resolume y no ejecuta acciones.
 
 Una propuesta puede recibir un `ProposalDecision` con estado `accepted`,
 `rejected` o `unknown`. La confirmación explícita es obligatoria para los dos
-primeros estados y está prohibida para `unknown`. El receipt conserva razón,
-secuencia, timestamp, fuente y provenance.
+primeros estados y está prohibida para `unknown`. El `HostResult` conserva
+estado, razón, secuencia, timestamp, fuente, provenance, ids relacionados y
+el overlay de solo lectura. Puede reconstruirse desde `to_dict()` mediante
+`HostResult.from_dict()` para validar un receipt recibido o reproducido.
 
-El receipt es evidencia de una decisión del host, no prueba de que Resolume o
-un procesador haya ejecutado algo. `ProposalDecisionRecorder` puede recibir un
-sink inyectado —por ejemplo `SessionReplay.record_audit`— para anexar el receipt
-al audit log sin mutar `VJProposal` ni convertirlo en una acción.
+El `HostResult` es evidencia de recepción y decisión del host, no evidencia de
+ejecución. No prueba que Resolume o un procesador haya ejecutado algo y su modo
+válido es `proposal_only`. `ProposalDecisionRecorder` puede recibir un sink
+inyectado —por ejemplo `SessionReplay.record_audit`— para anexar el receipt al
+audit log sin mutar `VJProposal` ni convertirlo en una acción.
 
 ## Errores de frontera
 

@@ -44,9 +44,11 @@ def _ascii_text(value: Any, field_name: str) -> str:
 def _timestamp(value: Any, field_name: str) -> str:
     text = _ascii_text(value, field_name)
     try:
-        datetime.fromisoformat(text.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError as exc:
         raise HostContractError(f"{field_name} is not valid ISO-8601: {text}") from exc
+    if parsed.tzinfo is None:
+        raise HostContractError(f"{field_name} must include a timezone.")
     return text
 
 
@@ -99,10 +101,65 @@ class HostResult:
     overlay: dict[str, Any] = field(default_factory=dict)
     mode: str = "proposal_only"
 
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "HostResult":
+        if not isinstance(value, Mapping):
+            raise HostContractError("host result must be an object.")
+        if value.get("contract_type", "HostResult") != "HostResult":
+            raise HostContractError("contract_type must be HostResult.")
+        if value.get("schema_version", "0.1") != "0.1":
+            raise HostContractError("schema_version must be 0.1.")
+        required = {
+            "status",
+            "reason",
+            "sequence",
+            "timestamp",
+            "source",
+            "event_id",
+            "provenance",
+            "proposal_ids",
+            "result_ids",
+            "overlay",
+            "mode",
+        }
+        missing = sorted(required - set(value))
+        if missing:
+            raise HostContractError(f"host result missing fields: {missing}.")
+        proposal_ids = value.get("proposal_ids")
+        result_ids = value.get("result_ids")
+        if not isinstance(proposal_ids, (list, tuple)) or not all(
+            isinstance(item, str) for item in proposal_ids
+        ):
+            raise HostContractError("proposal_ids must be a list of strings.")
+        if not isinstance(result_ids, (list, tuple)) or not all(
+            isinstance(item, str) for item in result_ids
+        ):
+            raise HostContractError("result_ids must be a list of strings.")
+        overlay = value.get("overlay")
+        if not isinstance(overlay, Mapping):
+            raise HostContractError("overlay must be an object.")
+        source = value.get("source")
+        event_id = value.get("event_id")
+        return cls(
+            status=value.get("status"),
+            reason=value.get("reason"),
+            sequence=value.get("sequence"),
+            timestamp=value.get("timestamp"),
+            source=source,
+            event_id=event_id,
+            provenance=value.get("provenance"),
+            proposal_ids=tuple(proposal_ids),
+            result_ids=tuple(result_ids),
+            overlay=dict(overlay),
+            mode=value.get("mode"),
+        )
+
     def __post_init__(self) -> None:
         if self.status not in HOST_RESULT_STATUSES:
             raise HostContractError(f"Unknown host result status: {self.status}.")
         _ascii_text(self.reason, "reason")
+        if self.mode != "proposal_only":
+            raise HostContractError("mode must be proposal_only.")
         if self.sequence is not None and (
             isinstance(self.sequence, bool) or not isinstance(self.sequence, int) or self.sequence < 0
         ):
@@ -119,6 +176,16 @@ class HostResult:
         if not isinstance(self.provenance, Mapping):
             raise HostContractError("provenance must be an object.")
         _technical_keys(self.provenance, "provenance")
+        for values, field_name in (
+            (self.proposal_ids, "proposal_ids"),
+            (self.result_ids, "result_ids"),
+        ):
+            if not isinstance(values, tuple) or not all(isinstance(item, str) for item in values):
+                raise HostContractError(f"{field_name} must be a tuple of strings.")
+            for item in values:
+                _ascii_text(item, field_name)
+        if not isinstance(self.overlay, Mapping):
+            raise HostContractError("overlay must be an object.")
 
     def to_dict(self) -> dict[str, Any]:
         return {
