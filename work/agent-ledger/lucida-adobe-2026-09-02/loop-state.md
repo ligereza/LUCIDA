@@ -49,6 +49,10 @@ completed:
     evidence: UXP layer traversal stops at 200 layers and depth 64, layer text is capped at 1000 characters, active/imported reads are limited, and failed bridge polls wait five seconds before retrying with duplicate errors suppressed; source-contract regression passes.
   - item: Closed the UXP generated-layer naming encoding gap.
     evidence: Photoshop UXP now sanitizes generated asset names to ASCII and uses ASCII analysis-layer labels; the Adobe source-contract regression covers the UXP path.
+  - item: Closed the remote preview and renderer CSP mismatch.
+    evidence: Electron now fetches only allowlisted HTTPS SVG hosts, enforces status/content-type/size/timeout checks, returns a data URL to the local renderer, and the renderer no longer assigns remote URLs directly; source-contract regression passes.
+  - item: Bounded Electron bridge response accumulation.
+    evidence: bridgeRequest rejects response bodies above four megabytes while streaming and has a source-contract regression for the bound.
 in_progress:
   - item: Prepare the next operator validation pass.
     acceptance: Repository checks remain green and the remaining uncertainty is isolated to user-operated Adobe host execution, not local bridge structure.
@@ -58,7 +62,7 @@ files_or_resources:
   - adobe/src/tools/context.mjs
   - adobe/adobe-context-shelf/photoshop-uxp/index.js
 tests_and_checks:
-  - npm run legacy:test: 53 passed
+  - npm run legacy:test: 55 passed
   - npm run test: 11 passed
   - npm run smoke: passed
   - npm run companion:check: passed
@@ -68,7 +72,7 @@ assumptions:
 blockers: []
 research_refs: []
 delegation_refs: []
-last_critique: critique-12.md
+last_critique: critique-13.md
 estimated_remaining_effort: one focused implementation and verification pass
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.

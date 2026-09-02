@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, nativeImage } = require("electron")
 const { spawn } = require("node:child_process")
 const http = require("node:http")
+const https = require("node:https")
 const { realpathSync, statSync } = require("node:fs")
 const fs = require("node:fs/promises")
 const path = require("node:path")
@@ -14,6 +15,10 @@ const ALLOWED_ROUTES = new Set(["/context/current", "/recommendations", "/catalo
 const ASSET_ROOT = path.resolve(__dirname, "..")
 const DRAG_EXTENSIONS = new Set([".svg", ".png", ".jpg", ".jpeg", ".webp", ".gif"])
 const DRAG_ICON_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+const REMOTE_PREVIEW_HOSTS = new Set(["api.iconify.design", "raw.githubusercontent.com"])
+const MAX_REMOTE_PREVIEW_BYTES = 1_000_000
+const REMOTE_PREVIEW_TIMEOUT_MS = 5_000
+const MAX_BRIDGE_RESPONSE_BYTES = 4_000_000
 let bridgeProcess = null
 let ownsBridgeProcess = false
 let bridgeReadyPromise = null
@@ -33,8 +38,17 @@ function bridgeStatus() {
       headers: bridgeHeaders(),
     }, (response) => {
       let value = ""
+      let bytes = 0
       response.setEncoding("utf8")
-      response.on("data", (chunk) => { value += chunk })
+      response.on("data", (chunk) => {
+        bytes += Buffer.byteLength(chunk)
+        if (bytes > MAX_BRIDGE_RESPONSE_BYTES) {
+          response.destroy(new Error("Bridge response is too large"))
+          return
+        }
+        value += chunk
+      })
+      response.on("error", reject)
       response.on("end", () => {
         let payload = null
         try { payload = JSON.parse(value) } catch (_) {}
@@ -140,6 +154,42 @@ function bridgeRequest(route, options = {}) {
   })
 }
 
+function remotePreview(url) {
+  const parsed = new URL(String(url || ""))
+  if (parsed.protocol !== "https:" || !REMOTE_PREVIEW_HOSTS.has(parsed.hostname)) {
+    throw new Error("Remote preview host is not allowlisted")
+  }
+  return new Promise((resolve, reject) => {
+    const request = https.get(parsed, { headers: { "user-agent": "lucida-adobe-companion/0.1" } }, (response) => {
+      const contentType = String(response.headers["content-type"] || "").split(";", 1)[0].toLowerCase()
+      const githubRawSvg = parsed.hostname === "raw.githubusercontent.com" && parsed.pathname.toLowerCase().endsWith(".svg") && contentType === "text/plain"
+      if (response.statusCode !== 200 || (!githubRawSvg && !["image/svg+xml", "application/xml", "text/xml"].includes(contentType))) {
+        response.resume()
+        reject(new Error("Remote preview response is not an allowed SVG"))
+        return
+      }
+      const chunks = []
+      let total = 0
+      response.on("data", (chunk) => {
+        total += chunk.length
+        if (total > MAX_REMOTE_PREVIEW_BYTES) {
+          request.destroy(new Error("Remote preview is too large"))
+          return
+        }
+        chunks.push(chunk)
+      })
+      response.on("end", () => {
+        if (total <= MAX_REMOTE_PREVIEW_BYTES) {
+          resolve(`data:image/svg+xml;base64,${Buffer.concat(chunks).toString("base64")}`)
+        }
+      })
+      response.on("error", reject)
+    })
+    request.setTimeout(REMOTE_PREVIEW_TIMEOUT_MS, () => request.destroy(new Error("Remote preview timed out")))
+    request.on("error", reject)
+  })
+}
+
 function createWindow() {
   const window = new BrowserWindow({
     width: 380, height: 520, minWidth: 320, minHeight: 360, alwaysOnTop: true,
@@ -184,6 +234,7 @@ ipcMain.handle("asset:preview", async (_event, file) => {
   const data = await fs.readFile(resolved)
   return `data:${mime};base64,${data.toString("base64")}`
 })
+ipcMain.handle("asset:preview-remote", async (_event, url) => remotePreview(url))
 
 // Starts a native OS file drag. This path is deliberately independent of the
 // bridge so Photoshop and Illustrator can receive the real local file.

@@ -834,7 +834,7 @@ function renderResults(value) {
 
 async function loadPreview(item, target) {
   try {
-    const source = item.local ? await window.contextShelf.preview(item.previewFile || item.file) : item.previewUrl
+    const source = item.local ? await window.contextShelf.preview(item.previewFile || item.file) : await window.contextShelf.previewRemote(item.previewUrl)
     if (!source || !target?.isConnected) {
       if (target) target.dataset.previewState = "unavailable"
       return
@@ -894,7 +894,7 @@ async function renderPeekItem() {
   imageTarget.textContent = item.local ? "…" : "SVG"
   if ((item.local && (item.previewFile || item.file)) || item.previewUrl) {
     try {
-      const sourceUrl = item.local ? await window.contextShelf.preview(item.previewFile || item.file) : item.previewUrl
+      const sourceUrl = item.local ? await window.contextShelf.preview(item.previewFile || item.file) : await window.contextShelf.previewRemote(item.previewUrl)
       if (visibleResults[peekIndex] !== item) return
       imageTarget.textContent = ""
       const image = document.createElement("img")

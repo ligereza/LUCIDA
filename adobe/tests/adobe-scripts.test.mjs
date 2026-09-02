@@ -102,6 +102,26 @@ test("Companion applies a local-only content policy and realpath asset guard", a
   assert.match(main, /Asset path is outside the package/)
 })
 
+test("Companion proxies remote SVG previews through an HTTPS host allowlist", async () => {
+  const main = await readFile(path.join(root, "companion/main.cjs"), "utf8")
+  const preload = await readFile(path.join(root, "companion/preload.cjs"), "utf8")
+  const renderer = await readFile(path.join(root, "companion/renderer.js"), "utf8")
+  assert.match(main, /REMOTE_PREVIEW_HOSTS/)
+  assert.match(main, /MAX_REMOTE_PREVIEW_BYTES = 1_000_000/)
+  assert.match(main, /parsed\.protocol !== "https:"/)
+  assert.match(main, /Remote preview response is not an allowed SVG/)
+  assert.match(preload, /previewRemote\(url\)/)
+  assert.match(renderer, /previewRemote\(item\.previewUrl\)/)
+  assert.doesNotMatch(renderer, /: item\.previewUrl\s*$/m)
+})
+
+test("Companion bounds bridge response accumulation", async () => {
+  const main = await readFile(path.join(root, "companion/main.cjs"), "utf8")
+  assert.match(main, /MAX_BRIDGE_RESPONSE_BYTES = 4_000_000/)
+  assert.match(main, /bytes \+= Buffer\.byteLength\(chunk\)/)
+  assert.match(main, /Bridge response is too large/)
+})
+
 test("Project companion keeps slide text visible without visual groups", async () => {
   const source = await readFile(path.join(root, "companion/renderer.js"), "utf8")
   assert.match(source, /function projectTextMarkup\(text\)/)
