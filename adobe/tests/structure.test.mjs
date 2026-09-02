@@ -28,4 +28,5 @@ test("LUCIDA Adobe layout and manifests are present", async () => {
   for (const slide of ["1", "2", "3", "4", "5", "6", "7", "8"]) {
     await fs.access(path.join(TOOLKIT_ROOT, "ICONOS", "CHEMSEX", slide))
   }
+  await fs.access(path.join(TOOLKIT_ROOT, "ICONOS", "CHEMSEX", "mini-icons"))
 })

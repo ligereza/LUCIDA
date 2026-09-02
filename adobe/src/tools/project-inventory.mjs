@@ -196,6 +196,12 @@ function slideIndexesFrom(...values) {
   return [...result].filter((value) => value > 0 && value < 100)
 }
 
+function collectionIdFromRecord(record) {
+  const relative = String(record?.relativePath || "").replaceAll("\\", "/")
+  if (/\/ICONOS\/CHEMSEX\/mini-icons\//i.test(relative)) return "mini-icons"
+  return null
+}
+
 function displayProjectName(id) {
   return String(id || "project")
     .replace(/[-_]+/g, " ")
@@ -540,7 +546,15 @@ async function buildProjectInventory(projectId, refresh = false) {
     groupsBySlide.get(group.slideIndex).push(group)
   }
   const unassigned = []
+  const collections = new Map()
   for (const record of records) {
+    const collectionId = collectionIdFromRecord(record)
+    if (collectionId) {
+      const collection = collections.get(collectionId) || { id: collectionId, label: "Mini icons", variants: [] }
+      collection.variants.push(publicVariant(record, { id: collectionId, label: collection.label, slideIndex: null }, null, false))
+      collections.set(collectionId, collection)
+      continue
+    }
     const matches = canonical.groups.filter((group) => groupMatches(record, group))
     if (matches.length) {
       for (const group of matches) {
@@ -575,6 +589,10 @@ async function buildProjectInventory(projectId, refresh = false) {
       .sort((left, right) => Number(right.canonical) - Number(left.canonical) || left.label.localeCompare(right.label))
       .map(({ references, tokens, manifestFile, sourceKind, ...group }) => group),
   }))
+  const collectionValues = [...collections.values()].map((collection) => ({
+    ...collection,
+    variants: collection.variants.sort((left, right) => left.label.localeCompare(right.label) || left.relativePath.localeCompare(right.relativePath)),
+  }))
   const inventory = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
@@ -587,13 +605,16 @@ async function buildProjectInventory(projectId, refresh = false) {
     },
     projects: await listProjectSummaries(),
     slides: slideValues,
+    collections: collectionValues,
     unassigned: unassigned.map((record) => publicVariant(record, { id: "unassigned", label: "Sin lámina", slideIndex: null }, null, false)),
     stats: {
       visualFiles: records.length,
       assignedFiles: records.length - unassigned.length,
       unassignedFiles: unassigned.length,
       groups: slideValues.reduce((total, slide) => total + slide.groups.length, 0),
-      variants: slideValues.reduce((total, slide) => total + slide.groups.reduce((subtotal, group) => subtotal + group.variants.length, 0), 0) + unassigned.length,
+      collections: collectionValues.length,
+      collectionFiles: collectionValues.reduce((total, collection) => total + collection.variants.length, 0),
+      variants: slideValues.reduce((total, slide) => total + slide.groups.reduce((subtotal, group) => subtotal + group.variants.length, 0), 0) + collectionValues.reduce((total, collection) => total + collection.variants.length, 0) + unassigned.length,
       rejected: records.filter((record) => record.status === "rejected").length,
       legacy: records.filter((record) => record.status === "legacy").length,
     },

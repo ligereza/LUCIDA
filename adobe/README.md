@@ -9,7 +9,8 @@ Migración local de la capa de exploración contextual y sus integraciones Adobe
 - `adobe-context-shelf/photoshop-uxp/`: puente UXP para publicar contexto de Photoshop.
 - `adapters/adobe/`: consumidores JSX/PSJS y contratos de Photoshop, Illustrator, Premiere y After Effects.
 - `src/`: runtime histórico necesario por el servidor/bridge; no contiene proyectos ni assets de trabajo.
-- `ICONOS/CHEMSEX/`: únicamente visuales propios/generated-by-Codex con asignación comprobable a láminas 1–8.
+- `ICONOS/CHEMSEX/`: visuales propios/generated-by-Codex, separados entre láminas 1–8 y la colección reutilizable `mini-icons`.
+- La migración combina las salidas de `projects/chemsex` con los archivos visuales directamente contenidos en `projects/recolectados/lamina-*`; deduplica por hash SHA-256 y no incorpora las subcarpetas técnicas.
 - `contracts/` y `src/tools/signal-bridge.mjs`: contrato de señales locales para XIO, VIZZ y PUPILA. Sólo acepta metadatos acotados; descarta contenido crudo y produce una superficie de propuestas, no acciones del host.
 - `contracts/host-capabilities.json`: matriz única de hosts, adaptadores, operaciones y estados de validación de esta rama.
 - `src/tools/adapter-parity.mjs`: auditoría estática que compara las operaciones del contrato con los dispatches reales de cada `agent.jsx`/`agent.psjs`; `npm run verify` la ejecuta antes de aceptar la rama.
@@ -44,7 +45,12 @@ El inventario y la trazabilidad están en:
 - `ICONOS/CHEMSEX/review-pending.json`
 - `docs/migration-report.md`
 
-Las ocho carpetas numeradas son planas; no hay subcarpetas dentro de `1`–`8`. Los originales de `C:\IA\svg` no se modificaron.
+La ejecución actual incorpora 511 archivos únicos: 0 en las láminas 1 y 2,
+124 en la 3, 131 en la 4, 57 en la 5, 30 en la 6, 42 en la 7, 31 en la 8
+y 96 en `mini-icons`.
+
+Las ocho carpetas numeradas y `mini-icons` son planas; no hay subcarpetas
+dentro de ellas. Los originales de `C:\IA\svg` no se modificaron.
 
 ## Capa conectiva
 

@@ -7,6 +7,7 @@ const SOURCE_ROOT = path.resolve(process.env.LUCIDA_SOURCE_ROOT || "C:/IA/svg")
 const PACKAGE_ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const DEST_ROOT = path.resolve(process.env.LUCIDA_ADOBE_ROOT || PACKAGE_ROOT)
 const PROJECT_ROOT = path.join(SOURCE_ROOT, "agent-toolkit", "projects", "chemsex")
+const COLLECTED_ROOT = path.join(SOURCE_ROOT, "agent-toolkit", "projects", "recolectados")
 const OUTPUT_ROOT = path.join(DEST_ROOT, "ICONOS", "CHEMSEX")
 const VISUAL_EXTENSIONS = new Set([".png", ".svg", ".jpg", ".jpeg", ".webp", ".gif", ".avif", ".bmp", ".tif", ".tiff"])
 
@@ -35,6 +36,7 @@ async function walk(directory) {
 
 function originFor(file, kind) {
   const rel = relativeSource(file).toLowerCase()
+  if (kind === "collected-mini-icon") return { provenance: "codex-generated-mini-icon", mixedExternal: false, evidence: "projects/recolectados/mini-icons; user-confirmed" }
   if (rel.includes("iconos-transparentes-23")) return { provenance: "codex-generated-transparent-export", mixedExternal: false, evidence: "plan.json + manifest.json" }
   if (rel.includes("true-regenerated-pilot")) return { provenance: "codex-ai-regenerated-layer-asset", mixedExternal: true, evidence: "chemsex_carousel_blender_manifest.json" }
   if (rel.includes("slide03-layer-package") || rel.includes("slide04-layer-package")) return { provenance: "codex-layer-package", mixedExternal: true, evidence: "layer-package manifest/files" }
@@ -99,6 +101,8 @@ function targetStem(file, slide, kind) {
   const base = path.basename(file).replace(/[^a-zA-Z0-9._-]+/g, "-")
   const rel = relativeSource(file).toLowerCase()
   if (rel.includes("iconos-transparentes-23")) return base
+  if (kind === "collected-mini-icon") return `mini__${base}`
+  if (kind === "collected-lamina-asset") return `recollected__${base}`
   if (rel.includes("true-regenerated-pilot")) {
     const icon = relativeSource(file).split("/").find((part) => /^icon\d+_/i.test(part))
     return `${icon || "regenerated"}__${base}`
@@ -141,13 +145,14 @@ async function loadSourceManifest() {
   for (const asset of raw.assets || []) sourceAssetManifest.set(path.basename(asset.file).toLowerCase(), asset)
 }
 
-async function consider(file, slide, kind, forcedReason = null) {
+async function consider(file, slide, kind, forcedReason = null, destinationFolder = null) {
   const buffer = await fs.readFile(file)
   const source = displayOrigin(file)
   const sourceMeta = originFor(file, kind)
   const description = await describe(file, buffer)
-  const baseRecord = { source, slide, kind, hash: hashBuffer(buffer), ...description, provenance: sourceMeta.provenance, mixedExternal: sourceMeta.mixedExternal, evidence: sourceMeta.evidence, target: null, mergedFrom: [], reason: null }
-  if (!slide) {
+  const collection = destinationFolder || (slide ? String(slide) : null)
+  const baseRecord = { source, slide, collection, kind, hash: hashBuffer(buffer), ...description, provenance: sourceMeta.provenance, mixedExternal: sourceMeta.mixedExternal, evidence: sourceMeta.evidence, target: null, mergedFrom: [], reason: null }
+  if (!slide && !destinationFolder) {
     baseRecord.disposition = "pending"
     baseRecord.reason = forcedReason || "no reliable slide assignment from name/path/manifest"
     records.push(baseRecord)
@@ -175,7 +180,7 @@ async function consider(file, slide, kind, forcedReason = null) {
     records.push(baseRecord)
     return
   }
-  const folder = path.join(OUTPUT_ROOT, String(slide))
+  const folder = path.join(OUTPUT_ROOT, collection)
   await fs.mkdir(folder, { recursive: true })
   const stem = targetStem(file, slide, kind)
   let targetName = stem
@@ -198,6 +203,33 @@ async function addGeneratedProjectOutputs() {
   for (const file of await walk(root)) {
     const slide = slideFromName(file)
     await consider(file, slide, "generated-project-output")
+  }
+}
+
+async function addCollectedLaminaAssets() {
+  const entries = await fs.readdir(COLLECTED_ROOT, { withFileTypes: true }).catch(() => [])
+  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    const match = entry.isDirectory() && entry.name.match(/^lamina-(\d{1,2})$/i)
+    if (!match) continue
+    const slide = Number(match[1])
+    if (slide < 1 || slide > 8) continue
+    const laminaRoot = path.join(COLLECTED_ROOT, entry.name)
+    const laminaFiles = await fs.readdir(laminaRoot, { withFileTypes: true }).catch(() => [])
+    for (const asset of laminaFiles.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (!asset.isFile()) continue
+      const file = path.join(laminaRoot, asset.name)
+      if (isVisual(file)) await consider(file, slide, "collected-lamina-asset")
+    }
+  }
+}
+
+async function addCollectedMiniIcons() {
+  const root = path.join(COLLECTED_ROOT, "mini-icons")
+  const entries = await fs.readdir(root, { withFileTypes: true }).catch(() => [])
+  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    if (!entry.isFile()) continue
+    const file = path.join(root, entry.name)
+    if (isVisual(file)) await consider(file, null, "collected-mini-icon", null, "mini-icons")
   }
 }
 
@@ -253,6 +285,8 @@ async function main() {
   for (const name of ["alkyl-nitrites-regenerated-layers", "amphetamine-regenerated-layers", "cannabis-regenerated-layers", "ghb-gbl-regenerated-layers", "mdma-regenerated-layers", "methamphetamine-regenerated-layers"]) {
     await addLayerAssets(path.join(SOURCE_ROOT, "agent-toolkit", "experiments", "svg-structure", name))
   }
+  await addCollectedLaminaAssets()
+  await addCollectedMiniIcons()
   await recordUncertainSources()
 
   const canonical = Object.fromEntries(Array.from({ length: 8 }, (_, index) => {
@@ -270,6 +304,7 @@ async function main() {
       generatedOnly: true,
       noOriginalsDeleted: true,
       exactSlideFolders: ["1", "2", "3", "4", "5", "6", "7", "8"],
+      extraCollections: ["mini-icons"],
       deduplication: "sha256-content-hash",
       semanticVariantMerging: "explicit-filename-evidence-only",
     },
@@ -279,9 +314,13 @@ async function main() {
       discarded: records.filter((item) => item.disposition === "discarded").length,
       pendingGroups: pending.length,
       bySlide: Object.fromEntries(Object.entries(canonical).map(([slide, files]) => [slide, files.length])),
+      miniIcons: included.filter((item) => item.collection === "mini-icons").length,
     },
     files: records,
     canonical,
+    collections: {
+      "mini-icons": included.filter((item) => item.collection === "mini-icons").map((item) => item.target),
+    },
     pendingReview: pending,
     sourceManifestEvidence: sourceAssetManifest.size ? "generated/iconos-transparentes-23/manifest.json" : null,
   }

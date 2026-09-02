@@ -12,7 +12,12 @@ Se excluyeron proyectos ajenos, assets de librerías públicas, `node_modules`, 
 
 ## Assets CHEMSEX
 
-El proceso reproducible está en `tools/migrate-chemsex-assets.mjs`. Usa SHA-256 de contenido, dimensiones y validación básica de formato PNG/SVG. Sólo copia archivos a la raíz de cada lámina; no crea subcarpetas.
+El proceso reproducible está en `tools/migrate-chemsex-assets.mjs`. Combina
+`C:\IA\svg\agent-toolkit\projects\chemsex` con los archivos visuales que
+están directamente dentro de `projects\recolectados\lamina-*`. Usa SHA-256 de
+contenido, dimensiones y validación básica de formato PNG/SVG. Sólo copia
+archivos a la raíz de cada lámina y a la colección plana `mini-icons`; no crea
+subcarpetas ni trata máscaras o capas técnicas como iconos de trabajo.
 
 Conteo de la ejecución actual:
 
@@ -20,15 +25,25 @@ Conteo de la ejecución actual:
 |---:|---:|
 | 1 | 0 |
 | 2 | 0 |
-| 3 | 123 |
-| 4 | 99 |
-| 5 | 52 |
-| 6 | 24 |
-| 7 | 32 |
+| 3 | 124 |
+| 4 | 227 |
+| 5 | 57 |
+| 6 | 30 |
+| 7 | 42 |
 | 8 | 31 |
-| **Total** | **361** |
+| mini-icons | 96 |
+| **Total** | **511** |
 
-Además se registraron 102 duplicados por hash, 238 descartes (técnicos, rechazados o variantes superadas) y seis grupos externos/ambiguos en `review-pending.json`. Las carpetas 1 y 2 están vacías porque no existe material propio con asignación comprobable; los iconos encontrados allí provienen de librerías externas.
+La colección extra `mini-icons` contiene 96 archivos únicos (48 PNG y 48 SVG)
+que no pertenecen a una lámina concreta. Las ocho láminas suman 415 archivos.
+
+Además se registraron 144 duplicados por hash, 232 descartes (técnicos,
+rechazados o variantes superadas) y seis grupos externos/ambiguos en
+`review-pending.json`. Las carpetas 1 y 2 están vacías porque no existe
+material propio con asignación comprobable; los iconos encontrados allí
+provienen de librerías externas. De `recolectados`, 41 archivos se
+incorporaron a las láminas y 96 a `mini-icons`; los duplicados se resolvieron
+por hash.
 
 ## Revisión pendiente
 
@@ -46,4 +61,4 @@ El companion muestra el texto aunque una lámina no tenga grupos de recursos vis
 - Las ocho carpetas numeradas existen y no contienen carpetas anidadas.
 - El manifest conserva origen relativo, hash, formato, bytes, dimensiones, provenance, destino, duplicados y motivo de descarte.
 - No se modificó la fuente; no se modificó `main`.
-- No se hizo push.
+- La fuente de SVG y sus archivos originales no se modificaron.
