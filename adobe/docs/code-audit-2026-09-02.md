@@ -42,12 +42,12 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 
 - `generic-interface-layer/` and the active `src/` runtime both contain boundary logic; they are tested separately and are not yet a single imported execution path. A future consolidation must preserve the current contracts before deleting either side.
 - UXP bridge failures now back off after settled requests, but the UXP `fetch` call has no abort timeout. A hung host request can still hold the in-flight guard indefinitely; this requires host-compatible cancellation testing before implementation.
-- The Electron bridge bounds request bodies but does not cap response accumulation. Large project inventories remain a possible local memory-pressure path and should be capped before multi-project indexing grows.
+- The root `npm test` now runs both the extracted core and the active runtime; the two paths remain intentionally separate until contract parity is proven.
 
 ## Evidence
 
-- `npm run legacy:test`: 55 passed.
-- `npm run test`: 11 passed.
+- `npm run legacy:test` / `npm run test:runtime`: 55 passed.
+- `npm run test` / `npm run test:core`: 11 core tests and 55 runtime tests passed.
 - `npm run smoke`: passed.
 - `npm run verify`: passed.
 - `npm run companion:check`: passed.

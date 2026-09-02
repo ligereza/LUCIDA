@@ -53,6 +53,8 @@ completed:
     evidence: Electron now fetches only allowlisted HTTPS SVG hosts, enforces status/content-type/size/timeout checks, returns a data URL to the local renderer, and the renderer no longer assigns remote URLs directly; source-contract regression passes.
   - item: Bounded Electron bridge response accumulation.
     evidence: bridgeRequest rejects response bodies above four megabytes while streaming and has a source-contract regression for the bound.
+  - item: Made the root test command cover both execution paths.
+    evidence: `npm test` now runs `test:core` and `test:runtime`; `legacy:test` remains an explicit runtime alias so existing operator commands continue to work.
 in_progress:
   - item: Prepare the next operator validation pass.
     acceptance: Repository checks remain green and the remaining uncertainty is isolated to user-operated Adobe host execution, not local bridge structure.
@@ -62,8 +64,8 @@ files_or_resources:
   - adobe/src/tools/context.mjs
   - adobe/adobe-context-shelf/photoshop-uxp/index.js
 tests_and_checks:
-  - npm run legacy:test: 55 passed
-  - npm run test: 11 passed
+  - npm run test: 11 core tests and 55 runtime tests passed
+  - npm run test:runtime: 55 passed
   - npm run smoke: passed
   - npm run companion:check: passed
   - npm run verify: passed

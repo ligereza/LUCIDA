@@ -35,6 +35,9 @@ npm run companion:check
 python -m unittest tests/test_signal_publisher.py
 ```
 
+`npm test` ejecuta tanto el core generico como el runtime activo. Para ejecutar
+una sola capa se pueden usar `npm run test:core` o `npm run test:runtime`.
+
 El núcleo no requiere Adobe, Electron, CUDA, MobileCLIP ni una base de assets para probarse. No se incluyeron `node_modules`, caches, pesos, modelos, credenciales ni bases privadas.
 
 ## CHEMSEX
