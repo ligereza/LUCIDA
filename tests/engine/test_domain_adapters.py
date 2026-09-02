@@ -97,6 +97,20 @@ def test_vizz_adapter_rejects_non_finite_metadata():
         adapters.adapt(VIZZ_ADAPTER_ID, value)
 
 
+def test_vizz_adapter_rejects_wrong_type_and_range():
+    adapters, _ = _registries()
+    wrong_type = _vizz_event()
+    wrong_type["summary"] = {"focused": "yes"}
+    with pytest.raises(DomainAdapterError, match="boolean"):
+        adapters.adapt(VIZZ_ADAPTER_ID, wrong_type)
+
+    wrong_range = _vizz_event()
+    wrong_range["event_type"] = "perception.quality"
+    wrong_range["summary"] = {"quality": 2.0}
+    with pytest.raises(DomainAdapterError, match="from 0 to 1"):
+        adapters.adapt(VIZZ_ADAPTER_ID, wrong_range)
+
+
 def test_domain_adapters_reject_unhashable_event_type_as_contract_error():
     adapters, _ = _registries()
     value = _vizz_event()

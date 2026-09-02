@@ -89,6 +89,39 @@ def _validate_scalar(key: str, value: Any) -> None:
         raise DomainAdapterError(f"summary.{key} exceeds the text bound")
 
 
+def _validate_summary_value(key: str, value: Any) -> None:
+    _validate_scalar(key, value)
+    if key in {"focused", "geometry_valid"}:
+        if not isinstance(value, bool):
+            raise DomainAdapterError(f"summary.{key} must be boolean")
+        return
+    if key in {"confidence", "quality"}:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise DomainAdapterError(f"summary.{key} must be numeric")
+        if not 0.0 <= float(value) <= 1.0:
+            raise DomainAdapterError(f"summary.{key} must be from 0 to 1")
+        return
+    if key in {"sample_count", "signal_age_ms", "participant_count", "proposal_count"}:
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise DomainAdapterError(f"summary.{key} must be an integer")
+        maximum = 1_000_000 if key == "sample_count" else 120_000
+        if key in {"participant_count", "proposal_count"}:
+            maximum = 64
+        if not 0 <= value <= maximum:
+            raise DomainAdapterError(f"summary.{key} is outside its bound")
+        return
+    if key in {"interocular_px", "face_scale", "yaw_deg", "pitch_deg", "roll_deg"}:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise DomainAdapterError(f"summary.{key} must be numeric")
+        number = float(value)
+        if key == "interocular_px" and not 0.0 < number <= 2000.0:
+            raise DomainAdapterError("summary.interocular_px is outside its bound")
+        if key == "face_scale" and not 0.0 < number <= 2.0:
+            raise DomainAdapterError("summary.face_scale is outside its bound")
+        if key in {"yaw_deg", "pitch_deg", "roll_deg"} and not -180.0 <= number <= 180.0:
+            raise DomainAdapterError(f"summary.{key} is outside its bound")
+
+
 def _validate_summary(
     value: Any,
     *,
@@ -103,7 +136,7 @@ def _validate_summary(
         raise DomainAdapterError("summary must not be empty")
     summary = {str(key): raw_value for key, raw_value in value.items()}
     for key, raw_value in summary.items():
-        _validate_scalar(key, raw_value)
+        _validate_summary_value(key, raw_value)
     return summary
 
 
