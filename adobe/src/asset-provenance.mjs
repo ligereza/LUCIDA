@@ -3,6 +3,7 @@ import { TOOLKIT_ROOT } from "./utils.mjs"
 
 const REPO_ROOT = path.resolve(TOOLKIT_ROOT, "..")
 const HISTORY_ASSETS_ROOT = path.join(REPO_ROOT, "rd_database_complete", "assets")
+const MIGRATED_ICONS_ROOT = path.join(TOOLKIT_ROOT, "ICONOS")
 
 // These folders hold imagery generated or assembled in the local Codex
 // workflow. Imported icons, chemical reference images and real photographs
@@ -34,10 +35,12 @@ export const AUTHORED_HISTORY_ROOTS = Object.freeze(
 )
 
 export const AUTHORED_CATALOG_ROOTS = Object.freeze([
-  ...AUTHORED_HISTORY_ROOTS,
+  MIGRATED_ICONS_ROOT,
   path.join(TOOLKIT_ROOT, "projects", "chemsex", "generated"),
 ])
 
 export const AUTHORED_PROJECT_VARIATION_ROOTS = Object.freeze(
-  AUTHORED_HISTORY_ROOTS.map((root) => ({ root, area: "project-variations" })),
+  [
+    { root: path.join(MIGRATED_ICONS_ROOT, "CHEMSEX"), area: "migrated-icons" },
+  ],
 )

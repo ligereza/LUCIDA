@@ -1,6 +1,7 @@
 let current = null
 let recommendationHash = null
 let diagnosticHash = null
+let surfaceHash = null
 let mode = "suggested"
 let exploreHash = null
 let activeGroup = null
@@ -114,6 +115,43 @@ function showContext(context) {
   $("#analysis").textContent = area
     ? `Detectado: ${topic} · zona libre: ${area.position} (${Math.round((area.areaRatio || 0) * 100)}%)${composition}`
     : `Detectado: ${topic} · no se encontró una zona libre clara${composition}`
+}
+
+function renderSignalSurface(surface, unavailable = false) {
+  const stateTarget = $("#signal-state")
+  const sourcesTarget = $("#signal-sources")
+  if (!stateTarget || !sourcesTarget) return
+  if (unavailable) {
+    stateTarget.textContent = "bridge no disponible"
+    sourcesTarget.textContent = "XIO · VIZZ · PUPILA"
+    return
+  }
+  const labels = { xio: "XIO", vizz: "VIZZ", pupila: "PUPILA" }
+  const states = { active: "activo", stale: "stale", missing: "sin señal" }
+  const values = Object.entries(surface?.sources || {})
+  const active = values.filter(([, value]) => value.state === "active").length
+  stateTarget.textContent = active ? `${active}/3 activos` : "sin señales"
+  sourcesTarget.innerHTML = values.map(([source, value]) => {
+    const event = value.eventType ? ` · ${escapeHtml(value.eventType)}` : ""
+    return `<span class="signal-source ${escapeHtml(value.state || "missing")}"><b>${labels[source] || escapeHtml(source)}</b> ${states[value.state] || "sin estado"}${event}</span>`
+  }).join("") || "XIO · VIZZ · PUPILA"
+  const proposal = surface?.proposals?.[0]
+  if (proposal) sourcesTarget.insertAdjacentHTML("beforeend", `<span class="signal-proposal">Propuesta ${escapeHtml(proposal.kind || "visual")} · confirmación requerida</span>`)
+}
+
+async function refreshSignalSurface(sessionId = null) {
+  try {
+    const query = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ""
+    const value = await window.contextShelf.request(`/surface/current${query}`)
+    const surface = value.surface || null
+    if (surface?.surfaceHash !== surfaceHash) {
+      surfaceHash = surface?.surfaceHash || null
+      renderSignalSurface(surface)
+    }
+  } catch (_) {
+    surfaceHash = null
+    renderSignalSurface(null, true)
+  }
 }
 
 function showEmpty(message) {
@@ -957,6 +995,7 @@ async function poll() {
     const response = await window.contextShelf.request("/context/current")
     setConnection(true)
     refreshSemanticStatus()
+    await refreshSignalSurface(response.context?.sessionId || null)
 
     // Explorar usa únicamente el índice local; no necesita un documento de Adobe.
     if (mode === "explore") {

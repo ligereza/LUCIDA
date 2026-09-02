@@ -5,6 +5,7 @@ import { assertAllowedInput, ensureDir, TOOLKIT_ROOT } from "../utils.mjs"
 import { searchAssets } from "./asset-search.mjs"
 import { searchLocalAssets } from "./local-catalog.mjs"
 import { analyzeContext } from "./context-analysis.mjs"
+import { currentSurface } from "./signal-bridge.mjs"
 
 const HOSTS = new Set(["photoshop", "illustrator", "after-effects", "premiere"])
 const MODES = new Set(["unitary", "layer-stack"])
@@ -166,6 +167,11 @@ function visualQueryForContext(context) {
   ].filter(Boolean).join(" ").trim()
 }
 
+function signalTerms(surface) {
+  const keys = ["intent", "target", "kind", "phase", "workflow", "region", "mode"]
+  return Object.values(surface?.sources || []).flatMap((item) => keys.map((key) => item?.metadata?.[key]).filter(Boolean)).slice(0, 20)
+}
+
 function preferredAssetTerms(context) {
   const index = context.location?.index
   if (!Number.isFinite(index)) return []
@@ -181,7 +187,8 @@ export async function recommendContext({ context: rawContext = null, sessionId =
   const cacheKey = `${context.contextHash}:${safeLimit}`
   const cached = recommendationCache.get(cacheKey)
   if (cached && Date.now() - cached.createdAt < RECOMMENDATION_TTL_MS) return { ...cached.value, cached: true }
-  const query = visualQueryForContext(context)
+  const surface = currentSurface({ sessionId: context.sessionId, context })
+  const query = [visualQueryForContext(context), ...signalTerms(surface)].filter(Boolean).join(" ").trim()
   if (!query) return { contextHash: context.contextHash, query: "", results: [], errors: ["Context has no searchable text"] }
   const terms = [
     context.location?.label,
@@ -241,6 +248,11 @@ export async function recommendContext({ context: rawContext = null, sessionId =
     query,
     results: merged.map((item, index) => ({ ...item, rank: index + 1 })),
     analysis: context.analysis,
+    surface: {
+      surfaceHash: surface.surfaceHash,
+      sources: Object.fromEntries(Object.entries(surface.sources).map(([source, value]) => [source, { state: value.state, eventType: value.eventType, sequence: value.sequence }])),
+      proposalCount: surface.proposals.length,
+    },
     errors: [...(local.errors || []), ...(remote.errors || [])],
     generatedAt: new Date().toISOString(),
   }

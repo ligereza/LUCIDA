@@ -10,7 +10,7 @@ const BRIDGE_HOST = "127.0.0.1"
 const BRIDGE_PORT = 47921
 const TOOLKIT_ROOT = path.resolve(__dirname, "..")
 const SERVER_ENTRY = path.join(TOOLKIT_ROOT, "src", "server.mjs")
-const ALLOWED_ROUTES = new Set(["/context/current", "/recommendations", "/catalog/groups", "/catalog/assets", "/catalog/projects", "/semantic/status", "/semantic/index", "/insert"])
+const ALLOWED_ROUTES = new Set(["/context/current", "/recommendations", "/catalog/groups", "/catalog/assets", "/catalog/projects", "/semantic/status", "/semantic/index", "/insert", "/surface/current"])
 const ASSET_ROOT = path.resolve(__dirname, "..", "..")
 const DRAG_EXTENSIONS = new Set([".svg", ".png", ".jpg", ".jpeg", ".webp", ".gif"])
 const DRAG_ICON_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="

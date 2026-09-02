@@ -182,6 +182,8 @@ function slideIndexesFrom(...values) {
   const result = new Set()
   for (const value of values) {
     const source = String(value || "")
+    const migratedSlide = source.match(/(?:^|[\\/])ICONOS[\\/]CHEMSEX[\\/]([1-8])(?:[\\/]|$)/i)
+    if (migratedSlide) result.add(Number(migratedSlide[1]))
     const transparentIcon = normalize(source).match(/iconos transparentes 23 (\d{2})\b/)
     if (transparentIcon) {
       const number = Number(transparentIcon[1])
@@ -602,11 +604,19 @@ async function buildProjectInventory(projectId, refresh = false) {
 
 async function listProjectSummaries() {
   let entries = []
-  try { entries = await fs.readdir(PROJECTS_ROOT, { withFileTypes: true }) } catch { return [] }
-  return entries.filter((entry) => entry.isDirectory() && !IGNORED_DIRECTORIES.has(entry.name.toLowerCase())).map((entry) => ({
+  try { entries = await fs.readdir(PROJECTS_ROOT, { withFileTypes: true }) } catch {}
+  const projects = entries.filter((entry) => entry.isDirectory() && !IGNORED_DIRECTORIES.has(entry.name.toLowerCase())).map((entry) => ({
     id: entry.name,
     name: displayProjectName(entry.name),
   }))
+  const migratedIconsRoot = path.join(TOOLKIT_ROOT, "ICONOS", "CHEMSEX")
+  if (!projects.some((project) => project.id.toLowerCase() === "chemsex")) {
+    try {
+      await fs.access(migratedIconsRoot)
+      projects.push({ id: "chemsex", name: displayProjectName("chemsex") })
+    } catch {}
+  }
+  return projects.sort((left, right) => left.id.localeCompare(right.id))
 }
 
 export async function listProjectInventory({ projectId = null, refresh = false } = {}) {

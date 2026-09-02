@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lucida.local/schemas/surface/v1",
+  "title": "LUCIDA derived Adobe surface",
+  "type": "object",
+  "required": ["schemaVersion", "surfaceId", "surfaceHash", "sources", "proposals", "safety"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "surfaceId": { "type": "string" },
+    "surfaceHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "sessionId": { "type": ["string", "null"] },
+    "context": { "type": "object" },
+    "sources": {
+      "type": "object",
+      "required": ["xio", "vizz", "pupila"],
+      "properties": {
+        "xio": { "$ref": "#/$defs/source" },
+        "vizz": { "$ref": "#/$defs/source" },
+        "pupila": { "$ref": "#/$defs/source" }
+      },
+      "additionalProperties": false
+    },
+    "proposals": { "type": "array", "items": { "type": "object" }, "maxItems": 8 },
+    "safety": {
+      "type": "object",
+      "required": ["proposalOnly", "hostActions", "rawContentForwarded", "externalNetwork"],
+      "properties": {
+        "proposalOnly": { "const": true },
+        "hostActions": { "const": false },
+        "rawContentForwarded": { "const": false },
+        "externalNetwork": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    "generatedAt": { "type": "string" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "source": {
+      "type": "object",
+      "required": ["state", "metadata"],
+      "properties": {
+        "source": { "type": ["string", "null"] },
+        "state": { "enum": ["active", "stale", "missing"] },
+        "signalHash": { "type": ["string", "null"] },
+        "eventType": { "type": ["string", "null"] },
+        "sequence": { "type": ["integer", "null"] },
+        "metadata": { "type": "object" },
+        "ageMs": { "type": ["integer", "null"] },
+        "receivedAt": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    }
+  }
+}

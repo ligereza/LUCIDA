@@ -13,6 +13,7 @@ import { catalogStats, indexLocalCatalog } from "./tools/local-catalog.mjs"
 import { catalogGroupSummary, indexLocalGroups, listCatalogAssets } from "./tools/catalog-groups.mjs"
 import { listProjectInventory } from "./tools/project-inventory.mjs"
 import { indexMobileClip, installMobileClipModel, mobileClipStatus } from "./tools/mobileclip.mjs"
+import { currentSignals, currentSurface, publishSignal, signalDiagnostics } from "./tools/signal-bridge.mjs"
 
 const registry = await readJson(path.join(TOOLKIT_ROOT, "registry.json"))
 const config = await readJson(path.join(TOOLKIT_ROOT, "config.local.json")).catch(() => ({ server: {} }))
@@ -53,8 +54,14 @@ const agentCard = {
   },
   contextShelf: {
     schemaVersion: 1,
-    endpoints: ["POST /catalog/index", "GET /catalog/stats", "GET /catalog/groups", "GET /catalog/assets", "GET /catalog/projects", "GET /semantic/status", "POST /semantic/index", "POST /semantic/install", "POST /context", "GET /context/current", "GET /analysis/current", "POST /recommendations", "POST /analysis/layer", "POST /insert", "GET /insert/next", "POST /insert/result"],
+    endpoints: ["POST /catalog/index", "GET /catalog/stats", "GET /catalog/groups", "GET /catalog/assets", "GET /catalog/projects", "GET /semantic/status", "POST /semantic/index", "POST /semantic/install", "POST /context", "GET /context/current", "GET /analysis/current", "POST /recommendations", "POST /analysis/layer", "POST /insert", "GET /insert/next", "POST /insert/result", "POST /signals", "GET /signals/current", "GET /surface/current"],
     diagnostics: contextDiagnostics(),
+  },
+  signalBridge: {
+    schemaVersion: 1,
+    sources: ["xio", "vizz", "pupila"],
+    endpoints: ["POST /signals", "GET /signals/current", "GET /surface/current"],
+    diagnostics: signalDiagnostics(),
   },
   adobeOperations: {
     photoshop: ["import-svg", "separate-objects"],
@@ -98,6 +105,9 @@ const openApi = {
     "/insert": { post: { operationId: "queueInsert", description: "Queue an allowlisted asset insertion for an Adobe host session.", responses: { "201": { description: "Insert request" } } } },
     "/insert/next": { get: { operationId: "claimInsert", description: "Claim the next insertion for an Adobe host session.", responses: { "200": { description: "Insert request or empty" } } } },
     "/insert/result": { post: { operationId: "recordInsertResult", description: "Record the result of an Adobe host insertion.", responses: { "200": { description: "Insert result" } } } },
+    "/signals": { post: { operationId: "publishSignal", description: "Publish a redacted XIO, VIZZ or PUPILA signal without host-side effects.", responses: { "200": { description: "Accepted signal and derived surface" } } } },
+    "/signals/current": { get: { operationId: "currentSignals", description: "Read bounded signals for a local session.", responses: { "200": { description: "Signal history" } } } },
+    "/surface/current": { get: { operationId: "currentSurface", description: "Read the proposal-only Adobe surface derived from context and external signals.", responses: { "200": { description: "Derived surface" } } } },
     "/jobs/{id}": { get: { operationId: "getJob", parameters: [{ name: "id", in: "path", required: true }], responses: { "200": { description: "Job status" } } } },
     "/jobs/{id}/adobe": { get: { operationId: "adobeStatus", parameters: [{ name: "id", in: "path", required: true }], responses: { "200": { description: "Adobe result envelopes" } } } },
     "/adobe/enqueue": { post: { operationId: "adobeEnqueue", responses: { "201": { description: "Queued Adobe command" } } } },
@@ -153,7 +163,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "OPTIONS") return send(response, 204, {}, request)
     if (!authorized(request)) return send(response, 401, { error: "Unauthorized" }, request)
     const url = new URL(request.url, `http://${host}:${port}`)
-    if (request.method === "GET" && url.pathname === "/health") return send(response, 200, { ok: true, service: "lucida-adobe", apiVersion: 1, host, port, capabilities: ["catalog/projects"] }, request)
+    if (request.method === "GET" && url.pathname === "/health") return send(response, 200, { ok: true, service: "lucida-adobe", apiVersion: 1, host, port, capabilities: ["catalog/projects", "signal-surface"] }, request)
     if (request.method === "GET" && url.pathname === "/capabilities") return send(response, 200, registry, request)
     if (request.method === "GET" && url.pathname === "/agent-card") return send(response, 200, agentCard, request)
     if (request.method === "GET" && url.pathname === "/integration/sources") return send(response, 200, await integrationSources(), request)
@@ -218,6 +228,17 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "POST" && url.pathname === "/insert/result") {
       const payload = await body(request)
       return send(response, 200, recordInsertResult(payload), request)
+    }
+    if (request.method === "POST" && url.pathname === "/signals") {
+      const payload = await body(request)
+      return send(response, 200, publishSignal(payload), request)
+    }
+    if (request.method === "GET" && url.pathname === "/signals/current") {
+      return send(response, 200, currentSignals({ sessionId: url.searchParams.get("sessionId"), limit: url.searchParams.get("limit") }), request)
+    }
+    if (request.method === "GET" && url.pathname === "/surface/current") {
+      const context = currentContext({ sessionId: url.searchParams.get("sessionId"), host: url.searchParams.get("host") })
+      return send(response, 200, { surface: currentSurface({ sessionId: url.searchParams.get("sessionId"), context }) }, request)
     }
     if (request.method === "GET" && url.pathname === "/planner") {
       const document = url.searchParams.get("document") || ""

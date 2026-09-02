@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lucida.local/schemas/external-signal/v1",
+  "title": "LUCIDA external signal",
+  "type": "object",
+  "required": ["source", "sessionId", "eventType"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "signalId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$" },
+    "eventId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$" },
+    "source": { "enum": ["xio", "vizz", "pupila"] },
+    "sessionId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,120}$" },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "eventType": { "type": "string", "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)+$", "maxLength": 80 },
+    "timestamp": { "type": "string" },
+    "metadata": { "$ref": "#/$defs/metadata" },
+    "payload": { "type": "object" },
+    "proposal": { "$ref": "#/$defs/proposal" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "maxProperties": 20
+    },
+    "proposal": {
+      "type": "object",
+      "properties": {
+        "proposalId": { "type": "string" },
+        "kind": { "type": "string" },
+        "title": { "type": "string", "maxLength": 180 },
+        "reason": { "type": "string", "maxLength": 400 },
+        "target": { "type": "string" },
+        "reversible": { "type": "boolean" },
+        "expiresAt": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

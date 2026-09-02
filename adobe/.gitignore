@@ -16,5 +16,11 @@ jobs/*/work/
 jobs/*/output/
 jobs/
 logs/
+!jobs/
+jobs/*
+!jobs/.gitkeep
+!logs/
+logs/*
+!logs/.gitkeep
 artifacts/
 coverage/
