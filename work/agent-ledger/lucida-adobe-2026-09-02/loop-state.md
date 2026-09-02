@@ -11,6 +11,8 @@ completed:
     evidence: renderer consumes projectInventory.collections; inventory schema exposes indexErrors; 42 legacy tests pass.
   - item: Bounded context sessions, recommendation cache and insert result retention; unknown session lookups no longer fall back to another session.
     evidence: context regression test passes with 40 sessions and diagnostics remain bounded.
+  - item: Bounded external signal session state without changing proposal-only semantics.
+    evidence: signal regression test passes with 40 sessions; signal history remains capped at 96 events per session.
   - item: Published the pre-improvement baseline checkpoint.
     evidence: b171401fe91826e7ced9951fa06644ef2df2ed24 was recorded and bb64db5 was pushed before implementation.
   - item: Audited the migrated companion, bridge and Adobe adapters.
@@ -26,8 +28,8 @@ completed:
   - item: Made external signal changes invalidate recommendation cache entries.
     evidence: recommendationCacheKey includes context hash, result limit and derived surface hash; a signal or lifecycle change cannot leave the companion on an older recommendation set.
 in_progress:
-  - item: Harden cache writes and asset path validation without changing host behavior.
-    acceptance: Concurrent catalog refreshes cannot leave a partial cache; asset preview/drag accepts only real files inside the intended asset root.
+  - item: Audit the insertion path against external signal proposals.
+    acceptance: XIO, VIZZ and PUPILA signals can enrich context but cannot create or bypass an Adobe host command without the existing explicit authorization path.
 files_or_resources:
   - adobe/companion/renderer.js
   - adobe/src/tools/project-inventory.mjs
@@ -47,5 +49,5 @@ estimated_remaining_effort: one focused implementation and verification pass
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.
   - Whether a real Adobe context publisher will remain stable across host versions.
-next_action: Add atomic catalog cache writes and realpath-based asset-root checks, then run focused and full verification.
+next_action: Confirm the insertion path and host adapter authorization boundaries, then record whether a code change is justified.
 next_checkpoint_trigger: A coherent code change with passing suites and a pushed commit.

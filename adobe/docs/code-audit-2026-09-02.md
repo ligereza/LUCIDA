@@ -11,6 +11,7 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 - Indexing failures are returned as relative-path diagnostics instead of being silently discarded.
 - A requested unknown `sessionId` no longer falls back to another session's latest context.
 - Context sessions, recommendation entries and stored insert results have bounded retention.
+- External signal sessions now have bounded retention as well; their history remains proposal-only.
 - Catalog and group indexes use serialized refreshes and atomic JSON replacement.
 - SVG and raster metadata reads use bounded file prefixes where full content is unnecessary.
 - Companion asset paths are resolved through real paths and restricted to the package root.
@@ -29,3 +30,4 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 - `npm run smoke`: passed.
 - `npm run verify`: passed.
 - `npm run companion:check`: passed.
+- `npm run signal:test`: 3 passed.

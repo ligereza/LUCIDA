@@ -1,6 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { currentSignals, currentSurface, normalizeSignal, publishSignal } from "../src/tools/signal-bridge.mjs"
+import { currentSignals, currentSurface, normalizeSignal, publishSignal, signalDiagnostics } from "../src/tools/signal-bridge.mjs"
 
 function sessionId(label) {
   return `signal-${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -130,4 +130,14 @@ test("signal history and deduplication memory stay bounded", () => {
   assert.equal(currentSignals({ sessionId: id }).count, 96)
   const reintroduced = publishSignal({ signalId: "bounded-0", source: "xio", sessionId: id, sequence: 100, eventType: "workspace.focus" })
   assert.equal(reintroduced.duplicate, false)
+})
+
+test("signal session state stays bounded", () => {
+  const prefix = `signal-session-bound-${Date.now()}`
+  for (let index = 0; index < 40; index += 1) {
+    publishSignal({ source: "xio", sessionId: `${prefix}-${index}`, sequence: 0, eventType: "workspace.focus" })
+  }
+  assert.ok(signalDiagnostics().sessions <= 32)
+  assert.equal(currentSignals({ sessionId: `${prefix}-0` }).count, 0)
+  assert.equal(currentSignals({ sessionId: `${prefix}-39` }).count, 1)
 })

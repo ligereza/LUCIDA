@@ -2,6 +2,7 @@ import { clone, deterministicId, sha256, stable } from "../../generic-interface-
 
 const SOURCES = new Set(["xio", "vizz", "pupila"])
 const MAX_HISTORY = 96
+const MAX_SESSIONS = 32
 const MAX_METADATA = 20
 const SIGNAL_TTL_MS = 45_000
 const EVENT_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)+$/
@@ -161,8 +162,10 @@ function stateFor(sessionId) {
   let state = sessions.get(sessionId)
   if (!state) {
     state = { history: [], latest: new Map(), lastSequence: new Map(), seen: new Map() }
-    sessions.set(sessionId, state)
   }
+  sessions.delete(sessionId)
+  sessions.set(sessionId, state)
+  while (sessions.size > MAX_SESSIONS) sessions.delete(sessions.keys().next().value)
   return state
 }
 
