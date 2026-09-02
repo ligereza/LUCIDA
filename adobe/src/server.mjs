@@ -14,9 +14,10 @@ import { catalogGroupSummary, indexLocalGroups, listCatalogAssets } from "./tool
 import { listProjectInventory } from "./tools/project-inventory.mjs"
 import { indexMobileClip, installMobileClipModel, mobileClipStatus } from "./tools/mobileclip.mjs"
 import { currentSignals, currentSurface, publishSignal, signalDiagnostics } from "./tools/signal-bridge.mjs"
+import { loadHostCapabilities } from "./tools/host-capabilities.mjs"
 
 const registry = await readJson(path.join(TOOLKIT_ROOT, "registry.json"))
-const hostCapabilities = await readJson(path.join(TOOLKIT_ROOT, "contracts", "host-capabilities.json"))
+const hostCapabilities = await loadHostCapabilities()
 const config = await readJson(path.join(TOOLKIT_ROOT, "config.local.json")).catch(() => ({ server: {} }))
 const host = process.env.AGENT_TOOLKIT_HOST || config.server?.host || "127.0.0.1"
 const port = Number(process.env.AGENT_TOOLKIT_PORT || config.server?.port || 47921)

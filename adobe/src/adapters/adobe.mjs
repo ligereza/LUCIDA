@@ -1,12 +1,11 @@
 import fs from "node:fs/promises"
 import path from "node:path"
-import { fileURLToPath } from "node:url"
 import { audit } from "../audit.mjs"
 import { createJob, updateJob } from "../jobs.mjs"
 import { assertAllowedInput, assertJobId, ensureDir, resolveOutput, writeJson, readJson, JOBS_ROOT } from "../utils.mjs"
+import { loadHostCapabilities } from "../tools/host-capabilities.mjs"
 
-const moduleDirectory = path.dirname(fileURLToPath(import.meta.url))
-const hostCapabilities = await readJson(path.join(moduleDirectory, "..", "..", "contracts", "host-capabilities.json"))
+const hostCapabilities = await loadHostCapabilities()
 const apps = new Set(hostCapabilities.primaryHosts)
 const operations = Object.fromEntries(
   Object.entries(hostCapabilities.hosts).map(([app, host]) => [app, new Set(host.operations)]),
