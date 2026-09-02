@@ -59,3 +59,9 @@ El bridge local expone `POST /signals`, `GET /signals/current` y `GET /surface/c
 La matriz de capacidades es la fuente de verdad de alcance para el agent-card. Photoshop tiene un proveedor UXP preparado pero aún requiere validación dentro del host; los otros hosts conservan adaptadores explícitos sin inventar un proveedor de contexto. Resolume, transporte entre dispositivos y migración de proyectos permanecen fuera de esta rama.
 
 El contrato es deliberadamente pequeno: no reenvia texto, rutas, imagenes, archivos, teclas, comandos, scripts ni URLs. Las propuestas de VIZZ/PUPILA son siempre reversibles cuando es posible, requieren confirmacion y permanecen `proposalOnly`; ningun evento externo ejecuta una accion en Photoshop, Illustrator, Premiere o After Effects.
+
+## Instalacion limpia
+
+Esta rama es una aplicacion local privada, no un paquete npm publico. Desde un clon del repositorio, conservar los dos lockfiles y ejecutar `npm ci` en `adobe/` y luego `npm ci` en `adobe/companion/`. El `npm pack --dry-run` se usa solo como auditoria del contenido distribuible: npm omite deliberadamente el `package-lock.json` de la raiz al crear un tarball.
+
+La companion necesita Electron instalado localmente; no depende de una instalacion global. Los iconos de `ICONOS/CHEMSEX/` son contenido de preview y explican el tamano del paquete de auditoria. El `.npmignore` excluye caches, sesiones, logs, jobs y secretos; no excluye `generic-interface-layer/core/jobs/`, porque ese directorio contiene codigo runtime.

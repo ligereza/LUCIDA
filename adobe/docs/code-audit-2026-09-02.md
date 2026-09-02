@@ -17,6 +17,11 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 - SVG and raster metadata reads use bounded file prefixes where full content is unnecessary.
 - Companion asset paths are resolved through real paths and restricted to the package root.
 - The Electron document has a local-only content security policy.
+- The package now has explicit npm ignore rules for development caches, jobs, logs, credentials and dependency trees.
+
+## Packaging audit
+
+`npm pack --dry-run --json` reports 702 runtime/documentation files after the explicit ignore rules, with no dependency trees, credentials, caches, root jobs or root logs included. The archive is approximately 687 MB because it intentionally contains the high-resolution `ICONOS/CHEMSEX/` preview library. The root `package-lock.json` is tracked for repository installs but npm omits it from tarballs by design; this branch is documented and tested as a private repository application, not as a publishable npm package.
 
 ## Remaining external validation
 
@@ -26,7 +31,7 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 
 ## Evidence
 
-- `npm run legacy:test`: 44 passed.
+- `npm run legacy:test`: 46 passed.
 - `npm run test`: 11 passed.
 - `npm run smoke`: passed.
 - `npm run verify`: passed.

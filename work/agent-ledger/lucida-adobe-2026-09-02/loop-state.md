@@ -15,6 +15,12 @@ completed:
     evidence: signal regression test passes with 40 sessions; signal history remains capped at 96 events per session.
   - item: Audited insertion boundary against external proposals.
     evidence: The new regression confirms a VIZZ proposal produces no queued insertion; host actions remain false and proposal-only remains true.
+  - item: Published the structural audit and insertion-boundary fixes.
+    evidence: Commits 2985f1f, 76c459d and 22808d2 are pushed to origin/ADOBE; branch is clean and synchronized.
+  - item: Audited the repository package boundary.
+    evidence: npm pack dry-run contains 703 files and about 687595 KB, with zero forbidden cache, dependency-tree, secret, root-job or root-log entries; required companion and runtime entrypoints are present. High size is explained by the intentional high-resolution ICONOS/CHEMSEX library.
+  - item: Added explicit npm packaging exclusions and documented private-repository installation.
+    evidence: .npmignore excludes development state without excluding generic-interface-layer/core/jobs runtime code; README and audit record that npm omits the root lockfile from tarballs by design.
   - item: Published the pre-improvement baseline checkpoint.
     evidence: b171401fe91826e7ced9951fa06644ef2df2ed24 was recorded and bb64db5 was pushed before implementation.
   - item: Audited the migrated companion, bridge and Adobe adapters.
@@ -30,17 +36,18 @@ completed:
   - item: Made external signal changes invalidate recommendation cache entries.
     evidence: recommendationCacheKey includes context hash, result limit and derived surface hash; a signal or lifecycle change cannot leave the companion on an older recommendation set.
 in_progress:
-  - item: Prepare the next LUCIDA ADOBE milestone after the structural audit.
-    acceptance: The branch remains clean, contract checks pass, and the next implementation target is selected from evidence rather than invented scope.
+  - item: Prepare the next operator validation pass.
+    acceptance: Repository checks remain green and the remaining uncertainty is isolated to user-operated Adobe host execution, not local bridge structure.
 files_or_resources:
   - adobe/companion/renderer.js
   - adobe/src/tools/project-inventory.mjs
   - adobe/src/tools/context.mjs
 tests_and_checks:
-  - npm run legacy:test: 42 passed
+  - npm run legacy:test: 46 passed
   - npm run test: 11 passed
   - npm run smoke: passed
   - npm run companion:check: passed
+  - npm run verify: passed
 assumptions:
   - ADOBE remains a local-first companion; host runtime validation is still external.
 blockers: []
@@ -51,5 +58,5 @@ estimated_remaining_effort: one focused implementation and verification pass
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.
   - Whether a real Adobe context publisher will remain stable across host versions.
-next_action: Commit the insertion-boundary regression and audit update, then reassess whether host runtime validation or Adobe context capture has higher value.
+next_action: Keep the package boundary stable and prepare a focused Photoshop UXP validation checklist; do not claim host execution until the user runs the companion inside Photoshop.
 next_checkpoint_trigger: A coherent code change with passing suites and a pushed commit.
