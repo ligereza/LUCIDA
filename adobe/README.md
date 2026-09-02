@@ -11,6 +11,7 @@ Migración local de la capa de exploración contextual y sus integraciones Adobe
 - `src/`: runtime histórico necesario por el servidor/bridge; no contiene proyectos ni assets de trabajo.
 - `ICONOS/CHEMSEX/`: únicamente visuales propios/generated-by-Codex con asignación comprobable a láminas 1–8.
 - `contracts/` y `src/tools/signal-bridge.mjs`: contrato de señales locales para XIO, VIZZ y PUPILA. Sólo acepta metadatos acotados; descarta contenido crudo y produce una superficie de propuestas, no acciones del host.
+- `integrations/signal-publisher/`: cliente Python sin dependencias para que los tres proyectos publiquen señales sin conocer el runtime Adobe.
 - `docs/legacy/`: capacidades, planes y documentación operativa migrada con identidad LUCIDA.
 
 ## Pruebas
@@ -20,6 +21,7 @@ cd C:\IA\LUCIDA\adobe
 npm test
 npm run smoke
 npm run companion:check
+python -m unittest tests/test_signal_publisher.py
 ```
 
 El núcleo no requiere Adobe, Electron, CUDA, MobileCLIP ni una base de assets para probarse. No se incluyeron `node_modules`, caches, pesos, modelos, credenciales ni bases privadas.

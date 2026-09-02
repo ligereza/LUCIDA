@@ -12,7 +12,8 @@
     "verify": "node src/verify.mjs",
     "test": "npm --prefix generic-interface-layer test",
     "smoke": "npm --prefix generic-interface-layer run smoke",
-    "legacy:test": "node --test tests/*.test.mjs"
+    "legacy:test": "node --test tests/*.test.mjs",
+    "signal:test": "python -m unittest tests/test_signal_publisher.py"
   },
   "engines": {
     "node": ">=20"
