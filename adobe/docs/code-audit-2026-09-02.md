@@ -45,11 +45,12 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 - The root `npm test` now runs both the extracted core and the active runtime; the two paths remain intentionally separate until contract parity is proven.
 - The active signal runtime no longer imports a private module from `generic-interface-layer`; shared stable primitives now live under `contracts/stable.mjs`, while the extracted core remains standalone.
 - A regression fixture now proves the two context boundaries differ intentionally: the generic layer preserves provenance fields such as document path and `unknown`, while the Adobe runtime drops the path and enforces its host-specific shape.
+- A hostless UXP harness now executes the producer with mocked Photoshop collections and fetch, proving the 200-layer/1000-character bounds, null document path, abort signal propagation and polling lifecycle without claiming Photoshop host execution.
 
 ## Evidence
 
-- `npm run legacy:test` / `npm run test:runtime`: 57 passed.
-- `npm run test` / `npm run test:core`: 11 core tests and 57 runtime tests passed.
+- `npm run legacy:test` / `npm run test:runtime`: 58 passed.
+- `npm run test` / `npm run test:core`: 11 core tests and 58 runtime tests passed.
 - `npm run smoke`: passed.
 - `npm run verify`: passed.
 - `npm run companion:check`: passed.
