@@ -29,3 +29,10 @@ The VIZZ and PUPILA route ids are explicit: `vizz.metadata` with
 and undeclared event types are rejected before reduction. No raw video,
 documents, credentials or host actions cross this boundary. A future domain
 adapter must pass its own tests and the LUCIDA engine suite before integration.
+
+The engine output is a `RenderPlan`. `build_overlay_frame` projects it into a
+`LucidaOverlayFrame` with `transparent=true`, `click_through=true`,
+`blocking=false` and no automatic or external side effects. This is distinct
+from the richer `LucidaOverlayView` state protocol owned by the VJ branch; the
+engine does not flatten that state protocol or silently discard its cursor and
+diff semantics.

@@ -12,6 +12,13 @@ from .domain_adapters import (
     VizzMetadataAdapter,
     register_vizz_pupila_routes,
 )
+from .overlay_frame import (
+    MAX_FRAME_ELEMENTS,
+    OVERLAY_FRAME_SCHEMA_VERSION,
+    OverlayFrame,
+    OverlayFrameError,
+    build_overlay_frame,
+)
 
 __all__ = [
     "AdapterRegistry",
@@ -34,6 +41,11 @@ __all__ = [
     "PupilaCoordinationAdapter",
     "VizzMetadataAdapter",
     "register_vizz_pupila_routes",
+    "OverlayFrame",
+    "OverlayFrameError",
+    "build_overlay_frame",
+    "MAX_FRAME_ELEMENTS",
+    "OVERLAY_FRAME_SCHEMA_VERSION",
     "LucidaEngine",
     "RenderPlan",
 ]
