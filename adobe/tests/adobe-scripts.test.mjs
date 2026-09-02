@@ -70,10 +70,14 @@ test("Photoshop UXP bounds layer snapshots and bridge retries", async () => {
   assert.match(source, /const MAX_LAYERS = 200/)
   assert.match(source, /const MAX_LAYER_DEPTH = 64/)
   assert.match(source, /const MAX_LAYER_TEXT = 1000/)
+  assert.match(source, /const BRIDGE_TIMEOUT_MS = 3000/)
+  assert.match(source, /const BRIDGE_LONG_TIMEOUT_MS = 30000/)
   assert.match(source, /function layersOf\(collection, limit = MAX_LAYERS\)/)
   assert.match(source, /nextContextAttemptAt = Date\.now\(\) \+ BRIDGE_RETRY_MS/)
   assert.match(source, /nextInsertAttemptAt = Date\.now\(\) \+ BRIDGE_RETRY_MS/)
   assert.match(source, /lastBridgeErrorAt/)
+  assert.match(source, /new AbortController\(\)/)
+  assert.match(source, /controller\.abort\(\)/)
 })
 
 test("Photoshop generated output names stay ASCII", async () => {

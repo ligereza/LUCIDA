@@ -25,6 +25,7 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 - `npm run verify` now validates the Photoshop UXP manifest, required panel entrypoint and local bridge permission instead of checking only file presence.
 - The Photoshop UXP producer now caps layer traversal at 200 layers and depth 64, truncates layer text, and bounds active/imported layer reads before serialization.
 - UXP bridge polling now backs off for five seconds after a bridge failure and suppresses duplicate panel errors during that interval.
+- UXP bridge requests now use `AbortController`: context and queue calls time out after three seconds, while remote asset fetches receive a bounded 30-second timeout.
 - Remote SVG previews now pass through the Electron main process with an HTTPS host allowlist, SVG content-type checks, a 1 MB body limit and a five-second timeout; the renderer remains local-only under CSP.
 - Electron bridge responses now have a four-megabyte accumulation limit and reject oversized bodies instead of retaining them in memory.
 
@@ -41,7 +42,6 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 ## Remaining structural risks
 
 - `generic-interface-layer/` and the active `src/` runtime both contain boundary logic; they are tested separately and are not yet a single imported execution path. A future consolidation must preserve the current contracts before deleting either side.
-- UXP bridge failures now back off after settled requests, but the UXP `fetch` call has no abort timeout. A hung host request can still hold the in-flight guard indefinitely; this requires host-compatible cancellation testing before implementation.
 - The root `npm test` now runs both the extracted core and the active runtime; the two paths remain intentionally separate until contract parity is proven.
 - The active signal runtime no longer imports a private module from `generic-interface-layer`; shared stable primitives now live under `contracts/stable.mjs`, while the extracted core remains standalone.
 

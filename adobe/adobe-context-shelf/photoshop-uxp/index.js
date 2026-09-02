@@ -10,6 +10,8 @@ const MAX_LAYER_TEXT = 1000
 const CONTEXT_POLL_MS = 1200
 const INSERT_POLL_MS = 700
 const BRIDGE_RETRY_MS = 5000
+const BRIDGE_TIMEOUT_MS = 3000
+const BRIDGE_LONG_TIMEOUT_MS = 30000
 let syncing = false
 let consuming = false
 let lastContextSignature = null
@@ -186,13 +188,28 @@ function currentContext() {
 }
 
 async function request(path, options = {}) {
-  const response = await fetch(`${BRIDGE}${path}`, {
-    ...options,
-    headers: { "content-type": "application/json", ...(options.headers || {}) },
-  })
-  const value = await response.json()
-  if (!response.ok) throw new Error(value.error || `Bridge HTTP ${response.status}`)
-  return value
+  const { timeoutMs = BRIDGE_TIMEOUT_MS, ...fetchOptions } = options
+  const controller = new AbortController()
+  let timedOut = false
+  const timeout = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, timeoutMs)
+  try {
+    const response = await fetch(`${BRIDGE}${path}`, {
+      ...fetchOptions,
+      signal: controller.signal,
+      headers: { "content-type": "application/json", ...(fetchOptions.headers || {}) },
+    })
+    const value = await response.json()
+    if (!response.ok) throw new Error(value.error || `Bridge HTTP ${response.status}`)
+    return value
+  } catch (error) {
+    if (timedOut) throw new Error(`Bridge request timed out after ${timeoutMs}ms`)
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 async function syncContext({ force = false } = {}) {
@@ -263,6 +280,7 @@ async function consumeInsert() {
     if (!file && requestValue.asset?.provider && requestValue.asset?.id) {
       const fetched = await request("/run", {
         method: "POST",
+        timeoutMs: BRIDGE_LONG_TIMEOUT_MS,
         body: JSON.stringify({ tool: "asset.fetch", params: { provider: requestValue.asset.provider, id: requestValue.asset.id } }),
       })
       file = fetched.result?.output || fetched.files?.[0] || null
