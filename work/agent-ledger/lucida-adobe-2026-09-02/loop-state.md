@@ -11,11 +11,15 @@ completed:
     evidence: b171401fe91826e7ced9951fa06644ef2df2ed24 was recorded and bb64db5 was pushed before implementation.
   - item: Audited the migrated companion, bridge and Adobe adapters.
     evidence: The bridge and companion run locally; the host contract declared operations but verification did not compare them with agent.jsx/agent.psjs dispatches.
+  - item: Added contract-to-adapter parity verification and reduced companion polling overlap.
+    evidence: verify now checks every declared operation against each JSX/PSJS dispatch; current Adobe adapters pass, and renderer syntax checks pass with a single poll in flight.
+  - item: Bounded cross-project signal state and proposal lifetime.
+    evidence: VIZZ/PUPILA proposals are clamped to 45 seconds and filtered from the derived surface after expiry; signal history and deduplication memory stay at 96 events per session.
 in_progress:
-  - item: Add contract-to-adapter parity verification and reduce companion polling overlap.
-    acceptance: verify fails on an operation mismatch, current adapters pass, and renderer requests cannot stack.
+  - item: Improve the bridge-facing companion status and evidence path.
+    acceptance: the user can distinguish bridge offline, Adobe context absent, stale external signals and active proposal state without host actions being implied.
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.
   - Whether a real Adobe context publisher will remain stable across host versions.
-next_action: Implement the parity guard and polling guard, run all offline suites, then publish a checkpoint.
+next_action: Inspect the companion state presentation and add only a deterministic status model that keeps connector ownership explicit.
 next_checkpoint_trigger: A coherent code change with passing suites and a pushed commit.

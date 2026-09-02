@@ -1,6 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { currentSignals, currentSurface, publishSignal } from "../src/tools/signal-bridge.mjs"
+import { currentSignals, currentSurface, normalizeSignal, publishSignal } from "../src/tools/signal-bridge.mjs"
 
 function sessionId(label) {
   return `signal-${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -97,4 +97,35 @@ test("vizz and pupila proposals remain explicit and confirmation-only", () => {
   })
   assert.equal(pupila.signal.metadata.participantCount, 2)
   assert.equal(currentSurface({ sessionId: id }).sources.pupila.state, "active")
+})
+
+test("proposal expiry is bounded and expired proposals leave the derived surface", () => {
+  const now = new Date("2026-09-02T12:00:00.000Z")
+  const normalized = normalizeSignal({
+    source: "vizz",
+    sessionId: "signal-expiry-fixed",
+    eventType: "attention.shift",
+    proposal: { title: "Short lived", reason: "test", expiresAt: "2030-01-01T00:00:00Z" },
+  }, { now })
+  assert.equal(normalized.proposal.expiresAt, "2026-09-02T12:00:45.000Z")
+
+  const id = sessionId("expired")
+  const result = publishSignal({
+    source: "vizz",
+    sessionId: id,
+    eventType: "attention.shift",
+    proposal: { title: "Expired", reason: "test", expiresAt: "2000-01-01T00:00:00Z" },
+  })
+  assert.equal(result.signal.proposal !== null, true)
+  assert.deepEqual(currentSurface({ sessionId: id }).proposals, [])
+})
+
+test("signal history and deduplication memory stay bounded", () => {
+  const id = sessionId("bounded")
+  for (let sequence = 0; sequence < 100; sequence += 1) {
+    publishSignal({ signalId: `bounded-${sequence}`, source: "xio", sessionId: id, sequence, eventType: "workspace.focus" })
+  }
+  assert.equal(currentSignals({ sessionId: id }).count, 96)
+  const reintroduced = publishSignal({ signalId: "bounded-0", source: "xio", sessionId: id, sequence: 100, eventType: "workspace.focus" })
+  assert.equal(reintroduced.duplicate, false)
 })

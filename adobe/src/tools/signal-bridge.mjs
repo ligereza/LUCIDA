@@ -135,10 +135,13 @@ function collectMetadata(input) {
   return { metadata, droppedKeys: [...new Set(droppedKeys)].slice(0, 24) }
 }
 
-function normalizeProposal(value, source) {
+function normalizeProposal(value, source, now) {
   if (!value || !["vizz", "pupila"].includes(source)) return null
   const input = objectOrEmpty(value)
   const proposalId = idOf(input.proposalId || input.id) || deterministicId("proposal", { source, value: stable(input) })
+  const requestedExpiry = input.expiresAt ? isoTimestamp(input.expiresAt, now) : null
+  const requestedExpiryMs = requestedExpiry ? Date.parse(requestedExpiry) : now.getTime() + SIGNAL_TTL_MS
+  const expiresAt = new Date(Math.min(requestedExpiryMs, now.getTime() + SIGNAL_TTL_MS)).toISOString()
   const normalized = {
     proposalId,
     kind: token(input.kind, "visual-proposal"),
@@ -148,7 +151,7 @@ function normalizeProposal(value, source) {
     reversible: input.reversible !== false,
     requiresConfirmation: true,
     proposalOnly: true,
-    expiresAt: input.expiresAt ? isoTimestamp(input.expiresAt) : null,
+    expiresAt,
   }
   if (!normalized.title && !normalized.reason) return null
   return normalized
@@ -175,7 +178,7 @@ export function normalizeSignal(input = {}, { sequence = null, now = new Date() 
   const { metadata, droppedKeys } = collectMetadata(input)
   const signalId = idOf(input.signalId || input.signal_id || input.eventId || input.event_id)
     || deterministicId("signal", { source, sessionId, sequence: normalizedSequence, eventType, metadata, proposal: input.proposal || null })
-  const proposal = normalizeProposal(input.proposal, source)
+  const proposal = normalizeProposal(input.proposal, source, now)
   const signal = {
     schemaVersion: 1,
     signalId,
@@ -213,13 +216,18 @@ function sourceSummary(signal, nowMs) {
   }
 }
 
+function proposalIsActive(proposal, nowMs) {
+  const expiresAt = Date.parse(proposal?.expiresAt || "")
+  return !Number.isFinite(expiresAt) || expiresAt > nowMs
+}
+
 export function currentSurface({ sessionId = null, context = null, contextHash = null, now = new Date() } = {}) {
   const resolvedSession = sessionId || context?.sessionId || lastSessionId || null
   const state = resolvedSession ? sessions.get(resolvedSession) : null
   const nowMs = now.getTime()
   const sources = Object.fromEntries([...SOURCES].map((source) => [source, sourceSummary(signalFromState(state, source), nowMs)]))
   const proposals = (state?.history || [])
-    .filter((signal) => signal.proposal)
+    .filter((signal) => signal.proposal && proposalIsActive(signal.proposal, nowMs))
     .slice(-8)
     .reverse()
     .map((signal) => ({ ...clone(signal.proposal), source: signal.source, signalId: signal.signalId, createdAt: signal.receivedAt }))
@@ -258,12 +266,16 @@ export function publishSignal(input = {}) {
   const previousSequence = state.lastSequence.get(source) ?? -1
   const requestedSequence = Number.isInteger(Number(input.sequence)) && Number(input.sequence) >= 0 ? Number(input.sequence) : previousSequence + 1
   if (requestedSequence <= previousSequence) throw new Error(`Signal sequence must increase for ${source}`)
-  const signal = normalizeSignal(input, { sequence: requestedSequence })
+  const now = new Date()
+  const signal = normalizeSignal(input, { sequence: requestedSequence, now })
   state.lastSequence.set(source, signal.sequence)
   state.seen.set(`${source}:${signal.signalId}`, signal)
   state.latest.set(source, signal)
   state.history.push(signal)
-  if (state.history.length > MAX_HISTORY) state.history.splice(0, state.history.length - MAX_HISTORY)
+  if (state.history.length > MAX_HISTORY) {
+    const removed = state.history.splice(0, state.history.length - MAX_HISTORY)
+    for (const oldSignal of removed) state.seen.delete(`${oldSignal.source}:${oldSignal.signalId}`)
+  }
   lastSessionId = sessionId
   return { accepted: true, duplicate: false, signal: clone(signal), surface: currentSurface({ sessionId }) }
 }
