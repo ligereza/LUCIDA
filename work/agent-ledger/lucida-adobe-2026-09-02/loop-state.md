@@ -15,8 +15,10 @@ completed:
     evidence: verify now checks every declared operation against each JSX/PSJS dispatch; current Adobe adapters pass, and renderer syntax checks pass with a single poll in flight.
   - item: Bounded cross-project signal state and proposal lifetime.
     evidence: VIZZ/PUPILA proposals are clamped to 45 seconds and filtered from the derived surface after expiry; signal history and deduplication memory stay at 96 events per session.
+  - item: Added a deterministic bridge-facing status boundary.
+    evidence: The companion accepts only an ADOBE bridge identity, avoids overlapping refresh requests, and the shared signal surface now exposes only active proposals with bounded state.
 in_progress:
-  - item: Improve the bridge-facing companion status and evidence path.
+  - item: Improve the bridge-facing companion presentation and evidence path.
     acceptance: the user can distinguish bridge offline, Adobe context absent, stale external signals and active proposal state without host actions being implied.
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.

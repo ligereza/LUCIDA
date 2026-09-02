@@ -28,6 +28,12 @@ window; expired proposals are omitted from the derived surface. The historical
 signal record remains available until it leaves the bounded history, so the
 surface cannot turn an old VIZZ or PUPILA proposal into a current host action.
 
+Signals are retained in a bounded 96-event session history. Source state is
+marked `stale` after 45 seconds, and proposals are clamped to that same
+window; expired proposals are omitted from the derived surface. The historical
+signal record remains available until it leaves the bounded history, so the
+surface cannot turn an old VIZZ or PUPILA proposal into a current host action.
+
 The default catalog is local to this branch and includes `ICONOS/CHEMSEX`; the source SVG repository is not required at runtime. The catalog and project inventory use the migrated files and their manifest, with no external corpus or downloaded model required for the base flow.
 
 ## API
