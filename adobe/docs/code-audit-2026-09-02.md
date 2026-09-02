@@ -23,6 +23,8 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 - The package now has explicit npm ignore rules for development caches, jobs, logs, credentials and dependency trees.
 - Insert result payloads are now depth/key/string bounded and remove file/path/content-like keys; the UXP consumer reports only the asset id.
 - `npm run verify` now validates the Photoshop UXP manifest, required panel entrypoint and local bridge permission instead of checking only file presence.
+- The Photoshop UXP producer now caps layer traversal at 200 layers and depth 64, truncates layer text, and bounds active/imported layer reads before serialization.
+- UXP bridge polling now backs off for five seconds after a bridge failure and suppresses duplicate panel errors during that interval.
 
 ## Packaging audit
 
@@ -34,9 +36,16 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 - After Effects and Premiere host execution remain unverified on this machine.
 - `npm audit` still reports the transitive `uuid` advisory from the Adobe PDF SDK; no automatic fix is available.
 
+## Remaining structural risks
+
+- Remote asset results carry `previewUrl`, but the companion content policy currently permits only local image sources. Remote cards therefore fall back to a format label until an allowlisted preview proxy or explicitly allowlisted image origins are implemented.
+- `generic-interface-layer/` and the active `src/` runtime both contain boundary logic; they are tested separately and are not yet a single imported execution path. A future consolidation must preserve the current contracts before deleting either side.
+- UXP bridge failures now back off after settled requests, but the UXP `fetch` call has no abort timeout. A hung host request can still hold the in-flight guard indefinitely; this requires host-compatible cancellation testing before implementation.
+- The Electron bridge bounds request bodies but does not cap response accumulation. Large project inventories remain a possible local memory-pressure path and should be capped before multi-project indexing grows.
+
 ## Evidence
 
-- `npm run legacy:test`: 52 passed.
+- `npm run legacy:test`: 53 passed.
 - `npm run test`: 11 passed.
 - `npm run smoke`: passed.
 - `npm run verify`: passed.

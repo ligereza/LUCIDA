@@ -45,6 +45,10 @@ completed:
     evidence: Surface schema and runtime now expose empty/active/stale state, active and stale source counts, and current proposal count; the companion renders proposal origin and reason while keeping confirmation required.
   - item: Made external signal changes invalidate recommendation cache entries.
     evidence: recommendationCacheKey includes context hash, result limit and derived surface hash; a signal or lifecycle change cannot leave the companion on an older recommendation set.
+  - item: Bounded Photoshop UXP context production and bridge retry pressure.
+    evidence: UXP layer traversal stops at 200 layers and depth 64, layer text is capped at 1000 characters, active/imported reads are limited, and failed bridge polls wait five seconds before retrying with duplicate errors suppressed; source-contract regression passes.
+  - item: Closed the UXP generated-layer naming encoding gap.
+    evidence: Photoshop UXP now sanitizes generated asset names to ASCII and uses ASCII analysis-layer labels; the Adobe source-contract regression covers the UXP path.
 in_progress:
   - item: Prepare the next operator validation pass.
     acceptance: Repository checks remain green and the remaining uncertainty is isolated to user-operated Adobe host execution, not local bridge structure.
@@ -52,8 +56,9 @@ files_or_resources:
   - adobe/companion/renderer.js
   - adobe/src/tools/project-inventory.mjs
   - adobe/src/tools/context.mjs
+  - adobe/adobe-context-shelf/photoshop-uxp/index.js
 tests_and_checks:
-  - npm run legacy:test: 52 passed
+  - npm run legacy:test: 53 passed
   - npm run test: 11 passed
   - npm run smoke: passed
   - npm run companion:check: passed
@@ -63,10 +68,12 @@ assumptions:
 blockers: []
 research_refs: []
 delegation_refs: []
-last_critique: critique-11.md
+last_critique: critique-12.md
 estimated_remaining_effort: one focused implementation and verification pass
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.
   - Whether a real Adobe context publisher will remain stable across host versions.
-next_action: Keep the package boundary stable and prepare a focused Photoshop UXP validation checklist; do not claim host execution until the user runs the companion inside Photoshop.
+  - Whether remote preview URLs should use a constrained main-process proxy or a small explicit origin allowlist.
+  - Whether UXP supports the cancellation primitive needed to bound a hung fetch without creating overlapping requests.
+next_action: Keep the package boundary stable and prepare a focused Photoshop UXP validation checklist; do not claim host execution until the user runs the companion inside Photoshop. Resolve remote preview policy and UXP cancellation only after the host validation gate.
 next_checkpoint_trigger: A coherent code change with passing suites and a pushed commit.

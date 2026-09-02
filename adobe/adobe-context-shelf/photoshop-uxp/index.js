@@ -4,12 +4,22 @@ const { storage } = require("uxp")
 
 const BRIDGE = "http://127.0.0.1:47921"
 const SESSION_ID = `photoshop-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+const MAX_LAYERS = 200
+const MAX_LAYER_DEPTH = 64
+const MAX_LAYER_TEXT = 1000
+const CONTEXT_POLL_MS = 1200
+const INSERT_POLL_MS = 700
+const BRIDGE_RETRY_MS = 5000
 let syncing = false
 let consuming = false
 let lastContextSignature = null
 let bridgeOnline = false
 let contextPoller = null
 let insertPoller = null
+let nextContextAttemptAt = 0
+let nextInsertAttemptAt = 0
+let lastBridgeError = null
+let lastBridgeErrorAt = 0
 
 entrypoints.setup({
   panels: {
@@ -26,10 +36,30 @@ function log(value) {
   if (target) target.textContent = String(value?.message || value)
 }
 
+function logBridgeError(prefix, error) {
+  const message = `${prefix}: ${error?.message || error}`
+  const now = Date.now()
+  if (message === lastBridgeError && now - lastBridgeErrorAt < BRIDGE_RETRY_MS) return
+  lastBridgeError = message
+  lastBridgeErrorAt = now
+  log(message)
+}
+
 function number(value) {
   const raw = value && typeof value === "object" && "value" in value ? value.value : value
   const parsed = Number(raw)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function asciiName(value, fallback) {
+  const normalized = String(value || "")
+    .normalize("NFKD")
+    .replace(/[^\x00-\x7F]/g, "")
+    .replace(/[^a-zA-Z0-9 _-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 160)
+  return normalized || fallback
 }
 
 function plainBounds(value) {
@@ -39,29 +69,44 @@ function plainBounds(value) {
 }
 
 function layerText(layer) {
-  try { return layer?.textItem?.contents ? String(layer.textItem.contents) : null } catch (_) { return null }
+  try {
+    return layer?.textItem?.contents ? String(layer.textItem.contents).slice(0, MAX_LAYER_TEXT) : null
+  } catch (_) { return null }
 }
 
-function layersOf(collection) {
-  try { return Array.from(collection || []) } catch (_) { return [] }
+function layersOf(collection, limit = MAX_LAYERS) {
+  try {
+    const result = []
+    for (const layer of collection || []) {
+      result.push(layer)
+      if (result.length >= limit) break
+    }
+    return result
+  } catch (_) {
+    try { return Array.from(collection || []).slice(0, limit) } catch (error) { return [] }
+  }
 }
 
 function flattenLayers(collection, output = [], parentId = null, depth = 0) {
-  for (const [index, layer] of layersOf(collection).entries()) {
+  if (output.length >= MAX_LAYERS || depth > MAX_LAYER_DEPTH) return output
+  for (const [index, layer] of layersOf(collection, MAX_LAYERS - output.length).entries()) {
+    if (output.length >= MAX_LAYERS) break
     output.push({ layer, parentId, depth, index })
-    if (layer.layers) flattenLayers(layer.layers, output, layer?.id == null ? null : String(layer.id), depth + 1)
+    if (layer.layers && depth < MAX_LAYER_DEPTH) {
+      flattenLayers(layer.layers, output, layer?.id == null ? null : String(layer.id), depth + 1)
+    }
   }
   return output
 }
 
 function serialiseLayer(layer, metadata = {}) {
   return {
-    id: layer?.id == null ? null : String(layer.id),
+    id: layer?.id == null ? null : String(layer.id).slice(0, 160),
     parentId: metadata.parentId == null ? null : String(metadata.parentId),
     depth: Number.isFinite(Number(metadata.depth)) ? Number(metadata.depth) : 0,
     order: Number.isFinite(Number(metadata.order)) ? Number(metadata.order) : null,
-    name: layer?.name ? String(layer.name) : null,
-    kind: layer?.kind ? String(layer.kind) : null,
+    name: layer?.name ? String(layer.name).slice(0, 300) : null,
+    kind: layer?.kind ? String(layer.kind).slice(0, 120) : null,
     visible: layer?.visible !== false,
     locked: layer?.allLocked === true || layer?.locked === true,
     opacity: number(layer?.opacity),
@@ -118,7 +163,7 @@ function currentContext() {
   }
   const flattenedLayers = flattenLayers(documentValue.layers)
   const allLayers = flattenedLayers.map((entry) => entry.layer)
-  const activeLayers = layersOf(app.activeLayers)
+  const activeLayers = layersOf(app.activeLayers, 4)
   const selected = activeLayers[0] || allLayers[0] || null
   const serialised = flattenedLayers.map((entry, order) => serialiseLayer(entry.layer, { ...entry, order }))
   return {
@@ -152,6 +197,7 @@ async function request(path, options = {}) {
 
 async function syncContext({ force = false } = {}) {
   if (syncing) return
+  if (!force && Date.now() < nextContextAttemptAt) return
   syncing = true
   try {
     const context = currentContext()
@@ -160,6 +206,8 @@ async function syncContext({ force = false } = {}) {
     const result = await request("/context", { method: "POST", body: JSON.stringify(context) })
     lastContextSignature = signature
     bridgeOnline = true
+    nextContextAttemptAt = 0
+    lastBridgeError = null
     document.querySelector("#status").className = "status online"
     document.querySelector("#status").textContent = "online"
     document.querySelector("#documentName").textContent = context.document.name || "Sin documento"
@@ -168,9 +216,10 @@ async function syncContext({ force = false } = {}) {
     log(`Contexto sincronizado\n${context.host} · ${context.document.name || "sin documento"}\n${context.selection.name || "sin selección"}\n${result.contextHash}`)
   } catch (error) {
     bridgeOnline = false
+    nextContextAttemptAt = Date.now() + BRIDGE_RETRY_MS
     document.querySelector("#status").className = "status offline"
     document.querySelector("#status").textContent = "offline"
-    log(`Bridge no disponible: ${error.message}`)
+    logBridgeError("Bridge no disponible", error)
   } finally {
     syncing = false
   }
@@ -178,10 +227,12 @@ async function syncContext({ force = false } = {}) {
 
 function startPolling() {
   if (contextPoller || insertPoller) return
-  syncContext({ force: true }).catch((error) => log(error))
-  consumeInsert().catch((error) => log(error))
-  contextPoller = setInterval(() => syncContext().catch((error) => log(error)), 1200)
-  insertPoller = setInterval(() => consumeInsert().catch((error) => log(error)), 700)
+  nextContextAttemptAt = 0
+  nextInsertAttemptAt = 0
+  syncContext({ force: true }).catch((error) => logBridgeError("Bridge no disponible", error))
+  consumeInsert().catch((error) => logBridgeError("Inserción fallida", error))
+  contextPoller = setInterval(() => syncContext().catch((error) => logBridgeError("Bridge no disponible", error)), CONTEXT_POLL_MS)
+  insertPoller = setInterval(() => consumeInsert().catch((error) => logBridgeError("Inserción fallida", error)), INSERT_POLL_MS)
 }
 
 function stopPolling() {
@@ -189,6 +240,8 @@ function stopPolling() {
   if (insertPoller) clearInterval(insertPoller)
   contextPoller = null
   insertPoller = null
+  nextContextAttemptAt = 0
+  nextInsertAttemptAt = 0
 }
 
 function fileUrl(file) {
@@ -197,10 +250,13 @@ function fileUrl(file) {
 
 async function consumeInsert() {
   if (consuming) return
+  if (Date.now() < nextInsertAttemptAt) return
   consuming = true
   let requestValue = null
   try {
     const response = await request(`/insert/next?sessionId=${encodeURIComponent(SESSION_ID)}`)
+    nextInsertAttemptAt = 0
+    lastBridgeError = null
     requestValue = response.request
     if (!requestValue) return
     let file = requestValue.asset?.file || null
@@ -220,7 +276,8 @@ async function consumeInsert() {
     })
     log(`Insertado: ${requestValue.asset?.assetId || file}`)
   } catch (error) {
-    log(`Inserción fallida: ${error.message}`)
+    nextInsertAttemptAt = Date.now() + BRIDGE_RETRY_MS
+    logBridgeError("Inserción fallida", error)
     if (requestValue?.requestId) {
       await request("/insert/result", {
         method: "POST",
@@ -239,13 +296,13 @@ async function insertSvg(file, requestValue) {
   await core.executeAsModal(async () => {
     const imported = await app.open(source)
     try {
-      const layer = layersOf(imported.layers)[0]
+      const layer = layersOf(imported.layers, 1)[0]
       if (!layer) throw new Error("El SVG importado no contiene una capa")
       await layer.copy(true)
       const pasted = await target.paste()
       if (pasted && requestValue.asset?.assetId) {
         const isAnalysisLayer = String(requestValue.asset.assetId).startsWith("analysis:")
-        pasted.name = isAnalysisLayer ? "CS — análisis" : `Shelf · ${requestValue.asset.assetId}`
+        pasted.name = isAnalysisLayer ? "CS - analysis" : `Shelf - ${asciiName(requestValue.asset.assetId, "asset")}`
         if (isAnalysisLayer) {
           try { pasted.allLocked = true } catch (_) {}
         }

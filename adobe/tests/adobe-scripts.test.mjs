@@ -65,11 +65,25 @@ test("Photoshop UXP does not forward local document paths", async () => {
   assert.doesNotMatch(source, /path:\s*documentValue\.path/)
 })
 
+test("Photoshop UXP bounds layer snapshots and bridge retries", async () => {
+  const source = await readFile(path.join(root, "adobe-context-shelf/photoshop-uxp/index.js"), "utf8")
+  assert.match(source, /const MAX_LAYERS = 200/)
+  assert.match(source, /const MAX_LAYER_DEPTH = 64/)
+  assert.match(source, /const MAX_LAYER_TEXT = 1000/)
+  assert.match(source, /function layersOf\(collection, limit = MAX_LAYERS\)/)
+  assert.match(source, /nextContextAttemptAt = Date\.now\(\) \+ BRIDGE_RETRY_MS/)
+  assert.match(source, /nextInsertAttemptAt = Date\.now\(\) \+ BRIDGE_RETRY_MS/)
+  assert.match(source, /lastBridgeErrorAt/)
+})
+
 test("Photoshop generated output names stay ASCII", async () => {
   const psjs = await readFile(path.join(root, "adapters/adobe/photoshop/agent.psjs"), "utf8")
   const jsx = await readFile(path.join(root, "adapters/adobe/photoshop/agent.jsx"), "utf8")
+  const uxp = await readFile(path.join(root, "adobe-context-shelf/photoshop-uxp/index.js"), "utf8")
   assert.match(psjs, /replace\(\/\[\^a-z0-9 _-\]\//)
   assert.match(jsx, /replace\(\/\[\^a-z0-9 _-\]\//)
+  assert.match(uxp, /function asciiName\(value, fallback\)/)
+  assert.match(uxp, /pasted\.name = isAnalysisLayer \? "CS - analysis"/)
 })
 
 test("Photoshop UXP queue wraps document mutations in modal scopes", async () => {
