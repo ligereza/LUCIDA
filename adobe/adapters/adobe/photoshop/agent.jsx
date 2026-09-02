@@ -90,7 +90,7 @@ function importSvg(command) {
 }
 
 function safeName(value, fallback) {
-  var normalized = String(value || fallback || "object").replace(/[^a-z0-9áéíóúñü _-]/gi, "").replace(/\s+/g, "-").slice(0, 64);
+  var normalized = String(value || fallback || "object").replace(/[^a-z0-9 _-]/gi, "").replace(/\s+/g, "-").slice(0, 64);
   return normalized || fallback || "object";
 }
 

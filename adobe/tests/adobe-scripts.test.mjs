@@ -65,6 +65,13 @@ test("Photoshop UXP does not forward local document paths", async () => {
   assert.doesNotMatch(source, /path:\s*documentValue\.path/)
 })
 
+test("Photoshop generated output names stay ASCII", async () => {
+  const psjs = await readFile(path.join(root, "adapters/adobe/photoshop/agent.psjs"), "utf8")
+  const jsx = await readFile(path.join(root, "adapters/adobe/photoshop/agent.jsx"), "utf8")
+  assert.match(psjs, /replace\(\/\[\^a-z0-9 _-\]\//)
+  assert.match(jsx, /replace\(\/\[\^a-z0-9 _-\]\//)
+})
+
 test("Companion applies a local-only content policy and realpath asset guard", async () => {
   const html = await readFile(path.join(root, "companion/index.html"), "utf8")
   const main = await readFile(path.join(root, "companion/main.cjs"), "utf8")
