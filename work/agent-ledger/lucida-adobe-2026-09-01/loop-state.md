@@ -23,7 +23,7 @@ completed:
     evidence: Preflight found Photoshop 2026, Illustrator 2026 and After Effects 2026; adapter syntax is ok for all three.
 current_state:
   files_or_resources: C:/IA/LUCIDA_ADOBE/adobe; branch ADOBE tracking origin/ADOBE; Photoshop 2025/2026 and Illustrator 2026 are installed; no Adobe process is active.
-  tests_and_checks: legacy Node suite 28/28, generic core 11/11, companion syntax pass, smoke and verify pass, Python publisher 3/3, live signal publisher pass.
+  tests_and_checks: legacy Node suite 30/30, generic core 11/11, companion syntax pass, smoke and verify pass, Python publisher 3/3, live signal publisher pass, Adobe host preflight pass for installed executables.
   assumptions: UXP plugin folder is the checked-out plugin folder; actual host runtime remains unverified until user loads it in Photoshop.
   open_questions: Whether the installed Photoshop build accepts the current UXP manifest and context API without a live Developer Tool run; whether its panel lifecycle callbacks fire as documented.
   blockers: None for offline work; live UXP validation requires a user-opened Adobe host.
@@ -31,5 +31,5 @@ current_state:
   delegation_refs: None.
   last_critique: Portability defect is higher-value than UI polish; selected a reversible root-resolution patch.
   estimated_remaining_effort: Complete for this milestone; live host validation remains a user-operated boundary.
-next_action: Commit and push the portable-root, UXP lifecycle and host-preflight milestone to origin/ADOBE; next cycle should inspect the live Photoshop UXP load if the user opens it.
+next_action: On the next cycle, inspect the live Photoshop UXP load if the user opens it; otherwise improve the cross-host context contract without adding host-specific coupling.
 next_checkpoint_trigger: After the root-resolution patch and tests.
