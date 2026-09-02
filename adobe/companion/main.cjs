@@ -39,7 +39,7 @@ function bridgeStatus() {
         let payload = null
         try { payload = JSON.parse(value) } catch (_) {}
         const reachable = response.statusCode >= 200 && response.statusCode < 300
-        const compatible = reachable && payload?.service === "lucida-adobe" && payload?.apiVersion === 1 && payload?.capabilities?.includes("catalog/projects")
+        const compatible = reachable && payload?.service === "lucida-adobe" && payload?.apiVersion === 1 && payload?.branch === "ADOBE" && payload?.focus === "adobe" && payload?.capabilities?.includes("catalog/projects")
         resolve({ reachable, compatible })
       })
     })

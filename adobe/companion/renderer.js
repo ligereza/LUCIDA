@@ -16,6 +16,7 @@ let projectSlideFilter = null
 let projectStatusFilter = "all"
 let projectQuery = ""
 let projectRequestId = 0
+let pollInFlight = false
 let visibleResults = []
 let peekIndex = -1
 let previewObserver = null
@@ -991,6 +992,8 @@ async function insert(button) {
 }
 
 async function poll() {
+  if (pollInFlight) return
+  pollInFlight = true
   try {
     const response = await window.contextShelf.request("/context/current")
     setConnection(true)
@@ -1040,6 +1043,8 @@ async function poll() {
   } catch (error) {
     setConnection(false)
     showEmpty(error.message || "Bridge no disponible")
+  } finally {
+    pollInFlight = false
   }
 }
 

@@ -6,6 +6,7 @@ export const HOST_CAPABILITIES_PATH = path.join(TOOLKIT_ROOT, "contracts", "host
 const REQUIRED_HOSTS = ["photoshop", "illustrator", "after-effects", "premiere"]
 const REQUIRED_CONNECTORS = ["xio", "vizz", "pupila"]
 const REQUIRED_EXCLUSIONS = ["resolume-control", "multi-device-transport", "source-project-migration"]
+const SUPPORTED_ADAPTER_KINDS = ["jsx", "uxp"]
 
 function addIssue(issues, field, message) {
   issues.push(`${field}: ${message}`)
@@ -46,6 +47,12 @@ export function validateHostCapabilities(contract) {
     }
     if (new Set(host.operations || []).size !== (host.operations || []).length) {
       addIssue(issues, `hosts.${hostName}.operations`, "must not contain duplicates")
+    }
+    if (!Array.isArray(host.adapterKinds) || host.adapterKinds.length === 0 || host.adapterKinds.some((kind) => !SUPPORTED_ADAPTER_KINDS.includes(kind))) {
+      addIssue(issues, `hosts.${hostName}.adapterKinds`, `must contain supported kinds: ${SUPPORTED_ADAPTER_KINDS.join(",")}`)
+    }
+    if (new Set(host.adapterKinds || []).size !== (host.adapterKinds || []).length) {
+      addIssue(issues, `hosts.${hostName}.adapterKinds`, "must not contain duplicates")
     }
     if (typeof host.contextProvider !== "string" || typeof host.contextStatus !== "string" || typeof host.runtimeStatus !== "string") {
       addIssue(issues, `hosts.${hostName}`, "must declare contextProvider, contextStatus and runtimeStatus")

@@ -12,6 +12,7 @@ Migración local de la capa de exploración contextual y sus integraciones Adobe
 - `ICONOS/CHEMSEX/`: únicamente visuales propios/generated-by-Codex con asignación comprobable a láminas 1–8.
 - `contracts/` y `src/tools/signal-bridge.mjs`: contrato de señales locales para XIO, VIZZ y PUPILA. Sólo acepta metadatos acotados; descarta contenido crudo y produce una superficie de propuestas, no acciones del host.
 - `contracts/host-capabilities.json`: matriz única de hosts, adaptadores, operaciones y estados de validación de esta rama.
+- `src/tools/adapter-parity.mjs`: auditoría estática que compara las operaciones del contrato con los dispatches reales de cada `agent.jsx`/`agent.psjs`; `npm run verify` la ejecuta antes de aceptar la rama.
 - `integrations/signal-publisher/`: cliente Python sin dependencias para que los tres proyectos publiquen señales sin conocer el runtime Adobe.
 - `docs/legacy/`: capacidades, planes y documentación operativa migrada con identidad LUCIDA.
 

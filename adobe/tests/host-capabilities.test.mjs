@@ -4,6 +4,7 @@ import fs from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { loadHostCapabilities, validateHostCapabilities } from "../src/tools/host-capabilities.mjs"
+import { extractAdapterOperations, validateAdapterParity } from "../src/tools/adapter-parity.mjs"
 
 const root = fileURLToPath(new URL("..", import.meta.url))
 
@@ -44,4 +45,33 @@ test("host capability validator ignores harmless JSON ordering", async () => {
     hosts: Object.fromEntries(Object.entries(contract.hosts).reverse()),
   }
   assert.deepEqual(validateHostCapabilities(reordered), { ok: true, issues: [] })
+})
+
+test("Adobe adapter dispatches stay in parity with the host capability contract", async () => {
+  const contract = await loadHostCapabilities()
+  const result = await validateAdapterParity(contract)
+  assert.equal(result.ok, true, result.issues.join("; "))
+  assert.deepEqual(result.hosts.photoshop.declaredOperations, ["import-svg", "separate-objects"])
+  assert.deepEqual(result.hosts.photoshop.adapters.map((adapter) => adapter.implementedOperations), [
+    ["import-svg", "separate-objects"],
+    ["import-svg", "separate-objects"],
+  ])
+})
+
+test("adapter parity rejects a declared operation missing from a host consumer", async () => {
+  const contract = await loadHostCapabilities()
+  const broken = {
+    ...contract,
+    hosts: {
+      ...contract.hosts,
+      illustrator: { ...contract.hosts.illustrator, operations: ["import-svg", "missing-operation"] },
+    },
+  }
+  const result = await validateAdapterParity(broken)
+  assert.equal(result.ok, false)
+  assert.ok(result.issues.some((issue) => issue.includes("illustrator\\agent.jsx") && issue.includes("missing-operation")))
+})
+
+test("adapter operation extraction returns unique sorted dispatch names", () => {
+  assert.deepEqual(extractAdapterOperations("command.operation === 'z'; command.operation === 'a'; command.operation === 'z';"), ["a", "z"])
 })

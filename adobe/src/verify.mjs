@@ -3,6 +3,7 @@ import path from "node:path"
 import { TOOLKIT_ROOT, readJson } from "./utils.mjs"
 import { integrationSources, validateIntegration } from "./tools/integration.mjs"
 import { loadHostCapabilities } from "./tools/host-capabilities.mjs"
+import { validateAdapterParity } from "./tools/adapter-parity.mjs"
 
 const requiredDirectories = ["generic-interface-layer", "companion", "adobe-context-shelf", "contracts", "adapters", "src", "tools", "tests", "docs", "ICONOS", "jobs", "logs", "scripts", "integrations", "adapters/gdkb/runtime/gdkb"]
 const requiredFiles = ["README.md", "registry.json", "package.json", "contracts/host-capabilities.json", "adapters/gdkb/bridge.py", "integrations/gdkb/v0.6.1/BUNDLE_MANIFEST.json", "integrations/tool-sources.json", "integrations/scripting-map.json", "ICONOS/CHEMSEX/manifest.json"]
@@ -33,11 +34,15 @@ async function verify() {
   }
   const registry = await readJson(path.join(TOOLKIT_ROOT, "registry.json"))
   let capabilityContract = { ok: false, issues: ["not checked"] }
+  let adapterParity = { ok: false, issues: ["not checked"], hosts: {} }
+  let hostCapabilities = null
   try {
-    await loadHostCapabilities()
+    hostCapabilities = await loadHostCapabilities()
     capabilityContract = { ok: true, issues: [] }
+    adapterParity = await validateAdapterParity(hostCapabilities)
   } catch (error) {
     capabilityContract = { ok: false, issues: [error.message] }
+    adapterParity = { ok: false, issues: ["skipped because the host capability contract is invalid"], hosts: {} }
   }
   const integration = await validateIntegration()
   const sourceInventory = await integrationSources()
@@ -66,7 +71,7 @@ async function verify() {
   }
 
   return {
-    ok: missing.length === 0 && missingSources.length === 0 && entrypoints.length === 0 && integration.ok && capabilityContract.ok,
+    ok: missing.length === 0 && missingSources.length === 0 && entrypoints.length === 0 && integration.ok && capabilityContract.ok && adapterParity.ok,
     root: TOOLKIT_ROOT,
     sourceRoot,
     installedSources: sourceInventory.sources.filter((source) => source.exists).map((source) => source.id),
@@ -77,6 +82,7 @@ async function verify() {
     missingEntrypoints: entrypoints,
     integration,
     capabilityContract,
+    adapterParity,
     executableWarnings: warnings,
     externalPending: [
       "Photoshop UXP host runtime validation (JSX/COM fallback verified)",

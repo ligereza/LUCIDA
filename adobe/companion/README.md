@@ -67,3 +67,8 @@ el bridge/plug-in.
 La ventana usa una API IPC allowlisted y sólo habla con
 `http://127.0.0.1:47921`. No ejecuta comandos JavaScript recibidos desde la
 red.
+
+El companion exige que el bridge responda como LUCIDA/ADOBE antes de usarlo.
+Las consultas de refresco no se solapan: si una tarda más que el intervalo,
+la siguiente espera a que termine para evitar carga duplicada y estados fuera
+de orden.
