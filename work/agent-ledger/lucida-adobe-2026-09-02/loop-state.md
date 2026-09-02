@@ -55,6 +55,10 @@ completed:
     evidence: bridgeRequest rejects response bodies above four megabytes while streaming and has a source-contract regression for the bound.
   - item: Made the root test command cover both execution paths.
     evidence: `npm test` now runs `test:core` and `test:runtime`; `legacy:test` remains an explicit runtime alias so existing operator commands continue to work.
+  - item: Removed active-runtime coupling to extracted-core internals.
+    evidence: signal-bridge now imports stable primitives from `contracts/stable.mjs`; structure regression prevents reintroducing the dependency while generic-interface-layer keeps its standalone copy.
+  - item: Made the shared stable-contract boundary explicit and parity-checked.
+    evidence: The active runtime owns `contracts/stable.mjs`, the generic package remains standalone, both implementations are checked for exact parity ignoring line endings, and `npm test` passes 11 core plus 56 runtime tests.
 in_progress:
   - item: Prepare the next operator validation pass.
     acceptance: Repository checks remain green and the remaining uncertainty is isolated to user-operated Adobe host execution, not local bridge structure.
@@ -63,9 +67,10 @@ files_or_resources:
   - adobe/src/tools/project-inventory.mjs
   - adobe/src/tools/context.mjs
   - adobe/adobe-context-shelf/photoshop-uxp/index.js
+  - adobe/contracts/stable.mjs
 tests_and_checks:
-  - npm run test: 11 core tests and 55 runtime tests passed
-  - npm run test:runtime: 55 passed
+  - npm run test: 11 core tests and 56 runtime tests passed
+  - npm run test:runtime: 56 passed
   - npm run smoke: passed
   - npm run companion:check: passed
   - npm run verify: passed
@@ -74,7 +79,7 @@ assumptions:
 blockers: []
 research_refs: []
 delegation_refs: []
-last_critique: critique-13.md
+last_critique: critique-14.md
 estimated_remaining_effort: one focused implementation and verification pass
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.

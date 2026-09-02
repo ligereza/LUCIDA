@@ -9,6 +9,7 @@ test("LUCIDA Adobe layout and manifests are present", async () => {
   for (const entry of ["generic-interface-layer", "companion", "adobe-context-shelf", "contracts", "adapters", "src", "tools", "tests", "docs", "ICONOS", "jobs", "logs", "scripts", "README.md", "registry.json"]) {
     await fs.access(path.join(TOOLKIT_ROOT, entry))
   }
+  await fs.access(path.join(TOOLKIT_ROOT, "contracts", "stable.mjs"))
   const registry = JSON.parse(await fs.readFile(path.join(TOOLKIT_ROOT, "registry.json"), "utf8"))
   const adobeSchema = JSON.parse(await fs.readFile(path.join(TOOLKIT_ROOT, "adapters", "adobe", "command-schema.json"), "utf8"))
   assert.ok(Array.isArray(registry.tools))
@@ -29,4 +30,15 @@ test("LUCIDA Adobe layout and manifests are present", async () => {
     await fs.access(path.join(TOOLKIT_ROOT, "ICONOS", "CHEMSEX", slide))
   }
   await fs.access(path.join(TOOLKIT_ROOT, "ICONOS", "CHEMSEX", "mini-icons"))
+})
+
+test("Active runtime does not depend on extracted core internals", async () => {
+  const signalBridge = await fs.readFile(path.join(TOOLKIT_ROOT, "src", "tools", "signal-bridge.mjs"), "utf8")
+  const sharedContracts = await fs.readFile(path.join(TOOLKIT_ROOT, "contracts", "stable.mjs"), "utf8")
+  const genericContracts = await fs.readFile(path.join(TOOLKIT_ROOT, "generic-interface-layer", "core", "contracts", "stable.mjs"), "utf8")
+  assert.doesNotMatch(signalBridge, /generic-interface-layer/)
+  assert.match(signalBridge, /\.\.\/\.\.\/contracts\/stable\.mjs/)
+  assert.match(sharedContracts, /export function stable\(value\)/)
+  assert.match(sharedContracts, /export function deterministicId\(prefix, value\)/)
+  assert.equal(sharedContracts.replace(/\r\n/g, "\n"), genericContracts.replace(/\r\n/g, "\n"))
 })

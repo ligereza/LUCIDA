@@ -7,7 +7,7 @@ import { validateAdapterParity } from "./tools/adapter-parity.mjs"
 import { UXP_PLUGIN_FILES, validateUxpManifest } from "./tools/uxp-manifest.mjs"
 
 const requiredDirectories = ["generic-interface-layer", "companion", "adobe-context-shelf", "contracts", "adapters", "src", "tools", "tests", "docs", "ICONOS", "jobs", "logs", "scripts", "integrations", "adapters/gdkb/runtime/gdkb"]
-const requiredFiles = ["README.md", "registry.json", "package.json", "contracts/host-capabilities.json", "adapters/gdkb/bridge.py", "integrations/gdkb/v0.6.1/BUNDLE_MANIFEST.json", "integrations/tool-sources.json", "integrations/scripting-map.json", "ICONOS/CHEMSEX/manifest.json", ...UXP_PLUGIN_FILES]
+const requiredFiles = ["README.md", "registry.json", "package.json", "contracts/stable.mjs", "contracts/host-capabilities.json", "adapters/gdkb/bridge.py", "integrations/gdkb/v0.6.1/BUNDLE_MANIFEST.json", "integrations/tool-sources.json", "integrations/scripting-map.json", "ICONOS/CHEMSEX/manifest.json", ...UXP_PLUGIN_FILES]
 const optionalSourceDirectories = ["umbrella", "d3", "three.js", "effect", "rxjs", "stdlib"]
 
 async function exists(target) {

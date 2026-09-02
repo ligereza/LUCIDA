@@ -1,4 +1,4 @@
-import { clone, deterministicId, sha256, stable } from "../../generic-interface-layer/core/contracts/stable.mjs"
+import { clone, deterministicId, sha256, stable } from "../../contracts/stable.mjs"
 
 const SOURCES = new Set(["xio", "vizz", "pupila"])
 const MAX_HISTORY = 96
