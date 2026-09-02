@@ -17,11 +17,13 @@ completed:
     evidence: VIZZ/PUPILA proposals are clamped to 45 seconds and filtered from the derived surface after expiry; signal history and deduplication memory stay at 96 events per session.
   - item: Added a deterministic bridge-facing status boundary.
     evidence: The companion accepts only an ADOBE bridge identity, avoids overlapping refresh requests, and the shared signal surface now exposes only active proposals with bounded state.
+  - item: Added an aggregate status to the shared signal surface.
+    evidence: Surface schema and runtime now expose empty/active/stale state, active and stale source counts, and current proposal count; the companion renders proposal origin and reason while keeping confirmation required.
 in_progress:
-  - item: Improve the bridge-facing companion presentation and evidence path.
-    acceptance: the user can distinguish bridge offline, Adobe context absent, stale external signals and active proposal state without host actions being implied.
+  - item: Audit the insertion path against external signal proposals.
+    acceptance: XIO, VIZZ and PUPILA signals can enrich context but cannot create or bypass an Adobe host command without the existing explicit authorization path.
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.
   - Whether a real Adobe context publisher will remain stable across host versions.
-next_action: Inspect the companion state presentation and add only a deterministic status model that keeps connector ownership explicit.
+next_action: Inspect queue insertion, confirmation and host authorization paths for external-signal bypasses.
 next_checkpoint_trigger: A coherent code change with passing suites and a pushed commit.

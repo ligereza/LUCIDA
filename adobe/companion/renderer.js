@@ -130,14 +130,24 @@ function renderSignalSurface(surface, unavailable = false) {
   const labels = { xio: "XIO", vizz: "VIZZ", pupila: "PUPILA" }
   const states = { active: "activo", stale: "stale", missing: "sin señal" }
   const values = Object.entries(surface?.sources || {})
-  const active = values.filter(([, value]) => value.state === "active").length
-  stateTarget.textContent = active ? `${active}/3 activos` : "sin señales"
+  const status = surface?.status || {}
+  const active = Number(status.activeSourceCount ?? values.filter(([, value]) => value.state === "active").length)
+  const stale = Number(status.staleSourceCount ?? values.filter(([, value]) => value.state === "stale").length)
+  stateTarget.textContent = active ? `${active}/3 activos` : stale ? `${stale}/3 stale` : "sin señales"
   sourcesTarget.innerHTML = values.map(([source, value]) => {
     const event = value.eventType ? ` · ${escapeHtml(value.eventType)}` : ""
     return `<span class="signal-source ${escapeHtml(value.state || "missing")}"><b>${labels[source] || escapeHtml(source)}</b> ${states[value.state] || "sin estado"}${event}</span>`
   }).join("") || "XIO · VIZZ · PUPILA"
-  const proposal = surface?.proposals?.[0]
-  if (proposal) sourcesTarget.insertAdjacentHTML("beforeend", `<span class="signal-proposal">Propuesta ${escapeHtml(proposal.kind || "visual")} · confirmación requerida</span>`)
+  const proposals = Array.isArray(surface?.proposals) ? surface.proposals.slice(0, 2) : []
+  if (proposals.length) {
+    const proposalMarkup = proposals.map((proposal) => {
+      const label = proposal.title || proposal.kind || "visual"
+      const source = proposal.source ? ` · ${escapeHtml(proposal.source)}` : ""
+      const reason = proposal.reason ? `: ${escapeHtml(proposal.reason)}` : ""
+      return `<span class="signal-proposal">${escapeHtml(label)}${source}${reason} · confirmación requerida</span>`
+    }).join("")
+    sourcesTarget.insertAdjacentHTML("beforeend", proposalMarkup)
+  }
 }
 
 async function refreshSignalSurface(sessionId = null) {

@@ -27,6 +27,7 @@ test("signal bridge redacts raw content and deduplicates source events", () => {
   assert.ok(first.signal.redaction.droppedKeys.includes("text"))
   assert.ok(first.signal.redaction.droppedKeys.includes("path"))
   assert.equal(first.surface.sources.xio.state, "active")
+  assert.deepEqual(first.surface.status, { state: "active", sourceCount: 3, activeSourceCount: 1, staleSourceCount: 0, proposalCount: 0 })
 
   const duplicate = publishSignal(input)
   assert.equal(duplicate.duplicate, true)
@@ -80,6 +81,7 @@ test("vizz and pupila proposals remain explicit and confirmation-only", () => {
   assert.equal(result.signal.proposal.command, undefined)
   assert.equal(result.surface.safety.hostActions, false)
   assert.equal(result.surface.proposals[0].source, "vizz")
+  assert.equal(result.surface.status.proposalCount, 1)
 
   assert.throws(() => publishSignal({
     signalId: "vizz-002",

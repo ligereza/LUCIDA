@@ -221,6 +221,19 @@ function proposalIsActive(proposal, nowMs) {
   return !Number.isFinite(expiresAt) || expiresAt > nowMs
 }
 
+function surfaceStatus(sources, proposals) {
+  const values = Object.values(sources)
+  const activeSourceCount = values.filter((source) => source.state === "active").length
+  const staleSourceCount = values.filter((source) => source.state === "stale").length
+  return {
+    state: activeSourceCount > 0 ? "active" : staleSourceCount > 0 ? "stale" : "empty",
+    sourceCount: values.length,
+    activeSourceCount,
+    staleSourceCount,
+    proposalCount: proposals.length,
+  }
+}
+
 export function currentSurface({ sessionId = null, context = null, contextHash = null, now = new Date() } = {}) {
   const resolvedSession = sessionId || context?.sessionId || lastSessionId || null
   const state = resolvedSession ? sessions.get(resolvedSession) : null
@@ -231,12 +244,14 @@ export function currentSurface({ sessionId = null, context = null, contextHash =
     .slice(-8)
     .reverse()
     .map((signal) => ({ ...clone(signal.proposal), source: signal.source, signalId: signal.signalId, createdAt: signal.receivedAt }))
+  const status = surfaceStatus(sources, proposals)
   const surfaceBasis = {
     schemaVersion: 1,
     sessionId: resolvedSession,
     contextHash: contextHash || context?.contextHash || null,
     sources: Object.fromEntries(Object.entries(sources).map(([source, value]) => [source, { ...value, ageMs: undefined }])),
     proposals,
+    status,
   }
   return {
     schemaVersion: 1,
@@ -250,6 +265,7 @@ export function currentSurface({ sessionId = null, context = null, contextHash =
     },
     sources,
     proposals,
+    status,
     safety: { proposalOnly: true, hostActions: false, rawContentForwarded: false, externalNetwork: false },
     generatedAt: now.toISOString(),
   }
