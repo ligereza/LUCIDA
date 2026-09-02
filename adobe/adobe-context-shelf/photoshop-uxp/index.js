@@ -216,7 +216,7 @@ async function consumeInsert() {
     await insertSvg(file, requestValue)
     await request("/insert/result", {
       method: "POST",
-      body: JSON.stringify({ requestId: requestValue.requestId, sessionId: SESSION_ID, state: "completed", data: { file } }),
+      body: JSON.stringify({ requestId: requestValue.requestId, sessionId: SESSION_ID, state: "completed", data: { assetId: requestValue.asset?.assetId || null } }),
     })
     log(`Insertado: ${requestValue.asset?.assetId || file}`)
   } catch (error) {

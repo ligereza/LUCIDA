@@ -54,6 +54,30 @@ test("insert queue rejects an unknown context session", () => {
   assert.throws(() => queueInsert({ sessionId: `missing-${Date.now()}`, assetId: "local:test" }), /live context session/)
 })
 
+test("insert result data stays bounded and path-free", () => {
+  const sessionId = `result-boundary-${Date.now()}`
+  publishContext(context(sessionId))
+  const queued = queueInsert({ sessionId, assetId: "local:bounded", mode: "unitary" })
+  const claimed = claimInsert(sessionId)
+  const result = recordInsertResult({
+    requestId: claimed.requestId,
+    sessionId,
+    state: "completed",
+    data: {
+      file: "C:\\private\\asset.svg",
+      path: "C:\\private\\asset.svg",
+      huge: "x".repeat(100_000),
+      nested: { content: "private", ok: true },
+      requestId: queued.requestId,
+    },
+  })
+  assert.equal(result.data.file, undefined)
+  assert.equal(result.data.path, undefined)
+  assert.equal(result.data.nested.content, undefined)
+  assert.equal(result.data.nested.ok, true)
+  assert.ok(JSON.stringify(result.data).length < 5_000)
+})
+
 test("recommendation cache depends on the derived external surface", () => {
   assert.notEqual(recommendationCacheKey("context-1", 8, "surface-a"), recommendationCacheKey("context-1", 8, "surface-b"))
   assert.equal(recommendationCacheKey("context-1", 8, "surface-a"), recommendationCacheKey("context-1", 8, "surface-a"))

@@ -21,6 +21,7 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 - Generated Photoshop output names are restricted to ASCII in both UXP and JSX adapters.
 - The Photoshop UXP queue consumer now wraps open, save, close and import mutations in `core.executeAsModal`; an offline source-contract regression covers the boundary.
 - The package now has explicit npm ignore rules for development caches, jobs, logs, credentials and dependency trees.
+- Insert result payloads are now depth/key/string bounded and remove file/path/content-like keys; the UXP consumer reports only the asset id.
 
 ## Packaging audit
 
@@ -34,7 +35,7 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 
 ## Evidence
 
-- `npm run legacy:test`: 48 passed.
+- `npm run legacy:test`: 50 passed.
 - `npm run test`: 11 passed.
 - `npm run smoke`: passed.
 - `npm run verify`: passed.

@@ -16,9 +16,13 @@ const MAX_CONTEXT_SESSIONS = 32
 const MAX_QUEUE_SIZE = 20
 const MAX_INSERT_RESULTS = 256
 const MAX_RECOMMENDATION_ENTRIES = 128
+const MAX_RESULT_DATA_DEPTH = 3
+const MAX_RESULT_DATA_KEYS = 24
+const MAX_RESULT_DATA_STRING = 512
 const INSERT_TTL_MS = 60_000
 const RECOMMENDATION_TTL_MS = 10 * 60_000
 const ANALYSIS_LAYER_ROOT = path.join(TOOLKIT_ROOT, "jobs", "context-analysis")
+const PRIVATE_RESULT_KEY = /(?:^|_)(?:path|file|url|token|secret|password|content|text)(?:$|_)/i
 
 const contexts = new Map()
 const insertQueues = new Map()
@@ -56,6 +60,19 @@ function hashContext(value) {
 
 function boundedArray(value) {
   return Array.isArray(value) ? value.slice(0, MAX_CONTEXT_ARRAY) : []
+}
+
+function boundedResultData(value, depth = 0) {
+  if (value === null || typeof value === "boolean") return value
+  if (typeof value === "number") return Number.isFinite(value) ? value : null
+  if (typeof value === "string") return value.slice(0, MAX_RESULT_DATA_STRING)
+  if (depth >= MAX_RESULT_DATA_DEPTH) return null
+  if (Array.isArray(value)) return value.slice(0, MAX_RESULT_DATA_KEYS).map((item) => boundedResultData(item, depth + 1))
+  if (!value || typeof value !== "object") return null
+  return Object.entries(value).slice(0, MAX_RESULT_DATA_KEYS).reduce((result, [key, item]) => {
+    if (!PRIVATE_RESULT_KEY.test(key)) result[String(key).slice(0, 80)] = boundedResultData(item, depth + 1)
+    return result
+  }, {})
 }
 
 function numberOrNull(value) {
@@ -411,7 +428,7 @@ export function recordInsertResult(input = {}) {
     requestId,
     sessionId: request.sessionId,
     state,
-    data: input.data && typeof input.data === "object" ? input.data : {},
+    data: boundedResultData(input.data && typeof input.data === "object" ? input.data : {}),
     error: input.error ? String(input.error).slice(0, 2000) : null,
     finishedAt: new Date().toISOString(),
   }
