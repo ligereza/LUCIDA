@@ -442,8 +442,9 @@ function projectVariantMatches(item) {
 
 function projectTextMarkup(text) {
   const value = String(text || "").trim()
-  if (!value) return ""
-  return `<details class="project-slide-copy"><summary>Ver texto de la lámina</summary><p>${escapeHtml(value).replace(/\r?\n/g, "<br>")}</p></details>`
+  const label = value ? "Ver texto de la lámina" : "Texto de la lámina no disponible"
+  const body = value ? escapeHtml(value).replace(/\r?\n/g, "<br>") : "Esta lámina no contiene texto en el inventario actual."
+  return `<details class="project-slide-copy"><summary>${label}</summary><p>${body}</p></details>`
 }
 
 function renderProjectControls() {
@@ -506,7 +507,8 @@ function renderProjectView() {
       const layers = (group.layers || []).map((layer) => `<span class="project-layer-chip" title="${escapeHtml(layer.role || "")}">${escapeHtml(layer.label)}</span>`).join("")
       return `<section class="project-group"><div class="project-group-heading"><strong>${escapeHtml(group.label)}</strong><span>${variants.length} variante${variants.length === 1 ? "" : "s"}</span></div><div class="project-layer-list">${layers || `<span class="project-layer-chip">archivo visual</span>`}</div><div class="project-variant-grid">${variants.map((item) => assetCard(item)).join("")}</div></section>`
     }).filter(Boolean).join("")
-    return groupMarkup ? `<section class="project-slide"><div class="project-slide-heading"><strong>${escapeHtml(projectSlideLabel(slide))}</strong><span>${escapeHtml(slide.theme || "")}</span></div>${projectTextMarkup(slide.text)}${groupMarkup}</section>` : ""
+    const emptyMarkup = `<div class="project-empty">No hay recursos visuales que coincidan con este filtro.</div>`
+    return `<section class="project-slide"><div class="project-slide-heading"><strong>${escapeHtml(projectSlideLabel(slide))}</strong><span>${escapeHtml(slide.theme || "")}</span></div>${projectTextMarkup(slide.text)}${groupMarkup || emptyMarkup}</section>`
   }).filter(Boolean).join("")
   if (projectSlideFilter === "all") {
     const unassigned = (projectInventory.unassigned || []).filter(projectVariantMatches)

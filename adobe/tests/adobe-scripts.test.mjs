@@ -58,3 +58,11 @@ test("Photoshop UXP contract keeps the bridge local and polling visible", async 
   assert.match(source, /hide\(\)\s*\{\s*stopPolling\(\)/)
   assert.match(source, /destroy\(\)\s*\{\s*stopPolling\(\)/)
 })
+
+test("Project companion keeps slide text visible without visual groups", async () => {
+  const source = await readFile(path.join(root, "companion/renderer.js"), "utf8")
+  assert.match(source, /function projectTextMarkup\(text\)/)
+  assert.match(source, /Texto de la lámina no disponible/)
+  assert.match(source, /\$\{groupMarkup \|\| emptyMarkup\}/)
+  assert.equal(source.includes("return groupMarkup ?"), false)
+})

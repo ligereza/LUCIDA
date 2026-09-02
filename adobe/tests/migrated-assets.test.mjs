@@ -17,4 +17,7 @@ test("branch-local migrated assets are searchable and grouped by slide", async (
   assert.equal(inventory.project.id, "chemsex")
   assert.equal(inventory.stats.unassignedFiles, 0)
   assert.ok(inventory.slides.find((slide) => slide.index === 3)?.groups.length > 0)
+  assert.equal(inventory.slides.length, 8)
+  assert.equal(inventory.slides[0].text, "Orgullo es cuidarnos en comunidad")
+  assert.ok(inventory.slides.every((slide) => slide.text.length > 0))
 })

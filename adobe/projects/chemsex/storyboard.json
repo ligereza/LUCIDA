@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "project": "chemsex",
+  "textPolicy": "verbatim-source-order",
+  "parts": [
+    {
+      "index": 0,
+      "id": "slide-01-cover",
+      "title": "CHEMSEX",
+      "theme": "cover",
+      "text": "Orgullo es cuidarnos en comunidad"
+    },
+    {
+      "index": 1,
+      "id": "slide-02-definition",
+      "title": "¿Qué es el chemsex?",
+      "theme": "definition",
+      "text": "El chemsex es una realidad en nuestra comunidad, dentro y fuera de los espacios de fiesta. Empezar a hablar de esto es el primer paso para protegernos.\n\nDesliza para encontrar más información ->\n\nEs el uso de sustancias psicoactivas en contextos sexuales con la finalidad de alterar o potenciar la experiencia."
+    },
+    {
+      "index": 2,
+      "id": "slide-03-care-context",
+      "title": "Reducción de daños",
+      "theme": "context",
+      "text": "Es una actividad que implica múltiples formas de cuidado:\n- Prevenir los riesgos asociados al consumo de drogas\n- Cuidar de infecciones de transmisión sexual y otros daños físicos relacionados\n- Proteger la salud mental durante y después de las sesiones\n\nEl contexto en Chile\nEn Chile es más frecuente en contextos de:\n• Fiestas privadas y orgías\n• Cruising, sexo en lugares públicos\n• Encuentros coordinados por aplicaciones"
+    },
+    {
+      "index": 3,
+      "id": "slide-04-substances",
+      "title": "El contexto en Chile",
+      "theme": "substances",
+      "text": "Entre las sustancias utilizadas comúnmente se encuentran:\n- Éxtasis (pasti o pilas)\n- MDMA\n- Marihuana\n- Popper\n- Cocaína\n- Ketamina\n- Metanfetamina (cristal)\n- GHB"
+    },
+    {
+      "index": 4,
+      "id": "slide-05-risks",
+      "title": "Riesgos generales del chemsex",
+      "theme": "risks",
+      "text": "Al combinar diversas prácticas, esta actividad se asocia a algunos riesgos como:\n\n- Riesgos asociados al uso de drogas como sobredosis, mezclas peligrosas y complicaciones cardiovasculares.\n- El Viagra (sildenafilo, tadalafilo, otros) es utilizado en contextos sexuales y presenta interacciones riesgosas con drogas.\n- Riesgos relacionados a las actividades sexuales como VIH/ITS en sesiones con múltiples parejas.\n- Riesgos de salud mental: crisis post-sesión (“comedown”), conductas autolesivas y dependencia."
+    },
+    {
+      "index": 5,
+      "id": "slide-06-care",
+      "title": "Cómo cuidarnos",
+      "theme": "care",
+      "text": "Busca mantenerte hidratado, idealmente usando bebidas isotónicas o agua.\n\nEvita compartir pipas o jeringas.\n\nBusca información sobre las drogas que consumirás y testéalas para conocer su composición.\n\nMantén información sobre cómo acceder a PrEP , PEP y doxyPEP\n\nConversa con las otras personas sobre cómo cuidarse mutuamente. Si algún participante experimenta problemas de salud graves, no duden en llevarlo a un centro asistencial rápidamente.\n\nEn contextos de chemsex, hay mayor riesgo de problemas con el consentimiento y la autonomía, respeta los límites de las otras personas y mantén una comunicación constante para prevenir esto."
+    },
+    {
+      "index": 6,
+      "id": "slide-07-interactions",
+      "title": "Interacciones más riesgosas (pueden ser varias láminas)",
+      "theme": "interactions",
+      "text": "GHB/GBL + Alcohol\nAmbos son potentes depresores del Sistema Nervioso Central (SNC).\nRiesgo crítico de sobredosis, depresión respiratoria, coma y muerte. Es la combinación más riesgosa.\n\nCocaína + Viagra (Sildenafilo o Tadalafilo)\nLos efectos de ambas drogas sobre el sistema cardiovascular aumentan el riesgo de infartos debido al aumento de la presión arterial y ritmo cardiaco.\n\nEstimulantes (Metanfetamina/Cocaína/Otros) + Popper\nAmbos aumentan el ritmo cardíaco y causan vasodilatación. Riesgo de hipotensión grave, mareos, accidente cerebrovascular o infarto.\n\nViagra (Sildenafilo o Tadalafilo) + Popper\nEsta combinación es particularmente riesgosa por su efecto en la presión, existe elevado riesgo de accidente cerebrovascular o infarto.\n\nDrogas + Terapia Antirretroviral (Ritonavir o Cobicistat)\nExisten diversas interacciones entre sustancias psicoactivas y fármacos para terapia antirretroviral. Consulta con tu médico si tienes dudas."
+    },
+    {
+      "index": 7,
+      "id": "slide-08-close",
+      "title": "Cuidarnos es una decisión",
+      "theme": "close",
+      "text": "El estigma aísla y mata; la información comunitaria nos empodera y nos mantiene seguros.\n\nSi tienes dudas sobre dosificación, mezclas o quieres testear tus sustancias, escríbenos.\n\nGuarda este post para revisarlo cuando lo necesites y compártelo con tu red de confianza."
+    }
+  ]
+}

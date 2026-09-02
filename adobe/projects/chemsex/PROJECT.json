@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "chemsex",
+  "name": "Chemsex",
+  "canvas": {
+    "width": 1080,
+    "height": 1440,
+    "unit": "px",
+    "orientation": "portrait"
+  },
+  "textPolicy": "verbatim-source-order"
+}

@@ -34,6 +34,12 @@ Además se registraron 102 duplicados por hash, 238 descartes (técnicos, rechaz
 
 `review-pending.json` conserva los grupos excluidos: iconos públicos seleccionados, previews de todas las láminas, histórico proveniente de `rd_database_complete`, assets públicos del proyecto, el corpus sin procedencia verificable y renders temporales sin asignación segura. No se copiaron al destino.
 
+## Texto estructurado
+
+El storyboard textual del proyecto se conserva por separado en `projects/chemsex/storyboard.json`. Contiene las ocho láminas en el orden original y sólo sus campos estructurales (`index`, `id`, `title`, `theme` y `text`); no incluye la ruta privada del documento fuente ni duplica recursos visuales.
+
+El companion muestra el texto aunque una lámina no tenga grupos de recursos visuales. Cuando una fuente no contiene texto, la lámina sigue visible y el panel informa esa ausencia en lugar de ocultarla.
+
 ## Verificación
 
 - La copia usa la identidad pública LUCIDA en código, paquetes y documentación.
