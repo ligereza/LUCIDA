@@ -12,7 +12,7 @@ The Adobe companion is a visual surface, not a second host application. The brid
 
 ## Flow
 
-1. A local component sends one event to `POST /signals`.
+1. A local component sends one event to `POST /signals`. XIO envelopes may use its existing `event` and `timestamp_utc` fields; the bridge maps them to the common contract.
 2. The bridge normalizes ASCII identifiers, bounds numeric values, removes forbidden fields and keeps a bounded in-memory history.
 3. `GET /surface/current` derives one compact surface with source state, latest metadata and pending proposals.
 4. The companion renders the state and the recommendation engine may use the allowed terms as query context.

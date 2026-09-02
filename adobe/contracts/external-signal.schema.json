@@ -12,7 +12,9 @@
     "sessionId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,120}$" },
     "sequence": { "type": "integer", "minimum": 0 },
     "eventType": { "type": "string", "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)+$", "maxLength": 80 },
+    "event": { "type": "string", "maxLength": 80 },
     "timestamp": { "type": "string" },
+    "timestamp_utc": { "type": "string" },
     "metadata": { "$ref": "#/$defs/metadata" },
     "payload": { "type": "object" },
     "proposal": { "$ref": "#/$defs/proposal" }

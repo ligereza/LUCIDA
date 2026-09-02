@@ -31,6 +31,18 @@ test("signal bridge redacts raw content and deduplicates source events", () => {
   const duplicate = publishSignal(input)
   assert.equal(duplicate.duplicate, true)
   assert.equal(currentSignals({ sessionId: id }).count, 1)
+
+  const xioEnvelope = publishSignal({
+    signalId: "xio-002",
+    source: "xio",
+    sessionId: id,
+    event: "radio.sample",
+    timestamp_utc: "2026-09-01T12:00:00Z",
+    metadata: { channel: "wifi", status: "ready" },
+  })
+  assert.equal(xioEnvelope.signal.eventType, "radio.sample")
+  assert.equal(xioEnvelope.signal.timestamp, "2026-09-01T12:00:00.000Z")
+  assert.equal(currentSignals({ sessionId: id }).count, 2)
 })
 
 test("vizz and pupila proposals remain explicit and confirmation-only", () => {

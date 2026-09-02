@@ -146,7 +146,7 @@ export function normalizeSignal(input = {}, { sequence = null, now = new Date() 
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Signal must be an object")
   const source = sourceOf(input.source || input.producer)
   const sessionId = sessionOf(input.sessionId || input.session_id)
-  const eventType = eventTypeOf(input.eventType || input.event_type || input.type)
+  const eventType = eventTypeOf(input.eventType || input.event_type || input.event || input.type)
   const normalizedSequence = sequence === null
     ? (Number.isInteger(Number(input.sequence)) && Number(input.sequence) >= 0 ? Number(input.sequence) : 0)
     : sequence
@@ -163,7 +163,7 @@ export function normalizeSignal(input = {}, { sequence = null, now = new Date() 
     sessionId,
     sequence: normalizedSequence,
     eventType,
-    timestamp: isoTimestamp(input.timestamp, now),
+    timestamp: isoTimestamp(input.timestamp || input.timestamp_utc, now),
     receivedAt: now.toISOString(),
     metadata,
     proposal,
