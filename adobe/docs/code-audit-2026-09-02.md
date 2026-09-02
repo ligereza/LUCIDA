@@ -17,6 +17,7 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 - SVG and raster metadata reads use bounded file prefixes where full content is unnecessary.
 - Companion asset paths are resolved through real paths and restricted to the package root.
 - The Electron document has a local-only content security policy.
+- Adobe context normalization now drops document paths before storage or recommendation analysis; the UXP source also sends a null path.
 - The package now has explicit npm ignore rules for development caches, jobs, logs, credentials and dependency trees.
 
 ## Packaging audit
@@ -31,7 +32,7 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 
 ## Evidence
 
-- `npm run legacy:test`: 46 passed.
+- `npm run legacy:test`: 47 passed.
 - `npm run test`: 11 passed.
 - `npm run smoke`: passed.
 - `npm run verify`: passed.

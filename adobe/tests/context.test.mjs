@@ -24,11 +24,12 @@ function context(sessionId, text = "") {
 
 test("context store normalizes snapshots and computes a stable hash", () => {
   const sessionId = `test-context-${Date.now()}`
-  const stored = publishContext(context(sessionId, "Cuidado y contexto"))
+  const stored = publishContext({ ...context(sessionId, "Cuidado y contexto"), document: { ...context(sessionId).document, path: "C:\\private\\source.psd" } })
   assert.equal(stored.schemaVersion, 1)
   assert.equal(stored.host, "photoshop")
   assert.match(stored.contextHash, /^sha256:[0-9a-f]{64}$/)
   assert.deepEqual(stored.palette, ["#fff", "#123456"])
+  assert.equal(stored.document.path, null)
   assert.equal(currentContext({ sessionId }).contextHash, stored.contextHash)
 })
 

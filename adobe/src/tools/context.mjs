@@ -104,7 +104,7 @@ function normalizeContext(input = {}) {
     document: {
       id: document.id ? String(document.id).slice(0, 200) : null,
       name: document.name ? String(document.name).slice(0, 200) : null,
-      path: document.path ? String(document.path).slice(0, 500) : null,
+      path: null,
       width: numberOrNull(document.width),
       height: numberOrNull(document.height),
       unit: document.unit ? String(document.unit).slice(0, 12) : "px",

@@ -58,7 +58,7 @@ El bridge local expone `POST /signals`, `GET /signals/current` y `GET /surface/c
 
 La matriz de capacidades es la fuente de verdad de alcance para el agent-card. Photoshop tiene un proveedor UXP preparado pero aún requiere validación dentro del host; los otros hosts conservan adaptadores explícitos sin inventar un proveedor de contexto. Resolume, transporte entre dispositivos y migración de proyectos permanecen fuera de esta rama.
 
-El contrato es deliberadamente pequeno: no reenvia texto, rutas, imagenes, archivos, teclas, comandos, scripts ni URLs. Las propuestas de VIZZ/PUPILA son siempre reversibles cuando es posible, requieren confirmacion y permanecen `proposalOnly`; ningun evento externo ejecuta una accion en Photoshop, Illustrator, Premiere o After Effects.
+El bridge externo es deliberadamente pequeno: no reenvia rutas, imagenes, archivos, teclas, comandos, scripts ni URLs, y las señales externas no transportan contenido crudo. El contexto local de Adobe puede incluir texto acotado de la capa seleccionada para producir recomendaciones; nunca conserva la ruta del archivo. Las propuestas de VIZZ/PUPILA son siempre reversibles cuando es posible, requieren confirmacion y permanecen `proposalOnly`; ningun evento externo ejecuta una accion en Photoshop, Illustrator, Premiere o After Effects.
 
 ## Instalacion limpia
 

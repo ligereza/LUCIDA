@@ -127,7 +127,7 @@ function currentContext() {
     document: {
       id: documentValue.id == null ? null : String(documentValue.id),
       name: documentValue.name ? String(documentValue.name) : null,
-      path: documentValue.path ? String(documentValue.path) : null,
+      path: null,
       width: number(documentValue.width), height: number(documentValue.height), unit: "px",
     },
     location: { kind: "slide", index: slideIndexFrom(documentValue.name, selected?.name), label: documentValue.name ? String(documentValue.name) : null },

@@ -21,6 +21,8 @@ completed:
     evidence: npm pack dry-run contains 703 files and about 687595 KB, with zero forbidden cache, dependency-tree, secret, root-job or root-log entries; required companion and runtime entrypoints are present. High size is explained by the intentional high-resolution ICONOS/CHEMSEX library.
   - item: Added explicit npm packaging exclusions and documented private-repository installation.
     evidence: .npmignore excludes development state without excluding generic-interface-layer/core/jobs runtime code; README and audit record that npm omits the root lockfile from tarballs by design.
+  - item: Closed the Adobe document-path privacy gap at both bridge and UXP boundaries.
+    evidence: Adobe context normalization forces document.path to null, UXP emits a null path, and dedicated regressions cover both behavior and source contract; 47 legacy tests pass.
   - item: Published the pre-improvement baseline checkpoint.
     evidence: b171401fe91826e7ced9951fa06644ef2df2ed24 was recorded and bb64db5 was pushed before implementation.
   - item: Audited the migrated companion, bridge and Adobe adapters.
@@ -43,7 +45,7 @@ files_or_resources:
   - adobe/src/tools/project-inventory.mjs
   - adobe/src/tools/context.mjs
 tests_and_checks:
-  - npm run legacy:test: 46 passed
+  - npm run legacy:test: 47 passed
   - npm run test: 11 passed
   - npm run smoke: passed
   - npm run companion:check: passed

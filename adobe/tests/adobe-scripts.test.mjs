@@ -59,6 +59,12 @@ test("Photoshop UXP contract keeps the bridge local and polling visible", async 
   assert.match(source, /destroy\(\)\s*\{\s*stopPolling\(\)/)
 })
 
+test("Photoshop UXP does not forward local document paths", async () => {
+  const source = await readFile(path.join(root, "adobe-context-shelf/photoshop-uxp/index.js"), "utf8")
+  assert.match(source, /path: null/)
+  assert.doesNotMatch(source, /path:\s*documentValue\.path/)
+})
+
 test("Companion applies a local-only content policy and realpath asset guard", async () => {
   const html = await readFile(path.join(root, "companion/index.html"), "utf8")
   const main = await readFile(path.join(root, "companion/main.cjs"), "utf8")
