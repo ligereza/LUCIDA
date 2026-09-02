@@ -2,7 +2,7 @@
 
 ## Estado
 
-La migración se ejecuta en la rama `ADOBE` de `C:\IA\LUCIDA`. La fuente `C:\IA\svg` se trató como sólo lectura. La identidad pública de la copia es LUCIDA; no se reemplazaron hashes, licencias ni campos de provenance de terceros.
+La migración se ejecuta en la rama `ADOBE` del repositorio LUCIDA. La fuente `C:\IA\svg` se trató como sólo lectura. La identidad pública de la copia es LUCIDA; no se reemplazaron hashes, licencias ni campos de provenance de terceros.
 
 ## Código y documentación
 

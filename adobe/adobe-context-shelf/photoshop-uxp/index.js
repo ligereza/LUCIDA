@@ -8,11 +8,15 @@ let syncing = false
 let consuming = false
 let lastContextSignature = null
 let bridgeOnline = false
+let contextPoller = null
+let insertPoller = null
 
 entrypoints.setup({
   panels: {
     contextShelf: {
-      show() { syncContext().catch((error) => log(error)) },
+      show() { startPolling() },
+      hide() { stopPolling() },
+      destroy() { stopPolling() },
     },
   },
 })
@@ -172,6 +176,21 @@ async function syncContext({ force = false } = {}) {
   }
 }
 
+function startPolling() {
+  if (contextPoller || insertPoller) return
+  syncContext({ force: true }).catch((error) => log(error))
+  consumeInsert().catch((error) => log(error))
+  contextPoller = setInterval(() => syncContext().catch((error) => log(error)), 1200)
+  insertPoller = setInterval(() => consumeInsert().catch((error) => log(error)), 700)
+}
+
+function stopPolling() {
+  if (contextPoller) clearInterval(contextPoller)
+  if (insertPoller) clearInterval(insertPoller)
+  contextPoller = null
+  insertPoller = null
+}
+
 function fileUrl(file) {
   return `file:///${encodeURI(String(file).replace(/\\/g, "/"))}`
 }
@@ -239,10 +258,10 @@ async function insertSvg(file, requestValue) {
 
 document.querySelector("#refresh").addEventListener("click", () => syncContext({ force: true }))
 document.querySelector("#send").addEventListener("click", () => syncContext({ force: true }))
-setInterval(() => syncContext(), 1200)
-setInterval(() => consumeInsert(), 700)
 try {
-  action.addNotificationListener(["select", "open"], () => syncContext())
+  action.addNotificationListener(["select", "open"], () => {
+    if (contextPoller) syncContext().catch((error) => log(error))
+  })
 } catch (error) {
   log(`Eventos no disponibles; se usa polling: ${error.message}`)
 }

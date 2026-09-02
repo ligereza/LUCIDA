@@ -9,14 +9,14 @@ La app inicia automáticamente el bridge local si todavía no está corriendo.
 Sólo necesitas una terminal:
 
 ```powershell
-cd C:\IA\LUCIDA\adobe
+cd .\adobe
 npm run companion:start
 ```
 
 También puedes iniciarla directamente desde `companion`:
 
 ```powershell
-cd C:\IA\LUCIDA\adobe\companion
+cd .\adobe\companion
 npm start
 ```
 
@@ -29,7 +29,7 @@ Antes de la primera prueba, la biblioteca local se puede cargar o actualizar
 con:
 
 ```powershell
-cd C:\IA\LUCIDA\adobe
+cd .\adobe
 npm run tool -- asset index-local --max-files 30000
 npm run tool -- asset catalog-stats
 ```

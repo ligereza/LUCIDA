@@ -1,9 +1,11 @@
 import crypto from "node:crypto"
 import fs from "node:fs/promises"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
 
 const SOURCE_ROOT = path.resolve(process.env.LUCIDA_SOURCE_ROOT || "C:/IA/svg")
-const DEST_ROOT = path.resolve(process.env.LUCIDA_ADOBE_ROOT || "C:/IA/LUCIDA/adobe")
+const PACKAGE_ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
+const DEST_ROOT = path.resolve(process.env.LUCIDA_ADOBE_ROOT || PACKAGE_ROOT)
 const PROJECT_ROOT = path.join(SOURCE_ROOT, "agent-toolkit", "projects", "chemsex")
 const OUTPUT_ROOT = path.join(DEST_ROOT, "ICONOS", "CHEMSEX")
 const VISUAL_EXTENSIONS = new Set([".png", ".svg", ".jpg", ".jpeg", ".webp", ".gif", ".avif", ".bmp", ".tif", ".tiff"])

@@ -7,7 +7,7 @@ Capa local y agnóstica de host para convertir contexto incompleto en análisis,
 Requiere Node.js 20 o superior.
 
 ```powershell
-cd C:\IA\LUCIDA\adobe\generic-interface-layer
+cd .\adobe\generic-interface-layer
 npm test
 npm run smoke
 ```

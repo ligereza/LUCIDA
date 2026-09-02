@@ -17,7 +17,7 @@ Migración local de la capa de exploración contextual y sus integraciones Adobe
 ## Pruebas
 
 ```powershell
-cd C:\IA\LUCIDA\adobe
+cd .\adobe
 npm test
 npm run smoke
 npm run companion:check

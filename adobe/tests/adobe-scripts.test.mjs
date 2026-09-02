@@ -31,3 +31,30 @@ test("Adobe host consumers have valid JavaScript syntax", async () => {
   }
   assert.ok(true)
 })
+
+test("Adobe adapters do not depend on the retired checkout path", async () => {
+  for (const relative of [
+    "adapters/adobe/illustrator/agent.jsx",
+    "adapters/adobe/photoshop/agent.jsx",
+    "adapters/adobe/photoshop/agent.psjs",
+    "adapters/adobe/after-effects/agent.jsx",
+    "adapters/adobe/premiere/agent.jsx",
+  ]) {
+    const source = await readFile(path.join(root, relative), "utf8")
+    assert.equal(source.includes("C:/IA/LUCIDA/adobe") || source.includes("C:\\IA\\LUCIDA\\adobe"), false)
+  }
+})
+
+test("Photoshop UXP contract keeps the bridge local and polling visible", async () => {
+  const manifest = JSON.parse(await readFile(path.join(root, "adobe-context-shelf/photoshop-uxp/manifest.json"), "utf8"))
+  const source = await readFile(path.join(root, "adobe-context-shelf/photoshop-uxp/index.js"), "utf8")
+  const adapter = await readFile(path.join(root, "adapters/adobe/photoshop/agent.psjs"), "utf8")
+  assert.equal(manifest.manifestVersion, 5)
+  assert.equal(manifest.host.app, "PS")
+  assert.equal(manifest.host.minVersion, "23.3.0")
+  assert.deepEqual(manifest.requiredPermissions.network.domains, ["http://127.0.0.1:47921"])
+  assert.match(adapter, /getPluginFolder\(\)/)
+  assert.match(source, /show\(\)\s*\{\s*startPolling\(\)/)
+  assert.match(source, /hide\(\)\s*\{\s*stopPolling\(\)/)
+  assert.match(source, /destroy\(\)\s*\{\s*stopPolling\(\)/)
+})

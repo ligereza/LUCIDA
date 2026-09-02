@@ -4,7 +4,7 @@ const { app, action, core, constants } = require("photoshop");
 const { storage } = require("uxp");
 const fs = storage.localFileSystem;
 
-const TOOLKIT_ROOT = "C:/IA/LUCIDA/adobe";
+let TOOLKIT_ROOT = null;
 
 function fileUrl(nativePath) {
   const normalized = String(nativePath).replace(/\\/g, "/");
@@ -15,21 +15,36 @@ function timestamp() {
   return new Date().toISOString();
 }
 
-function isAllowedPath(nativePath) {
+function isAllowedPath(nativePath, root) {
   const value = String(nativePath).replace(/\\/g, "/").toLowerCase();
-  const root = TOOLKIT_ROOT.replace(/\\/g, "/").toLowerCase();
-  return value === root || value.indexOf(root + "/") === 0;
-}
-
-async function getEntry(nativePath) {
-  if (!isAllowedPath(nativePath)) {
-    throw new Error("Path is outside the toolkit root: " + nativePath);
-  }
-  return fs.getEntryWithUrl(fileUrl(nativePath));
+  const normalizedRoot = String(root || "").replace(/\\/g, "/").toLowerCase();
+  return normalizedRoot && (value === normalizedRoot || value.indexOf(normalizedRoot + "/") === 0);
 }
 
 function parentPath(nativePath) {
   return String(nativePath).replace(/[\\/][^\\/]*$/, "");
+}
+
+async function ensureToolkitRoot() {
+  if (TOOLKIT_ROOT) return TOOLKIT_ROOT;
+  const pluginFolder = await fs.getPluginFolder();
+  if (!pluginFolder) throw new Error("Photoshop UXP plugin folder is unavailable");
+  const nativePath = typeof fs.getNativePath === "function" ? fs.getNativePath(pluginFolder) : pluginFolder.nativePath;
+  if (!nativePath) throw new Error("Photoshop UXP plugin folder has no native path");
+  let root = String(nativePath);
+  // The plugin folder is adapters/adobe/photoshop; three parents reach the
+  // package root that contains jobs, adapters and generated outputs.
+  for (let index = 0; index < 3; index += 1) root = parentPath(root);
+  TOOLKIT_ROOT = root.replace(/[\\/]+$/, "");
+  return TOOLKIT_ROOT;
+}
+
+async function getEntry(nativePath) {
+  const root = await ensureToolkitRoot();
+  if (!isAllowedPath(nativePath, root)) {
+    throw new Error("Path is outside the toolkit root: " + nativePath);
+  }
+  return fs.getEntryWithUrl(fileUrl(nativePath));
 }
 
 function baseName(nativePath) {
@@ -328,7 +343,8 @@ async function separateObjects(command) {
 }
 
 async function findNextCommand() {
-  const jobs = await getEntry(TOOLKIT_ROOT + "/jobs");
+  const root = await ensureToolkitRoot();
+  const jobs = await getEntry(root + "/jobs");
   const folders = await jobs.getEntries();
   let selectedFile = null;
   let selectedCommand = null;
@@ -369,7 +385,8 @@ async function consumeNext() {
 
 consumeNext().catch(async (error) => {
   try {
-    const diagnostic = await fs.createEntryWithUrl(fileUrl(TOOLKIT_ROOT + "/adapters/adobe/photoshop/last-error.txt"), { overwrite: true });
+    const root = await ensureToolkitRoot();
+    const diagnostic = await fs.createEntryWithUrl(fileUrl(root + "/adapters/adobe/photoshop/last-error.txt"), { overwrite: true });
     await diagnostic.write(timestamp() + "\n" + String(error));
   } catch (_) {}
   throw error;

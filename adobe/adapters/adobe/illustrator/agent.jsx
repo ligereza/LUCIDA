@@ -1,6 +1,8 @@
 // Illustrator queue consumer. Run from Illustrator's scripting menu.
 #include "../json-compat.jsxinc"
-var TOOLKIT_ROOT = "C:/IA/LUCIDA/adobe";
+// Resolve the package from this script so the adapter survives a clone or
+// worktree move. Technical paths stay local to the current checkout.
+var TOOLKIT_ROOT = new File($.fileName).parent.parent.parent.fsName;
 
 function pad(value) {
   return value < 10 ? "0" + value : String(value);

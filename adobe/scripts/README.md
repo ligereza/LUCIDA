@@ -2,13 +2,18 @@
 
 ## Adobe host preflight
 
-This read-only check confirms configured Adobe executables and adapter syntax.
-It deliberately does not launch Adobe or modify documents:
+This read-only check confirms configured or standard-location Adobe executables
+and adapter syntax. If `config.local.json` is absent, it auto-discovers the
+installed Photoshop and Illustrator executables without launching Adobe or
+modifying documents:
 
 ```powershell
-cd C:\IA\LUCIDA\adobe
+cd .\adobe
 .\scripts\adobe-host-check.ps1
 ```
+
+Use `-NoAutoDiscover` to report only paths from `config.local.json`, or pass an
+explicit file with `-ConfigPath`.
 
 To include the intentionally pending After Effects adapter in the report:
 

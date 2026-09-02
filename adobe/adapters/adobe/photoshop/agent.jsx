@@ -2,7 +2,9 @@
 // UXP (agent.psjs) is the primary adapter; this script supports legacy
 // ExtendScript/COM hosts where UXP tooling is not available.
 #include "../json-compat.jsxinc"
-var TOOLKIT_ROOT = "C:/IA/LUCIDA/adobe";
+// Resolve the package from this script so the adapter survives a clone or
+// worktree move. Technical paths stay local to the current checkout.
+var TOOLKIT_ROOT = new File($.fileName).parent.parent.parent.fsName;
 
 function pad(value) { return value < 10 ? "0" + value : String(value); }
 function timestamp() {
