@@ -38,10 +38,23 @@ test("signal bridge redacts raw content and deduplicates source events", () => {
     sessionId: id,
     event: "radio.sample",
     timestamp_utc: "2026-09-01T12:00:00Z",
-    metadata: { channel: "wifi", status: "ready" },
+    metadata: {
+      channel: "wifi",
+      status: "ready",
+      wifi_signal_percent: 84,
+      gateway_loss_percent: 1.5,
+      wifi_receive_mbps: 12.25,
+      cell_rat: "nr",
+      cell_channel: 78,
+    },
   })
   assert.equal(xioEnvelope.signal.eventType, "radio.sample")
   assert.equal(xioEnvelope.signal.timestamp, "2026-09-01T12:00:00.000Z")
+  assert.equal(xioEnvelope.signal.metadata.signalPercent, 84)
+  assert.equal(xioEnvelope.signal.metadata.lossPercent, 1.5)
+  assert.equal(xioEnvelope.signal.metadata.receiveMbps, 12.25)
+  assert.equal(xioEnvelope.signal.metadata.radioType, "nr")
+  assert.equal(xioEnvelope.signal.metadata.cellChannel, 78)
   assert.equal(currentSignals({ sessionId: id }).count, 2)
 })
 

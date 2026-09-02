@@ -23,6 +23,28 @@
   "$defs": {
     "metadata": {
       "type": "object",
+      "properties": {
+        "app": { "type": "string" },
+        "host": { "type": "string" },
+        "channel": { "type": ["string", "number"] },
+        "status": { "type": "string" },
+        "phase": { "type": "string" },
+        "region": { "type": "string" },
+        "workflow": { "type": "string" },
+        "intent": { "type": "string" },
+        "target": { "type": "string" },
+        "transport": { "type": "string" },
+        "protocol": { "type": "string" },
+        "signalPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "lossPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "receiveMbps": { "type": "number", "minimum": 0 },
+        "transmitMbps": { "type": "number", "minimum": 0 },
+        "radioType": { "type": "string" },
+        "cellChannel": { "type": ["string", "number"] },
+        "focusScore": { "type": "number", "minimum": 0, "maximum": 1 },
+        "attentionScore": { "type": "number", "minimum": 0, "maximum": 1 },
+        "participantCount": { "type": "integer", "minimum": 0 }
+      },
       "additionalProperties": true,
       "maxProperties": 20
     },

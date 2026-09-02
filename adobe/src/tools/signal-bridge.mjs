@@ -10,8 +10,26 @@ const ID_PATTERN = /^[a-z0-9][a-z0-9._:-]{0,159}$/i
 const ALLOWED_METADATA = new Set([
   "app", "host", "channel", "action", "state", "phase", "region", "mode", "status", "workflow",
   "eventClass", "intent", "kind", "target", "revision", "count", "participantCount", "confidence",
-  "focusScore", "attentionScore", "latencyMs", "pointerMode", "sourceVersion",
+  "focusScore", "attentionScore", "latencyMs", "pointerMode", "sourceVersion", "transport", "protocol",
+  "signalPercent", "lossPercent", "receiveMbps", "transmitMbps", "radioType", "cellChannel",
 ])
+const METADATA_ALIASES = Object.freeze({
+  signal_percent: "signalPercent",
+  wifi_signal_percent: "signalPercent",
+  loss_percent: "lossPercent",
+  gateway_loss_percent: "lossPercent",
+  receive_mbps: "receiveMbps",
+  wifi_receive_mbps: "receiveMbps",
+  transmit_mbps: "transmitMbps",
+  wifi_transmit_mbps: "transmitMbps",
+  cell_rat: "radioType",
+  cell_channel: "cellChannel",
+  transport_type: "transport",
+  focus_score: "focusScore",
+  attention_score: "attentionScore",
+  participant_count: "participantCount",
+  source_version: "sourceVersion",
+})
 const FORBIDDEN_KEYS = new Set([
   "command", "content", "data", "executable", "file", "frame", "html", "image", "key", "keys",
   "path", "payload", "process", "raw", "script", "shell", "text", "url",
@@ -76,7 +94,9 @@ function boundedNumber(key, value) {
   const number = Number(value)
   if (!Number.isFinite(number)) return null
   if (["confidence", "focusScore", "attentionScore"].includes(key)) return Number(Math.max(0, Math.min(1, number)).toFixed(4))
+  if (["signalPercent", "lossPercent"].includes(key)) return Number(Math.max(0, Math.min(100, number)).toFixed(2))
   if (["count", "participantCount"].includes(key)) return Math.max(0, Math.min(100_000, Math.round(number)))
+  if (["receiveMbps", "transmitMbps"].includes(key)) return Number(Math.max(0, Math.min(100_000, number)).toFixed(2))
   if (key === "latencyMs") return Number(Math.max(0, Math.min(600_000, number)).toFixed(2))
   if (key === "revision") return Math.max(0, Math.round(number))
   return Number(number.toFixed(4))
@@ -95,9 +115,10 @@ function collectMetadata(input) {
   const candidates = [objectOrEmpty(input.metadata), objectOrEmpty(input.meta), objectOrEmpty(input.payload), input]
   for (const candidate of candidates) {
     for (const [rawKey, rawValue] of Object.entries(candidate)) {
-      const key = String(rawKey)
+      const originalKey = String(rawKey)
+      const key = METADATA_ALIASES[originalKey] || originalKey
       if (!ALLOWED_METADATA.has(key)) {
-        if (FORBIDDEN_KEYS.has(key.toLowerCase())) droppedKeys.push(key)
+        if (FORBIDDEN_KEYS.has(originalKey.toLowerCase())) droppedKeys.push(originalKey)
         continue
       }
       if (key in metadata) continue

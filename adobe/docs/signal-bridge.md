@@ -33,3 +33,5 @@ GET  /surface/current?sessionId=...
 ```
 
 The JSON schemas are `contracts/external-signal.schema.json` and `contracts/surface.schema.json`.
+
+For XIO radio-monitor envelopes, the bridge accepts `event` and `timestamp_utc` directly and maps only bounded summary fields: `wifi_signal_percent` to `signalPercent`, `gateway_loss_percent` to `lossPercent`, `wifi_receive_mbps` to `receiveMbps`, `wifi_transmit_mbps` to `transmitMbps`, `cell_rat` to `radioType` and `cell_channel` to `cellChannel`.
