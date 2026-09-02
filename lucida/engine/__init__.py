@@ -6,6 +6,12 @@ from .models import EngineEvent, EngineProposal, EngineState, RenderPlan
 from .pipeline import EngineTransition, LucidaPipeline
 from .reducer import LucidaEngine, EngineError
 from .replay import ReplayError, replay_fixture, replay_path, replay_pipeline_fixture
+from .domain_adapters import (
+    DomainAdapterError,
+    PupilaCoordinationAdapter,
+    VizzMetadataAdapter,
+    register_vizz_pupila_routes,
+)
 
 __all__ = [
     "AdapterRegistry",
@@ -24,6 +30,10 @@ __all__ = [
     "replay_fixture",
     "replay_path",
     "replay_pipeline_fixture",
+    "DomainAdapterError",
+    "PupilaCoordinationAdapter",
+    "VizzMetadataAdapter",
+    "register_vizz_pupila_routes",
     "LucidaEngine",
     "RenderPlan",
 ]
