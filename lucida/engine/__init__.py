@@ -5,6 +5,7 @@ from .input_contracts import ContractRegistry, InputContract, InputContractError
 from .models import EngineEvent, EngineProposal, EngineState, RenderPlan
 from .pipeline import EngineTransition, LucidaPipeline
 from .reducer import LucidaEngine, EngineError
+from .replay import ReplayError, replay_fixture, replay_path, replay_pipeline_fixture
 
 __all__ = [
     "AdapterRegistry",
@@ -19,6 +20,10 @@ __all__ = [
     "InputContractError",
     "EngineTransition",
     "LucidaPipeline",
+    "ReplayError",
+    "replay_fixture",
+    "replay_path",
+    "replay_pipeline_fixture",
     "LucidaEngine",
     "RenderPlan",
 ]

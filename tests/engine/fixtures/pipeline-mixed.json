@@ -1,0 +1,50 @@
+{
+  "session_id": "pipeline-session-1",
+  "steps": [
+    {
+      "adapter_id": "fixture.xio",
+      "contract_id": "fixture.xio.v1",
+      "value": {
+        "session_id": "pipeline-session-1",
+        "event_id": "xio-event-1",
+        "timestamp": "2026-09-02T12:00:00Z",
+        "sequence": 1,
+        "source": "fixture.xio",
+        "source_version": "1",
+        "event_type": "signal.observed",
+        "capabilities": ["observe.signal"],
+        "summary": {"channel": "timecode"}
+      }
+    },
+    {
+      "adapter_id": "fixture.mosaik",
+      "contract_id": "fixture.mosaik.v1",
+      "value": {
+        "session_id": "pipeline-session-1",
+        "event_id": "mosaik-event-1",
+        "timestamp": "2026-09-02T12:00:01Z",
+        "sequence": 1,
+        "source": "fixture.mosaik",
+        "source_version": "1",
+        "event_type": "show.state",
+        "capabilities": ["observe.show"],
+        "summary": {"phase": "show"}
+      }
+    },
+    {
+      "adapter_id": "fixture.xio",
+      "contract_id": "fixture.xio.v1",
+      "value": {
+        "session_id": "pipeline-session-1",
+        "event_id": "xio-event-2",
+        "timestamp": "2026-09-02T12:00:02Z",
+        "sequence": 2,
+        "source": "fixture.xio",
+        "source_version": "1",
+        "event_type": "signal.observed",
+        "capabilities": ["observe.signal"],
+        "summary": {"channel": "osc"}
+      }
+    }
+  ]
+}
