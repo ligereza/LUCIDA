@@ -29,15 +29,17 @@ completed:
     evidence: src/adapters/adobe.mjs derives allowed hosts and operations from contracts/host-capabilities.json; unsupported commands are rejected before job creation.
   - item: Added semantic validation for the host capability contract.
     evidence: src/tools/host-capabilities.mjs checks branch identity, host membership, connector modes, exclusions and required fields; order-only JSON changes are accepted and cross-branch contracts are rejected.
+  - item: Restored and verified the migrated companion runtime.
+    evidence: npm ci completed for the Adobe package and companion; the transparent Electron window opened from this checkout, the local bridge returned LUCIDA/ADOBE health, and the derived surface responded with proposalOnly=true. No global install was used.
 current_state:
-  files_or_resources: C:/IA/LUCIDA_ADOBE/adobe; branch ADOBE tracking origin/ADOBE; Photoshop 2025/2026 and Illustrator 2026 are installed; no Adobe process is active.
-  tests_and_checks: legacy Node suite 33/33, server scope and signal tests pass, generic core 11/11, companion syntax pass, smoke and verify pass, Python publisher 3/3, live signal publisher pass, Adobe host preflight pass for installed executables; command adapter and capability validator pass.
+  files_or_resources: C:/IA/LUCIDA_ADOBE/adobe; branch ADOBE tracking origin/ADOBE; local companion dependencies restored; Photoshop 2025/2026 and Illustrator 2026 are installed; companion runtime is currently open.
+  tests_and_checks: legacy Node suite 33/33, server scope and signal tests pass, generic core 11/11, companion syntax pass, smoke and verify pass, Python publisher 3/3, live signal publisher pass, Adobe host preflight pass for installed executables; command adapter and capability validator pass; live Electron window and bridge health verified.
   assumptions: UXP plugin folder is the checked-out plugin folder; actual host runtime remains unverified until user loads it in Photoshop.
   open_questions: Whether the installed Photoshop build accepts the current UXP manifest and context API without a live Developer Tool run; whether its panel lifecycle callbacks fire as documented.
   blockers: None for offline work; live UXP validation requires a user-opened Adobe host.
   research_refs: Official Adobe UXP docs for getPluginFolder/getNativePath and panel lifecycle hooks.
   delegation_refs: None.
   last_critique: After making the queue contract-driven, the remaining offline drift risk was accepting a syntactically valid but semantically cross-branch contract; selected a central validator without expanding Adobe host behavior.
-  estimated_remaining_effort: Complete for this contract-validation milestone; live host validation remains a user-operated boundary.
+  estimated_remaining_effort: Complete for this runtime-validation milestone; live Photoshop UXP validation remains a user-operated boundary.
 next_action: On the next cycle, inspect the live Photoshop UXP load if the user opens it; otherwise audit command envelopes and host adapter parity without adding Resolume/XIO behavior.
-next_checkpoint_trigger: After semantic contract validation and push.
+next_checkpoint_trigger: After companion runtime verification and push.
