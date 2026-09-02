@@ -1,16 +1,18 @@
 import fs from "node:fs/promises"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { audit } from "../audit.mjs"
 import { createJob, updateJob } from "../jobs.mjs"
 import { assertAllowedInput, assertJobId, ensureDir, resolveOutput, writeJson, readJson, JOBS_ROOT } from "../utils.mjs"
 
-const apps = new Set(["photoshop", "illustrator", "after-effects", "premiere"])
-const operations = {
-  photoshop: new Set(["import-svg", "separate-objects"]),
-  illustrator: new Set(["import-svg"]),
-  "after-effects": new Set(["import-svg"]),
-  premiere: new Set(["import-media", "create-sequence", "export-sequence"]),
-}
+const moduleDirectory = path.dirname(fileURLToPath(import.meta.url))
+const hostCapabilities = await readJson(path.join(moduleDirectory, "..", "..", "contracts", "host-capabilities.json"))
+const apps = new Set(hostCapabilities.primaryHosts)
+const operations = Object.fromEntries(
+  Object.entries(hostCapabilities.hosts).map(([app, host]) => [app, new Set(host.operations)]),
+)
+
+export const adobeCapabilityContract = hostCapabilities
 
 export async function enqueueAdobe({ app, operation, input, jobId, options = {} }) {
   if (!apps.has(app)) throw new Error(`Unsupported Adobe app: ${app}`)

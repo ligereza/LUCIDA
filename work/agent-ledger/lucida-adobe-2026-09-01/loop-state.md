@@ -25,15 +25,17 @@ completed:
     evidence: Health and agent-card responses identify LUCIDA/ADOBE, list Adobe hosts, classify XIO/VIZZ/PUPILA as signal inputs, and exclude Resolume and transport responsibilities; server tests pass.
   - item: Added a single host capability contract for the ADOBE branch.
     evidence: contracts/host-capabilities.json drives the agent-card scope and operations; Photoshop is the only host with a prepared UXP context provider, while other context providers remain explicit as not implemented.
+  - item: Made Adobe command validation consume the capability contract.
+    evidence: src/adapters/adobe.mjs derives allowed hosts and operations from contracts/host-capabilities.json; unsupported commands are rejected before job creation.
 current_state:
   files_or_resources: C:/IA/LUCIDA_ADOBE/adobe; branch ADOBE tracking origin/ADOBE; Photoshop 2025/2026 and Illustrator 2026 are installed; no Adobe process is active.
-  tests_and_checks: legacy Node suite 31/31, server scope and signal tests pass, generic core 11/11, companion syntax pass, smoke and verify pass, Python publisher 3/3, live signal publisher pass, Adobe host preflight pass for installed executables.
+  tests_and_checks: legacy Node suite 31/31, server scope and signal tests pass, generic core 11/11, companion syntax pass, smoke and verify pass, Python publisher 3/3, live signal publisher pass, Adobe host preflight pass for installed executables; command adapter imports contract successfully.
   assumptions: UXP plugin folder is the checked-out plugin folder; actual host runtime remains unverified until user loads it in Photoshop.
   open_questions: Whether the installed Photoshop build accepts the current UXP manifest and context API without a live Developer Tool run; whether its panel lifecycle callbacks fire as documented.
   blockers: None for offline work; live UXP validation requires a user-opened Adobe host.
   research_refs: Official Adobe UXP docs for getPluginFolder/getNativePath and panel lifecycle hooks.
   delegation_refs: None.
-  last_critique: After the scope guardrail, duplicated host capability declarations were the next drift risk; selected a single contract without adding unverified host behavior.
-  estimated_remaining_effort: Complete for this contract milestone; live host validation remains a user-operated boundary.
-next_action: On the next cycle, inspect the live Photoshop UXP load if the user opens it; otherwise audit the contract against the existing host adapters without adding Resolume/XIO behavior.
-next_checkpoint_trigger: After the host capability contract tests and push.
+  last_critique: After centralizing the declarations, the next drift risk was leaving the command queue on a hardcoded allowlist; selected contract-driven validation without expanding Adobe host behavior.
+  estimated_remaining_effort: Complete for this validation milestone; live host validation remains a user-operated boundary.
+next_action: On the next cycle, inspect the live Photoshop UXP load if the user opens it; otherwise audit command envelopes and add only host-contract checks that reflect existing adapters.
+next_checkpoint_trigger: After contract-driven queue validation and push.
