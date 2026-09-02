@@ -4,7 +4,7 @@ import { TOOLKIT_ROOT, readJson } from "./utils.mjs"
 import { integrationSources, validateIntegration } from "./tools/integration.mjs"
 
 const requiredDirectories = ["generic-interface-layer", "companion", "adobe-context-shelf", "contracts", "adapters", "src", "tools", "tests", "docs", "ICONOS", "jobs", "logs", "scripts", "integrations", "adapters/gdkb/runtime/gdkb"]
-const requiredFiles = ["README.md", "registry.json", "package.json", "adapters/gdkb/bridge.py", "integrations/gdkb/v0.6.1/BUNDLE_MANIFEST.json", "integrations/tool-sources.json", "integrations/scripting-map.json", "ICONOS/CHEMSEX/manifest.json"]
+const requiredFiles = ["README.md", "registry.json", "package.json", "contracts/host-capabilities.json", "adapters/gdkb/bridge.py", "integrations/gdkb/v0.6.1/BUNDLE_MANIFEST.json", "integrations/tool-sources.json", "integrations/scripting-map.json", "ICONOS/CHEMSEX/manifest.json"]
 const optionalSourceDirectories = ["umbrella", "d3", "three.js", "effect", "rxjs", "stdlib"]
 
 async function exists(target) {

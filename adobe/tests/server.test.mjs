@@ -77,11 +77,14 @@ test("server enforces bearer auth and allowlisted CORS", async (t) => {
   assert.equal(cardBody.branch, "ADOBE")
   assert.deepEqual(cardBody.scope.primaryHosts, ["photoshop", "illustrator", "after-effects", "premiere"])
   assert.deepEqual(cardBody.scope.connectors, {
-    xio: "signal-input-only",
-    vizz: "proposal-signal-input",
-    pupila: "proposal-signal-input",
+    xio: "signal-only",
+    vizz: "proposal-signal-only",
+    pupila: "proposal-signal-only",
   })
   assert.deepEqual(cardBody.scope.excludedResponsibilities, ["resolume-control", "multi-device-transport", "source-project-migration"])
+  assert.equal(cardBody.capabilitiesContract, "contracts/host-capabilities.json")
+  assert.equal(cardBody.hostCapabilities.photoshop.contextProvider, "photoshop-uxp")
+  assert.equal(cardBody.hostCapabilities.illustrator.contextProvider, "none")
   assert.equal(cardBody.authentication, "Bearer token")
   assert.equal(cardBody.safety.arbitraryShell, false)
   assert.equal(cardBody.safety.maxBodyBytes, 2_000_000)

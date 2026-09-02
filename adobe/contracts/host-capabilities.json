@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "product": "LUCIDA",
+  "branch": "ADOBE",
+  "focus": "adobe",
+  "primaryHosts": [
+    "photoshop",
+    "illustrator",
+    "after-effects",
+    "premiere"
+  ],
+  "companion": {
+    "surface": "transparent-electron-overlay",
+    "actionPolicy": "explicit-host-authorization"
+  },
+  "connectors": {
+    "xio": {
+      "direction": "input",
+      "mode": "signal-only",
+      "signalFamilies": ["network", "application", "workflow"]
+    },
+    "vizz": {
+      "direction": "input",
+      "mode": "proposal-signal-only",
+      "signalFamilies": ["attention", "gaze", "display"]
+    },
+    "pupila": {
+      "direction": "input",
+      "mode": "proposal-signal-only",
+      "signalFamilies": ["learning", "collaboration", "portfolio"]
+    }
+  },
+  "hosts": {
+    "photoshop": {
+      "contextProvider": "photoshop-uxp",
+      "contextStatus": "prepared-unverified",
+      "adapterKinds": ["uxp", "jsx"],
+      "operations": ["import-svg", "separate-objects"],
+      "runtimeStatus": "not-run"
+    },
+    "illustrator": {
+      "contextProvider": "none",
+      "contextStatus": "not-implemented",
+      "adapterKinds": ["jsx"],
+      "operations": ["import-svg"],
+      "runtimeStatus": "not-run"
+    },
+    "after-effects": {
+      "contextProvider": "none",
+      "contextStatus": "not-implemented",
+      "adapterKinds": ["jsx"],
+      "operations": ["import-svg"],
+      "runtimeStatus": "deferred"
+    },
+    "premiere": {
+      "contextProvider": "none",
+      "contextStatus": "not-implemented",
+      "adapterKinds": ["jsx"],
+      "operations": ["import-media", "create-sequence", "export-sequence"],
+      "runtimeStatus": "deferred"
+    }
+  },
+  "excludedResponsibilities": [
+    "resolume-control",
+    "multi-device-transport",
+    "source-project-migration"
+  ]
+}

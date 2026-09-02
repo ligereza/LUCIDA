@@ -11,6 +11,7 @@ Migración local de la capa de exploración contextual y sus integraciones Adobe
 - `src/`: runtime histórico necesario por el servidor/bridge; no contiene proyectos ni assets de trabajo.
 - `ICONOS/CHEMSEX/`: únicamente visuales propios/generated-by-Codex con asignación comprobable a láminas 1–8.
 - `contracts/` y `src/tools/signal-bridge.mjs`: contrato de señales locales para XIO, VIZZ y PUPILA. Sólo acepta metadatos acotados; descarta contenido crudo y produce una superficie de propuestas, no acciones del host.
+- `contracts/host-capabilities.json`: matriz única de hosts, adaptadores, operaciones y estados de validación de esta rama.
 - `integrations/signal-publisher/`: cliente Python sin dependencias para que los tres proyectos publiquen señales sin conocer el runtime Adobe.
 - `docs/legacy/`: capacidades, planes y documentación operativa migrada con identidad LUCIDA.
 
@@ -47,5 +48,7 @@ Las ocho carpetas numeradas son planas; no hay subcarpetas dentro de `1`–`8`. 
 ## Capa conectiva
 
 El bridge local expone `POST /signals`, `GET /signals/current` y `GET /surface/current`. XIO puede publicar estado de red, aplicacion o workflow; VIZZ puede publicar estado de atencion y propuestas visuales; PUPILA puede publicar contexto de colaboracion o aprendizaje. La companion muestra los tres estados y usa sus metadatos para refinar recomendaciones.
+
+La matriz de capacidades es la fuente de verdad de alcance para el agent-card. Photoshop tiene un proveedor UXP preparado pero aún requiere validación dentro del host; los otros hosts conservan adaptadores explícitos sin inventar un proveedor de contexto. Resolume, transporte entre dispositivos y migración de proyectos permanecen fuera de esta rama.
 
 El contrato es deliberadamente pequeno: no reenvia texto, rutas, imagenes, archivos, teclas, comandos, scripts ni URLs. Las propuestas de VIZZ/PUPILA son siempre reversibles cuando es posible, requieren confirmacion y permanecen `proposalOnly`; ningun evento externo ejecuta una accion en Photoshop, Illustrator, Premiere o After Effects.

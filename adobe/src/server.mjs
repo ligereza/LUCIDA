@@ -16,6 +16,7 @@ import { indexMobileClip, installMobileClipModel, mobileClipStatus } from "./too
 import { currentSignals, currentSurface, publishSignal, signalDiagnostics } from "./tools/signal-bridge.mjs"
 
 const registry = await readJson(path.join(TOOLKIT_ROOT, "registry.json"))
+const hostCapabilities = await readJson(path.join(TOOLKIT_ROOT, "contracts", "host-capabilities.json"))
 const config = await readJson(path.join(TOOLKIT_ROOT, "config.local.json")).catch(() => ({ server: {} }))
 const host = process.env.AGENT_TOOLKIT_HOST || config.server?.host || "127.0.0.1"
 const port = Number(process.env.AGENT_TOOLKIT_PORT || config.server?.port || 47921)
@@ -39,15 +40,11 @@ const agentCard = {
   focus: "adobe",
   description: "Local allowlisted bridge for the transparent Adobe companion, context shelf, catalog and explicit host job envelopes.",
   scope: {
-    primaryHosts: ["photoshop", "illustrator", "after-effects", "premiere"],
-    companion: "transparent-electron-overlay",
-    connectors: {
-      xio: "signal-input-only",
-      vizz: "proposal-signal-input",
-      pupila: "proposal-signal-input",
-    },
-    excludedResponsibilities: ["resolume-control", "multi-device-transport", "source-project-migration"],
-    hostActionPolicy: "explicit-host-authorization",
+    primaryHosts: hostCapabilities.primaryHosts,
+    companion: hostCapabilities.companion.surface,
+    connectors: Object.fromEntries(Object.entries(hostCapabilities.connectors).map(([id, connector]) => [id, connector.mode])),
+    excludedResponsibilities: hostCapabilities.excludedResponsibilities,
+    hostActionPolicy: hostCapabilities.companion.actionPolicy,
   },
   authentication: token ? "Bearer token" : "localhost-only; bearer token not configured",
   safety: {
@@ -78,11 +75,10 @@ const agentCard = {
     diagnostics: signalDiagnostics(),
   },
   adobeOperations: {
-    photoshop: ["import-svg", "separate-objects"],
-    illustrator: ["import-svg"],
-    "after-effects": ["import-svg"],
-    premiere: ["import-media", "create-sequence", "export-sequence"],
+    ...Object.fromEntries(Object.entries(hostCapabilities.hosts).map(([id, host]) => [id, host.operations])),
   },
+  hostCapabilities: hostCapabilities.hosts,
+  capabilitiesContract: "contracts/host-capabilities.json",
 }
 
 const openApi = {
