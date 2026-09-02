@@ -23,6 +23,20 @@ XIO event or MOSAIK state
         -> future LUCIDA surface
 ```
 
+The executable integration path is explicit:
+
+```text
+adapter_id + contract_id
+        -> bounded EngineEvent
+        -> LucidaPipeline
+        -> LucidaEngine
+        -> RenderPlan
+```
+
+Contract validation happens before reduction. The transition records both
+selected ids, so replay and audit can prove how a domain event entered the
+engine. No adapter or contract is inferred from payload shape.
+
 All technical identifiers, fixture keys and parseable values use English
 ASCII. The summary is scalar and bounded so raw payloads cannot pass through
 this boundary accidentally.
