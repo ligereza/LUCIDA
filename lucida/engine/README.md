@@ -46,3 +46,8 @@ this boundary accidentally.
 It validates snapshots, checks revision continuity, accepts exact duplicates
 idempotently and rejects stale, skipped or conflicting frames. It does not open
 a transparent window or execute a host action.
+
+The machine-readable contract is
+`lucida/engine/contracts/overlay-frame.schema.json`. The schema is tested
+against the runtime projection so a renderer can validate the same boundary
+without importing a host application.

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lucida:engine:overlay-frame",
+  "title": "LUCIDA Overlay Frame",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_type",
+    "schema_version",
+    "surface",
+    "mode",
+    "session_id",
+    "revision",
+    "elements",
+    "warnings",
+    "transparent",
+    "click_through",
+    "blocking",
+    "safety"
+  ],
+  "properties": {
+    "contract_type": { "const": "LucidaOverlayFrame" },
+    "schema_version": { "const": "0.1" },
+    "surface": { "const": "LUCIDA" },
+    "mode": { "const": "read_only" },
+    "session_id": { "type": "string", "minLength": 1 },
+    "revision": { "type": "integer", "minimum": 0 },
+    "elements": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item_id",
+          "kind",
+          "title",
+          "body",
+          "priority",
+          "source",
+          "expires_at",
+          "requires_confirmation",
+          "reversible"
+        ],
+        "properties": {
+          "item_id": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1 },
+          "title": { "type": "string", "minLength": 1 },
+          "body": { "type": "string", "minLength": 1 },
+          "priority": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "source": { "type": "string", "minLength": 1 },
+          "expires_at": { "type": "string", "format": "date-time" },
+          "requires_confirmation": { "const": true },
+          "reversible": { "const": true }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "maxItems": 32,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "transparent": { "const": true },
+    "click_through": { "const": true },
+    "blocking": { "const": false },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposal_only", "automatic_actions", "external_side_effects"],
+      "properties": {
+        "proposal_only": { "const": true },
+        "automatic_actions": { "const": false },
+        "external_side_effects": { "const": false }
+      }
+    }
+  }
+}
