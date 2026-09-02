@@ -12,6 +12,7 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 - A requested unknown `sessionId` no longer falls back to another session's latest context.
 - Context sessions, recommendation entries and stored insert results have bounded retention.
 - External signal sessions now have bounded retention as well; their history remains proposal-only.
+- Insertion boundary was audited: external proposals do not enqueue host work; insertion still requires an explicit companion action and matching host session.
 - Catalog and group indexes use serialized refreshes and atomic JSON replacement.
 - SVG and raster metadata reads use bounded file prefixes where full content is unnecessary.
 - Companion asset paths are resolved through real paths and restricted to the package root.

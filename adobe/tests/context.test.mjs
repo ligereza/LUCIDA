@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import path from "node:path"
 import { TOOLKIT_ROOT } from "../src/utils.mjs"
 import { claimInsert, contextDiagnostics, currentContext, publishContext, queueInsert, recommendationCacheKey, recordInsertResult } from "../src/tools/context.mjs"
+import { currentSurface, publishSignal } from "../src/tools/signal-bridge.mjs"
 
 function context(sessionId, text = "") {
   return {
@@ -65,4 +66,20 @@ test("context state stays bounded across many sessions", () => {
   assert.equal(currentContext({ sessionId: `${prefix}-0` }), null)
   assert.ok(diagnostics.storedInsertResults <= 256)
   assert.ok(diagnostics.cachedRecommendations <= 128)
+})
+
+test("external proposals cannot create an Adobe insertion", () => {
+  const sessionId = `proposal-boundary-${Date.now()}`
+  publishContext(context(sessionId))
+  publishSignal({
+    source: "vizz",
+    sessionId,
+    sequence: 0,
+    eventType: "attention.shift",
+    proposal: { title: "Show a related asset", reason: "Proposal only" },
+  })
+  const surface = currentSurface({ sessionId })
+  assert.equal(surface.safety.hostActions, false)
+  assert.equal(surface.safety.proposalOnly, true)
+  assert.equal(claimInsert(sessionId), null)
 })

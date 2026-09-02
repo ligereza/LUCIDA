@@ -13,6 +13,8 @@ completed:
     evidence: context regression test passes with 40 sessions and diagnostics remain bounded.
   - item: Bounded external signal session state without changing proposal-only semantics.
     evidence: signal regression test passes with 40 sessions; signal history remains capped at 96 events per session.
+  - item: Audited insertion boundary against external proposals.
+    evidence: The new regression confirms a VIZZ proposal produces no queued insertion; host actions remain false and proposal-only remains true.
   - item: Published the pre-improvement baseline checkpoint.
     evidence: b171401fe91826e7ced9951fa06644ef2df2ed24 was recorded and bb64db5 was pushed before implementation.
   - item: Audited the migrated companion, bridge and Adobe adapters.
@@ -28,8 +30,8 @@ completed:
   - item: Made external signal changes invalidate recommendation cache entries.
     evidence: recommendationCacheKey includes context hash, result limit and derived surface hash; a signal or lifecycle change cannot leave the companion on an older recommendation set.
 in_progress:
-  - item: Audit the insertion path against external signal proposals.
-    acceptance: XIO, VIZZ and PUPILA signals can enrich context but cannot create or bypass an Adobe host command without the existing explicit authorization path.
+  - item: Prepare the next LUCIDA ADOBE milestone after the structural audit.
+    acceptance: The branch remains clean, contract checks pass, and the next implementation target is selected from evidence rather than invented scope.
 files_or_resources:
   - adobe/companion/renderer.js
   - adobe/src/tools/project-inventory.mjs
@@ -49,5 +51,5 @@ estimated_remaining_effort: one focused implementation and verification pass
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.
   - Whether a real Adobe context publisher will remain stable across host versions.
-next_action: Confirm the insertion path and host adapter authorization boundaries, then record whether a code change is justified.
+next_action: Commit the insertion-boundary regression and audit update, then reassess whether host runtime validation or Adobe context capture has higher value.
 next_checkpoint_trigger: A coherent code change with passing suites and a pushed commit.
