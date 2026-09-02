@@ -25,6 +25,8 @@ completed:
     evidence: Adobe context normalization forces document.path to null, UXP emits a null path, and dedicated regressions cover both behavior and source contract; 47 legacy tests pass.
   - item: Closed the remaining Photoshop output-name encoding gap.
     evidence: UXP and JSX output names reject non-ASCII characters; a source-contract regression covers both adapters.
+  - item: Hardened the Photoshop UXP queue consumer around host mutation rules.
+    evidence: Open, save, close and import operations are now inside core.executeAsModal scopes, with an offline source-contract regression; actual Photoshop execution remains external.
   - item: Published the pre-improvement baseline checkpoint.
     evidence: b171401fe91826e7ced9951fa06644ef2df2ed24 was recorded and bb64db5 was pushed before implementation.
   - item: Audited the migrated companion, bridge and Adobe adapters.
@@ -47,7 +49,7 @@ files_or_resources:
   - adobe/src/tools/project-inventory.mjs
   - adobe/src/tools/context.mjs
 tests_and_checks:
-  - npm run legacy:test: 48 passed
+  - npm run legacy:test: 49 passed
   - npm run test: 11 passed
   - npm run smoke: passed
   - npm run companion:check: passed

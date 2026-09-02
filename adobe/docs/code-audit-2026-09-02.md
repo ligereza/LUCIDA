@@ -19,6 +19,7 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 - The Electron document has a local-only content security policy.
 - Adobe context normalization now drops document paths before storage or recommendation analysis; the UXP source also sends a null path.
 - Generated Photoshop output names are restricted to ASCII in both UXP and JSX adapters.
+- The Photoshop UXP queue consumer now wraps open, save, close and import mutations in `core.executeAsModal`; an offline source-contract regression covers the boundary.
 - The package now has explicit npm ignore rules for development caches, jobs, logs, credentials and dependency trees.
 
 ## Packaging audit

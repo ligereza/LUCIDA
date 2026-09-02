@@ -18,3 +18,8 @@ El panel no es la interfaz final; funciona como puente de contexto y consumidor
 de ordenes. La interfaz principal sera `companion/`. La raiz del paquete se
 resuelve desde la carpeta del plugin para que el checkout pueda moverse sin
 editar una ruta fija.
+
+Las operaciones que modifican Photoshop deben ejecutarse dentro de
+`core.executeAsModal`; el consumidor UXP de Photoshop lo aplica a abrir,
+guardar, cerrar e insertar documentos. La validacion sintactica y el bridge
+offline no sustituyen una prueba dentro de Photoshop.

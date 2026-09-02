@@ -102,10 +102,16 @@ async function saveDocument(document, output) {
 async function importSvg(command) {
   if (!command.input) throw new Error("Command input is required");
   const source = await getEntry(command.input);
-  const document = await app.open(source);
   const options = command.options || {};
-  const output = await saveDocument(document, options.output || null);
-  return { document: document.name, output };
+  return core.executeAsModal(async () => {
+    const document = await app.open(source);
+    try {
+      const output = await saveDocument(document, options.output || null);
+      return { document: document.name, output };
+    } finally {
+      await document.closeWithoutSaving();
+    }
+  }, { commandName: "LUCIDA: import Photoshop SVG" });
 }
 
 function safeName(value, fallback) {
@@ -266,7 +272,7 @@ async function separateObjects(command) {
   if (!command.input) throw new Error("Command input is required");
   const options = command.options || {};
   const source = await getEntry(command.input);
-  const document = await app.open(source);
+  const document = await core.executeAsModal(() => app.open(source), { commandName: "LUCIDA: open Photoshop document" });
   const sourceWidth = Number(document.width);
   const sourceHeight = Number(document.height);
   const mode = String(options.mode || (options.objects ? "regions" : "subject")).toLowerCase();
@@ -322,7 +328,9 @@ async function separateObjects(command) {
       await deselect();
     }, { commandName: "Agent Toolkit: separate Photoshop objects" });
 
-    const psd = options.psdOutput ? await saveDocument(document, options.psdOutput) : null;
+    const psd = options.psdOutput
+      ? await core.executeAsModal(() => saveDocument(document, options.psdOutput), { commandName: "LUCIDA: save Photoshop document" })
+      : null;
     const manifest = {
       version: 1,
       app: "photoshop",
@@ -338,7 +346,7 @@ async function separateObjects(command) {
     await writeJson(manifestFile, manifest);
     return manifest;
   } finally {
-    await document.closeWithoutSaving();
+    await core.executeAsModal(() => document.closeWithoutSaving(), { commandName: "LUCIDA: close temporary document" });
   }
 }
 
