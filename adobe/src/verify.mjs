@@ -4,9 +4,10 @@ import { TOOLKIT_ROOT, readJson } from "./utils.mjs"
 import { integrationSources, validateIntegration } from "./tools/integration.mjs"
 import { loadHostCapabilities } from "./tools/host-capabilities.mjs"
 import { validateAdapterParity } from "./tools/adapter-parity.mjs"
+import { UXP_PLUGIN_FILES, validateUxpManifest } from "./tools/uxp-manifest.mjs"
 
 const requiredDirectories = ["generic-interface-layer", "companion", "adobe-context-shelf", "contracts", "adapters", "src", "tools", "tests", "docs", "ICONOS", "jobs", "logs", "scripts", "integrations", "adapters/gdkb/runtime/gdkb"]
-const requiredFiles = ["README.md", "registry.json", "package.json", "contracts/host-capabilities.json", "adapters/gdkb/bridge.py", "integrations/gdkb/v0.6.1/BUNDLE_MANIFEST.json", "integrations/tool-sources.json", "integrations/scripting-map.json", "ICONOS/CHEMSEX/manifest.json"]
+const requiredFiles = ["README.md", "registry.json", "package.json", "contracts/host-capabilities.json", "adapters/gdkb/bridge.py", "integrations/gdkb/v0.6.1/BUNDLE_MANIFEST.json", "integrations/tool-sources.json", "integrations/scripting-map.json", "ICONOS/CHEMSEX/manifest.json", ...UXP_PLUGIN_FILES]
 const optionalSourceDirectories = ["umbrella", "d3", "three.js", "effect", "rxjs", "stdlib"]
 
 async function exists(target) {
@@ -33,6 +34,12 @@ async function verify() {
     if (!(await exists(path.join(sourceRoot, entry)))) warnings.push({ source: entry, message: "Optional external source is not bundled" })
   }
   const registry = await readJson(path.join(TOOLKIT_ROOT, "registry.json"))
+  let uxpManifest = { ok: false, issues: ["not checked"] }
+  try {
+    uxpManifest = validateUxpManifest(await readJson(path.join(TOOLKIT_ROOT, UXP_PLUGIN_FILES[0])))
+  } catch (error) {
+    uxpManifest = { ok: false, issues: [error.message] }
+  }
   let capabilityContract = { ok: false, issues: ["not checked"] }
   let adapterParity = { ok: false, issues: ["not checked"], hosts: {} }
   let hostCapabilities = null
@@ -71,7 +78,7 @@ async function verify() {
   }
 
   return {
-    ok: missing.length === 0 && missingSources.length === 0 && entrypoints.length === 0 && integration.ok && capabilityContract.ok && adapterParity.ok,
+    ok: missing.length === 0 && missingSources.length === 0 && entrypoints.length === 0 && integration.ok && capabilityContract.ok && adapterParity.ok && uxpManifest.ok,
     root: TOOLKIT_ROOT,
     sourceRoot,
     installedSources: sourceInventory.sources.filter((source) => source.exists).map((source) => source.id),
@@ -83,6 +90,7 @@ async function verify() {
     integration,
     capabilityContract,
     adapterParity,
+    uxpManifest,
     executableWarnings: warnings,
     externalPending: [
       "Photoshop UXP host runtime validation (JSX/COM fallback verified)",

@@ -27,6 +27,8 @@ completed:
     evidence: UXP and JSX output names reject non-ASCII characters; a source-contract regression covers both adapters.
   - item: Completed the insert-result memory and path boundary.
     evidence: Result data is bounded by depth, keys and string length and removes file/path/content-like keys; the UXP consumer reports only assetId; regression coverage confirms a large path-bearing payload stays bounded.
+  - item: Moved UXP manifest validation into the executable verifier.
+    evidence: A dedicated validator checks manifest version, Photoshop host, permissions, bridge domain and panel entrypoint; valid and missing-permission fixtures are covered by tests.
   - item: Hardened the Photoshop UXP queue consumer around host mutation rules.
     evidence: Open, save, close and import operations are now inside core.executeAsModal scopes, with an offline source-contract regression; actual Photoshop execution remains external.
   - item: Published the pre-improvement baseline checkpoint.
@@ -51,7 +53,7 @@ files_or_resources:
   - adobe/src/tools/project-inventory.mjs
   - adobe/src/tools/context.mjs
 tests_and_checks:
-  - npm run legacy:test: 50 passed
+  - npm run legacy:test: 52 passed
   - npm run test: 11 passed
   - npm run smoke: passed
   - npm run companion:check: passed
@@ -61,7 +63,7 @@ assumptions:
 blockers: []
 research_refs: []
 delegation_refs: []
-last_critique: critique-10.md
+last_critique: critique-11.md
 estimated_remaining_effort: one focused implementation and verification pass
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.
