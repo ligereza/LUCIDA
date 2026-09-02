@@ -21,15 +21,17 @@ completed:
     evidence: Manifest v5 with Photoshop 23.3.0 minimum; lifecycle contract test passes.
   - item: Added read-only Adobe host auto-discovery.
     evidence: Preflight found Photoshop 2026, Illustrator 2026 and After Effects 2026; adapter syntax is ok for all three.
+  - item: Added an explicit machine-readable ADOBE scope to the bridge.
+    evidence: Health and agent-card responses identify LUCIDA/ADOBE, list Adobe hosts, classify XIO/VIZZ/PUPILA as signal inputs, and exclude Resolume and transport responsibilities; server tests pass.
 current_state:
   files_or_resources: C:/IA/LUCIDA_ADOBE/adobe; branch ADOBE tracking origin/ADOBE; Photoshop 2025/2026 and Illustrator 2026 are installed; no Adobe process is active.
-  tests_and_checks: legacy Node suite 30/30, generic core 11/11, companion syntax pass, smoke and verify pass, Python publisher 3/3, live signal publisher pass, Adobe host preflight pass for installed executables.
+  tests_and_checks: legacy Node suite 30/30, server scope and signal tests 3/3, generic core 11/11, companion syntax pass, smoke and verify pass, Python publisher 3/3, live signal publisher pass, Adobe host preflight pass for installed executables.
   assumptions: UXP plugin folder is the checked-out plugin folder; actual host runtime remains unverified until user loads it in Photoshop.
   open_questions: Whether the installed Photoshop build accepts the current UXP manifest and context API without a live Developer Tool run; whether its panel lifecycle callbacks fire as documented.
   blockers: None for offline work; live UXP validation requires a user-opened Adobe host.
   research_refs: Official Adobe UXP docs for getPluginFolder/getNativePath and panel lifecycle hooks.
   delegation_refs: None.
-  last_critique: Portability defect is higher-value than UI polish; selected a reversible root-resolution patch.
+  last_critique: Scope drift was the highest-value remaining offline risk after portability was fixed; selected a reversible machine-readable boundary instead of expanding host behavior.
   estimated_remaining_effort: Complete for this milestone; live host validation remains a user-operated boundary.
-next_action: On the next cycle, inspect the live Photoshop UXP load if the user opens it; otherwise improve the cross-host context contract without adding host-specific coupling.
+next_action: On the next cycle, inspect the live Photoshop UXP load if the user opens it; otherwise add only a reviewable cross-host context fixture or improve the Adobe preflight without adding Resolume/XIO behavior.
 next_checkpoint_trigger: After the root-resolution patch and tests.

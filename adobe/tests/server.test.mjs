@@ -63,12 +63,25 @@ test("server enforces bearer auth and allowlisted CORS", async (t) => {
   })
   assert.equal(allowed.status, 200)
   assert.equal(allowed.headers.get("access-control-allow-origin"), "https://arena.ai")
+  const healthBody = await allowed.json()
+  assert.equal(healthBody.branch, "ADOBE")
+  assert.equal(healthBody.focus, "adobe")
 
   const card = await fetch(`${baseUrl}/agent-card`, {
     headers: { authorization: `Bearer ${token}` },
   })
   assert.equal(card.status, 200)
   const cardBody = await card.json()
+  assert.equal(cardBody.name, "LUCIDA Adobe Local Bridge")
+  assert.equal(cardBody.product, "LUCIDA")
+  assert.equal(cardBody.branch, "ADOBE")
+  assert.deepEqual(cardBody.scope.primaryHosts, ["photoshop", "illustrator", "after-effects", "premiere"])
+  assert.deepEqual(cardBody.scope.connectors, {
+    xio: "signal-input-only",
+    vizz: "proposal-signal-input",
+    pupila: "proposal-signal-input",
+  })
+  assert.deepEqual(cardBody.scope.excludedResponsibilities, ["resolume-control", "multi-device-transport", "source-project-migration"])
   assert.equal(cardBody.authentication, "Bearer token")
   assert.equal(cardBody.safety.arbitraryShell, false)
   assert.equal(cardBody.safety.maxBodyBytes, 2_000_000)

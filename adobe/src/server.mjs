@@ -32,9 +32,23 @@ const corsOrigins = new Set(
 )
 
 const agentCard = {
-  name: "Agent Toolkit Local Bridge",
+  name: "LUCIDA Adobe Local Bridge",
   version: "0.1.0",
-  description: "Local allowlisted orchestrator for SVG, charts, Blender and Adobe job envelopes.",
+  product: "LUCIDA",
+  branch: "ADOBE",
+  focus: "adobe",
+  description: "Local allowlisted bridge for the transparent Adobe companion, context shelf, catalog and explicit host job envelopes.",
+  scope: {
+    primaryHosts: ["photoshop", "illustrator", "after-effects", "premiere"],
+    companion: "transparent-electron-overlay",
+    connectors: {
+      xio: "signal-input-only",
+      vizz: "proposal-signal-input",
+      pupila: "proposal-signal-input",
+    },
+    excludedResponsibilities: ["resolume-control", "multi-device-transport", "source-project-migration"],
+    hostActionPolicy: "explicit-host-authorization",
+  },
   authentication: token ? "Bearer token" : "localhost-only; bearer token not configured",
   safety: {
     localhostOnlyByDefault: true,
@@ -163,7 +177,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "OPTIONS") return send(response, 204, {}, request)
     if (!authorized(request)) return send(response, 401, { error: "Unauthorized" }, request)
     const url = new URL(request.url, `http://${host}:${port}`)
-    if (request.method === "GET" && url.pathname === "/health") return send(response, 200, { ok: true, service: "lucida-adobe", apiVersion: 1, host, port, capabilities: ["catalog/projects", "signal-surface"] }, request)
+    if (request.method === "GET" && url.pathname === "/health") return send(response, 200, { ok: true, service: "lucida-adobe", apiVersion: 1, branch: "ADOBE", focus: "adobe", host, port, capabilities: ["catalog/projects", "signal-surface"] }, request)
     if (request.method === "GET" && url.pathname === "/capabilities") return send(response, 200, registry, request)
     if (request.method === "GET" && url.pathname === "/agent-card") return send(response, 200, agentCard, request)
     if (request.method === "GET" && url.pathname === "/integration/sources") return send(response, 200, await integrationSources(), request)

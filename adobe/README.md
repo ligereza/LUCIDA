@@ -14,6 +14,14 @@ Migración local de la capa de exploración contextual y sus integraciones Adobe
 - `integrations/signal-publisher/`: cliente Python sin dependencias para que los tres proyectos publiquen señales sin conocer el runtime Adobe.
 - `docs/legacy/`: capacidades, planes y documentación operativa migrada con identidad LUCIDA.
 
+## Alcance de esta rama
+
+`ADOBE` contiene la companion transparente, el contexto de Photoshop, el
+catalogo local y los adaptadores de Photoshop, Illustrator, After Effects y
+Premiere. XIO, VIZZ y PUPILA sólo entran como señales acotadas; este bridge no
+controla Resolume, no transporta sesiones entre equipos y no migra proyectos
+de otras fuentes.
+
 ## Pruebas
 
 ```powershell
