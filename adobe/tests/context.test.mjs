@@ -4,6 +4,7 @@ import path from "node:path"
 import { TOOLKIT_ROOT } from "../src/utils.mjs"
 import { claimInsert, contextDiagnostics, currentContext, publishContext, queueInsert, recommendationCacheKey, recordInsertResult } from "../src/tools/context.mjs"
 import { currentSurface, publishSignal } from "../src/tools/signal-bridge.mjs"
+import { normalizeContext as normalizeGenericContext } from "../generic-interface-layer/core/context/normalize.mjs"
 
 function context(sessionId, text = "") {
   return {
@@ -31,6 +32,22 @@ test("context store normalizes snapshots and computes a stable hash", () => {
   assert.deepEqual(stored.palette, ["#fff", "#123456"])
   assert.equal(stored.document.path, null)
   assert.equal(currentContext({ sessionId }).contextHash, stored.contextHash)
+})
+
+test("Adobe and generic context boundaries preserve different semantics", () => {
+  const input = {
+    sessionId: `boundary-${Date.now()}`,
+    host: "photoshop",
+    document: { id: "doc-1", name: "sample.psd", path: "C:\\private\\sample.psd", width: 100, height: 100 },
+    selection: { name: "Layer", text: "Example" },
+  }
+  const generic = normalizeGenericContext(input, { source: "test" })
+  const adobe = publishContext(input)
+  assert.equal(generic.document.path, "C:\\private\\sample.psd")
+  assert.equal(adobe.document.path, null)
+  assert.ok(Object.keys(generic.unknown).length > 0)
+  assert.equal(adobe.unknown, undefined)
+  assert.notEqual(generic.contextHash, adobe.contextHash)
 })
 
 test("insert queue is session-bound and returns a completed result", () => {

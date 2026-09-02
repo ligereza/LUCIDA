@@ -58,9 +58,11 @@ completed:
   - item: Removed active-runtime coupling to extracted-core internals.
     evidence: signal-bridge now imports stable primitives from `contracts/stable.mjs`; structure regression prevents reintroducing the dependency while generic-interface-layer keeps its standalone copy.
   - item: Made the shared stable-contract boundary explicit and parity-checked.
-    evidence: The active runtime owns `contracts/stable.mjs`, the generic package remains standalone, both implementations are checked for exact parity ignoring line endings, and `npm test` passes 11 core plus 56 runtime tests.
+    evidence: The active runtime owns `contracts/stable.mjs`, the generic package remains standalone, both implementations are checked for exact parity ignoring line endings, and `npm test` passes 11 core plus 57 runtime tests.
   - item: Added host-compatible timeouts to UXP bridge requests.
     evidence: UXP uses AbortController with a three-second default and a bounded 30-second override for remote asset fetches; timeout errors are converted to explicit bridge failures and covered by the UXP source regression.
+  - item: Recorded the semantic difference between generic and Adobe context boundaries.
+    evidence: A runtime fixture demonstrates that the generic layer preserves `document.path` and `unknown`, while the Adobe normalizer drops the path and enforces Adobe-specific fields; the distinction is now executable evidence rather than only documentation.
 in_progress:
   - item: Prepare the next operator validation pass.
     acceptance: Repository checks remain green and the remaining uncertainty is isolated to user-operated Adobe host execution, not local bridge structure.
@@ -71,8 +73,8 @@ files_or_resources:
   - adobe/adobe-context-shelf/photoshop-uxp/index.js
   - adobe/contracts/stable.mjs
 tests_and_checks:
-  - npm run test: 11 core tests and 56 runtime tests passed
-  - npm run test:runtime: 56 passed
+  - npm run test: 11 core tests and 57 runtime tests passed
+  - npm run test:runtime: 57 passed
   - npm run smoke: passed
   - npm run companion:check: passed
   - npm run verify: passed
@@ -81,11 +83,10 @@ assumptions:
 blockers: []
 research_refs: []
 delegation_refs: []
-last_critique: critique-14.md
+last_critique: critique-16.md
 estimated_remaining_effort: one focused implementation and verification pass
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.
   - Whether a real Adobe context publisher will remain stable across host versions.
-  - Whether remote preview URLs should use a constrained main-process proxy or a small explicit origin allowlist.
 next_action: Keep the package boundary stable and prepare a focused Photoshop UXP validation checklist; do not claim host execution until the user runs the companion inside Photoshop.
 next_checkpoint_trigger: A coherent code change with passing suites and a pushed commit.

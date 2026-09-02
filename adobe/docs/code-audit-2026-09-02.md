@@ -44,11 +44,12 @@ The ADOBE branch remains a local-first companion. The audit found no syntax fail
 - `generic-interface-layer/` and the active `src/` runtime both contain boundary logic; they are tested separately and are not yet a single imported execution path. A future consolidation must preserve the current contracts before deleting either side.
 - The root `npm test` now runs both the extracted core and the active runtime; the two paths remain intentionally separate until contract parity is proven.
 - The active signal runtime no longer imports a private module from `generic-interface-layer`; shared stable primitives now live under `contracts/stable.mjs`, while the extracted core remains standalone.
+- A regression fixture now proves the two context boundaries differ intentionally: the generic layer preserves provenance fields such as document path and `unknown`, while the Adobe runtime drops the path and enforces its host-specific shape.
 
 ## Evidence
 
-- `npm run legacy:test` / `npm run test:runtime`: 56 passed.
-- `npm run test` / `npm run test:core`: 11 core tests and 56 runtime tests passed.
+- `npm run legacy:test` / `npm run test:runtime`: 57 passed.
+- `npm run test` / `npm run test:core`: 11 core tests and 57 runtime tests passed.
 - `npm run smoke`: passed.
 - `npm run verify`: passed.
 - `npm run companion:check`: passed.
