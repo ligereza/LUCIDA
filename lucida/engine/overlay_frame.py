@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
+import json
 from typing import Any, Mapping
 
 from .models import EngineContractError, RenderPlan, _ascii_text, _utc
@@ -21,6 +23,21 @@ _ITEM_FIELDS = {
     "requires_confirmation",
     "reversible",
 }
+_FRAME_FIELDS = {
+    "contract_type",
+    "schema_version",
+    "surface",
+    "mode",
+    "session_id",
+    "revision",
+    "elements",
+    "warnings",
+    "transparent",
+    "click_through",
+    "blocking",
+    "safety",
+}
+_SAFETY_FIELDS = {"proposal_only", "automatic_actions", "external_side_effects"}
 
 
 class OverlayFrameError(ValueError):
@@ -81,6 +98,65 @@ class OverlayFrame:
     automatic_actions: bool = False
     external_side_effects: bool = False
 
+    def __post_init__(self) -> None:
+        """Enforce safety even when a frame is constructed directly."""
+
+        try:
+            _ascii_text(self.session_id, "session_id")
+        except EngineContractError as error:
+            raise OverlayFrameError(str(error)) from error
+        if isinstance(self.revision, bool) or not isinstance(self.revision, int) or self.revision < 0:
+            raise OverlayFrameError("revision must be a non-negative integer")
+        if not isinstance(self.elements, tuple) or len(self.elements) > MAX_FRAME_ELEMENTS:
+            raise OverlayFrameError("elements must be a bounded tuple")
+        if not isinstance(self.warnings, tuple):
+            raise OverlayFrameError("warnings must be a tuple")
+        for index, item in enumerate(self.elements):
+            _validate_item(item, index)
+        for warning in self.warnings:
+            _bounded_ascii(warning, "warning", 280)
+        if self.transparent is not True or self.click_through is not True or self.blocking is not False:
+            raise OverlayFrameError("frame must remain transparent, click-through and non-blocking")
+        if self.automatic_actions is not False or self.external_side_effects is not False:
+            raise OverlayFrameError("frame safety flags must remain false")
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "OverlayFrame":
+        """Validate and parse a serialized frame without accepting extras."""
+
+        if not isinstance(value, Mapping):
+            raise OverlayFrameError("frame must be a mapping")
+        if set(value) != _FRAME_FIELDS:
+            raise OverlayFrameError("frame has unsupported or missing fields")
+        if value.get("contract_type") != "LucidaOverlayFrame":
+            raise OverlayFrameError("frame contract_type is invalid")
+        if value.get("schema_version") != OVERLAY_FRAME_SCHEMA_VERSION:
+            raise OverlayFrameError("frame schema_version is invalid")
+        if value.get("surface") != "LUCIDA" or value.get("mode") != "read_only":
+            raise OverlayFrameError("frame surface or mode is invalid")
+        elements = value.get("elements")
+        warnings = value.get("warnings")
+        if not isinstance(elements, list) or len(elements) > MAX_FRAME_ELEMENTS:
+            raise OverlayFrameError("frame elements must be a bounded list")
+        if not isinstance(warnings, list):
+            raise OverlayFrameError("frame warnings must be a list")
+        safety = value.get("safety")
+        if not isinstance(safety, Mapping) or set(safety) != _SAFETY_FIELDS:
+            raise OverlayFrameError("frame safety is incomplete")
+        if safety.get("proposal_only") is not True:
+            raise OverlayFrameError("frame must remain proposal_only")
+        return cls(
+            session_id=value.get("session_id"),
+            revision=value.get("revision"),
+            elements=tuple(_validate_item(item, index) for index, item in enumerate(elements)),
+            warnings=tuple(warnings),
+            transparent=value.get("transparent"),
+            click_through=value.get("click_through"),
+            blocking=value.get("blocking"),
+            automatic_actions=safety.get("automatic_actions"),
+            external_side_effects=safety.get("external_side_effects"),
+        )
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "contract_type": "LucidaOverlayFrame",
@@ -131,10 +207,32 @@ def build_overlay_frame(plan: RenderPlan) -> OverlayFrame:
     )
 
 
+def validate_overlay_frame(value: Mapping[str, Any]) -> OverlayFrame:
+    """Return a validated frame for consumers and transport boundaries."""
+
+    return OverlayFrame.from_dict(value)
+
+
+def overlay_frame_digest(value: OverlayFrame | Mapping[str, Any]) -> str:
+    """Return a deterministic digest for one validated frame."""
+
+    frame = value if isinstance(value, OverlayFrame) else validate_overlay_frame(value)
+    canonical = json.dumps(
+        frame.to_dict(),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        allow_nan=False,
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 __all__ = [
     "MAX_FRAME_ELEMENTS",
     "OVERLAY_FRAME_SCHEMA_VERSION",
     "OverlayFrame",
     "OverlayFrameError",
     "build_overlay_frame",
+    "overlay_frame_digest",
+    "validate_overlay_frame",
 ]

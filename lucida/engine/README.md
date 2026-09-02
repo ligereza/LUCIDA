@@ -20,6 +20,7 @@ XIO event or MOSAIK state
         -> EngineEvent
         -> LucidaEngine
         -> RenderPlan
+        -> LucidaOverlayFrame
         -> future LUCIDA surface
 ```
 
@@ -40,3 +41,8 @@ engine. No adapter or contract is inferred from payload shape.
 All technical identifiers, fixture keys and parseable values use English
 ASCII. The summary is scalar and bounded so raw payloads cannot pass through
 this boundary accidentally.
+
+`OverlayFrameConsumer` is the host-neutral delivery boundary after reduction.
+It validates snapshots, checks revision continuity, accepts exact duplicates
+idempotently and rejects stale, skipped or conflicting frames. It does not open
+a transparent window or execute a host action.

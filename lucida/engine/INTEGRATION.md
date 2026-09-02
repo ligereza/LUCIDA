@@ -35,4 +35,5 @@ The engine output is a `RenderPlan`. `build_overlay_frame` projects it into a
 `blocking=false` and no automatic or external side effects. This is distinct
 from the richer `LucidaOverlayView` state protocol owned by the VJ branch; the
 engine does not flatten that state protocol or silently discard its cursor and
-diff semantics.
+diff semantics. `OverlayFrameConsumer` then provides an atomic, revisioned
+delivery boundary for the generic frame without opening a host surface.

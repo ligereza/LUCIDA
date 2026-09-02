@@ -18,6 +18,17 @@ from .overlay_frame import (
     OverlayFrame,
     OverlayFrameError,
     build_overlay_frame,
+    overlay_frame_digest,
+    validate_overlay_frame,
+)
+from .overlay_consumer import (
+    OverlayConsumerConflictError,
+    OverlayConsumerError,
+    OverlayConsumerGapError,
+    OverlayConsumerNotInitializedError,
+    OverlayConsumerStaleError,
+    OverlayConsumerState,
+    OverlayFrameConsumer,
 )
 
 __all__ = [
@@ -44,8 +55,17 @@ __all__ = [
     "OverlayFrame",
     "OverlayFrameError",
     "build_overlay_frame",
+    "overlay_frame_digest",
+    "validate_overlay_frame",
     "MAX_FRAME_ELEMENTS",
     "OVERLAY_FRAME_SCHEMA_VERSION",
+    "OverlayConsumerConflictError",
+    "OverlayConsumerError",
+    "OverlayConsumerGapError",
+    "OverlayConsumerNotInitializedError",
+    "OverlayConsumerStaleError",
+    "OverlayConsumerState",
+    "OverlayFrameConsumer",
     "LucidaEngine",
     "RenderPlan",
 ]
