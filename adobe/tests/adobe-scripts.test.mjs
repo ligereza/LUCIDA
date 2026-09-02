@@ -59,10 +59,28 @@ test("Photoshop UXP contract keeps the bridge local and polling visible", async 
   assert.match(source, /destroy\(\)\s*\{\s*stopPolling\(\)/)
 })
 
+test("Companion applies a local-only content policy and realpath asset guard", async () => {
+  const html = await readFile(path.join(root, "companion/index.html"), "utf8")
+  const main = await readFile(path.join(root, "companion/main.cjs"), "utf8")
+  assert.match(html, /Content-Security-Policy/)
+  assert.match(html, /connect-src http:\/\/127\.0\.0\.1:47921/)
+  assert.match(main, /realpathSync/)
+  assert.match(main, /Asset path is outside the package/)
+})
+
 test("Project companion keeps slide text visible without visual groups", async () => {
   const source = await readFile(path.join(root, "companion/renderer.js"), "utf8")
   assert.match(source, /function projectTextMarkup\(text\)/)
   assert.match(source, /Texto de la lámina no disponible/)
   assert.match(source, /\$\{groupMarkup \|\| emptyMarkup\}/)
   assert.equal(source.includes("return groupMarkup ?"), false)
+})
+
+test("Project companion renders indexed collections", async () => {
+  const source = await readFile(path.join(root, "companion/renderer.js"), "utf8")
+  assert.match(source, /projectInventory\.collections/)
+  assert.match(source, /project-collection/)
+  assert.match(source, /collection\.variants/)
+  assert.match(source, /projectInventory\.indexErrors/)
+  assert.match(source, /project-index-errors/)
 })

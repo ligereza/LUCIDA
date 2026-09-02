@@ -1,6 +1,7 @@
 import fs from "node:fs/promises"
+import crypto from "node:crypto"
 import path from "node:path"
-import { assertAllowedInput, ensureDir, TOOLKIT_ROOT } from "../utils.mjs"
+import { assertAllowedInput, ensureDir, readFilePrefix, TOOLKIT_ROOT } from "../utils.mjs"
 import { AUTHORED_CATALOG_ROOTS } from "../asset-provenance.mjs"
 
 const REPO_ROOT = path.resolve(TOOLKIT_ROOT, "..")
@@ -188,12 +189,12 @@ async function buildEntry(file, previous = null, sourceRoot = REPO_ROOT) {
   let metadata = rasterMetadata(Buffer.alloc(0), format)
   let embeddedLabel = null
   if (format === "svg") {
-    const source = await fs.readFile(file, "utf8")
+    const source = (await readFilePrefix(file, 2_000_000)).toString("utf8")
     const parsed = svgMetadata(source.slice(0, 2_000_000))
     metadata = parsed
     embeddedLabel = parsed.embeddedLabel
   } else {
-    const header = await fs.readFile(file).then((value) => value.subarray(0, 256 * 1024))
+    const header = await readFilePrefix(file, 256 * 1024)
     metadata = rasterMetadata(header, format)
   }
   const relative = relativePath(file)
@@ -226,7 +227,17 @@ function normalizedRoots(roots = DEFAULT_CATALOG_ROOTS) {
   return [...new Set(roots.map((root) => assertAllowedInput(root)).map((root) => path.resolve(root)))]
 }
 
-export async function indexLocalCatalog({ roots = DEFAULT_CATALOG_ROOTS, cachePath = CACHE_PATH, maxFiles = 30_000, refresh = false } = {}) {
+async function writeJsonAtomic(file, value) {
+  const temporary = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`
+  try {
+    await fs.writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, "utf8")
+    await fs.rename(temporary, file)
+  } finally {
+    await fs.rm(temporary, { force: true }).catch(() => {})
+  }
+}
+
+async function indexLocalCatalogInternal({ roots = DEFAULT_CATALOG_ROOTS, cachePath = CACHE_PATH, maxFiles = 30_000, refresh = false } = {}) {
   const safeRoots = normalizedRoots(roots)
   let previous = { entries: {} }
   if (!refresh) {
@@ -254,7 +265,7 @@ export async function indexLocalCatalog({ roots = DEFAULT_CATALOG_ROOTS, cachePa
     entries,
   }
   await ensureDir(path.dirname(cachePath))
-  await fs.writeFile(cachePath, `${JSON.stringify(catalog, null, 2)}\n`, "utf8")
+  await writeJsonAtomic(cachePath, catalog)
   const assets = Object.values(entries)
   return {
     cachePath,
@@ -266,6 +277,14 @@ export async function indexLocalCatalog({ roots = DEFAULT_CATALOG_ROOTS, cachePa
     byFormat: assets.reduce((result, item) => { result[item.format] = (result[item.format] || 0) + 1; return result }, {}),
     byKind: assets.reduce((result, item) => { result[item.kind] = (result[item.kind] || 0) + 1; return result }, {}),
   }
+}
+
+let catalogIndexQueue = Promise.resolve()
+
+export function indexLocalCatalog(options = {}) {
+  const run = catalogIndexQueue.then(() => indexLocalCatalogInternal(options), () => indexLocalCatalogInternal(options))
+  catalogIndexQueue = run.catch(() => {})
+  return run
 }
 
 async function readCatalog(cachePath = CACHE_PATH) {

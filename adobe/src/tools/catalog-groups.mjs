@@ -1,9 +1,10 @@
 import fs from "node:fs/promises"
+import crypto from "node:crypto"
 import path from "node:path"
 import zlib from "node:zlib"
 import { analyzeContent } from "./context-analysis.mjs"
 import { ensureLocalCatalog, DEFAULT_CATALOG_ROOTS, normalizeText, scoreEntry, tokensFor } from "./local-catalog.mjs"
-import { ensureDir, TOOLKIT_ROOT } from "../utils.mjs"
+import { ensureDir, readFilePrefix, TOOLKIT_ROOT } from "../utils.mjs"
 
 const GROUP_INDEX_PATH = path.join(TOOLKIT_ROOT, "cache", "context-shelf", "groups.json")
 const COLOR_NAMES = {
@@ -124,7 +125,7 @@ function pngColors(buffer) {
 
 async function colorProfile(entry) {
   try {
-    if (entry.format === "svg") return svgColors(await fs.readFile(entry.file, "utf8"))
+    if (entry.format === "svg") return svgColors((await readFilePrefix(entry.file, 2_000_000)).toString("utf8"))
     if (entry.format === "png" && entry.bytes <= 12_000_000) return pngColors(await fs.readFile(entry.file))
   } catch {}
   return { dominantColors: [], colorBuckets: ["unknown"], sampled: false }
@@ -186,7 +187,17 @@ async function readGroupIndex(indexPath = GROUP_INDEX_PATH) {
   try { return JSON.parse(await fs.readFile(indexPath, "utf8")) } catch { return null }
 }
 
-export async function indexLocalGroups({ indexPath = GROUP_INDEX_PATH, refresh = false, roots = DEFAULT_CATALOG_ROOTS, cachePath } = {}) {
+async function writeJsonAtomic(file, value) {
+  const temporary = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`
+  try {
+    await fs.writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, "utf8")
+    await fs.rename(temporary, file)
+  } finally {
+    await fs.rm(temporary, { force: true }).catch(() => {})
+  }
+}
+
+async function indexLocalGroupsInternal({ indexPath = GROUP_INDEX_PATH, refresh = false, roots = DEFAULT_CATALOG_ROOTS, cachePath } = {}) {
   const catalog = await ensureLocalCatalog({ roots, cachePath })
   const previous = !refresh ? await readGroupIndex(indexPath) : null
   const assets = {}; const groups = {}
@@ -215,8 +226,16 @@ export async function indexLocalGroups({ indexPath = GROUP_INDEX_PATH, refresh =
   }
   const result = { schemaVersion: 1, generatedAt: new Date().toISOString(), catalogGeneratedAt: catalog?.generatedAt || null, total: Object.keys(assets).length, assets, groups }
   await ensureDir(path.dirname(indexPath))
-  await fs.writeFile(indexPath, `${JSON.stringify(result, null, 2)}\n`, "utf8")
+  await writeJsonAtomic(indexPath, result)
   return summarizeGroups(result)
+}
+
+let groupIndexQueue = Promise.resolve()
+
+export function indexLocalGroups(options = {}) {
+  const run = groupIndexQueue.then(() => indexLocalGroupsInternal(options), () => indexLocalGroupsInternal(options))
+  groupIndexQueue = run.catch(() => {})
+  return run
 }
 
 function summarizeGroups(index) {

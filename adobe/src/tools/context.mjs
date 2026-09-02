@@ -12,7 +12,10 @@ const MODES = new Set(["unitary", "layer-stack"])
 const PLACEMENTS = new Set(["safe-region", "cursor", "center"])
 const COLORS = new Set(["original", "palette", "monochrome"])
 const MAX_CONTEXT_ARRAY = 200
+const MAX_CONTEXT_SESSIONS = 32
 const MAX_QUEUE_SIZE = 20
+const MAX_INSERT_RESULTS = 256
+const MAX_RECOMMENDATION_ENTRIES = 128
 const INSERT_TTL_MS = 60_000
 const RECOMMENDATION_TTL_MS = 10 * 60_000
 const ANALYSIS_LAYER_ROOT = path.join(TOOLKIT_ROOT, "jobs", "context-analysis")
@@ -22,6 +25,19 @@ const insertQueues = new Map()
 const inflightInserts = new Map()
 const insertResults = new Map()
 const recommendationCache = new Map()
+
+function setRecentBounded(map, key, value, limit) {
+  map.delete(key)
+  map.set(key, value)
+  while (map.size > limit) map.delete(map.keys().next().value)
+}
+
+function pruneRecommendationCache(now = Date.now()) {
+  for (const [key, entry] of recommendationCache) {
+    if (now - entry.createdAt >= RECOMMENDATION_TTL_MS) recommendationCache.delete(key)
+  }
+  while (recommendationCache.size > MAX_RECOMMENDATION_ENTRIES) recommendationCache.delete(recommendationCache.keys().next().value)
+}
 
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue)
@@ -133,7 +149,7 @@ function normalizeContext(input = {}) {
 }
 
 function findContext({ sessionId = null, host = null } = {}) {
-  if (sessionId && contexts.has(sessionId)) return contexts.get(sessionId)
+  if (sessionId) return contexts.get(sessionId) || null
   return [...contexts.values()]
     .filter((value) => !host || value.host === host)
     .sort((left, right) => String(right.receivedAt).localeCompare(String(left.receivedAt)))[0] || null
@@ -142,7 +158,8 @@ function findContext({ sessionId = null, host = null } = {}) {
 export function publishContext(input) {
   const context = normalizeContext(input)
   context.analysis = analyzeContext(context)
-  contexts.set(context.sessionId, context)
+  setRecentBounded(contexts, context.sessionId, context, MAX_CONTEXT_SESSIONS)
+  for (const sessionId of insertQueues.keys()) if (!contexts.has(sessionId)) insertQueues.delete(sessionId)
   return context
 }
 
@@ -190,8 +207,12 @@ export async function recommendContext({ context: rawContext = null, sessionId =
   const safeLimit = Math.min(12, Math.max(1, Number(limit) || 8))
   const surface = currentSurface({ sessionId: context.sessionId, context })
   const cacheKey = recommendationCacheKey(context.contextHash, safeLimit, surface.surfaceHash)
+  pruneRecommendationCache()
   const cached = recommendationCache.get(cacheKey)
-  if (cached && Date.now() - cached.createdAt < RECOMMENDATION_TTL_MS) return { ...cached.value, cached: true }
+  if (cached) {
+    setRecentBounded(recommendationCache, cacheKey, cached, MAX_RECOMMENDATION_ENTRIES)
+    return { ...cached.value, cached: true }
+  }
   const query = [visualQueryForContext(context), ...signalTerms(surface)].filter(Boolean).join(" ").trim()
   if (!query) return { contextHash: context.contextHash, query: "", results: [], errors: ["Context has no searchable text"] }
   const terms = [
@@ -261,7 +282,7 @@ export async function recommendContext({ context: rawContext = null, sessionId =
     errors: [...(local.errors || []), ...(remote.errors || [])],
     generatedAt: new Date().toISOString(),
   }
-  recommendationCache.set(cacheKey, { createdAt: Date.now(), value })
+  setRecentBounded(recommendationCache, cacheKey, { createdAt: Date.now(), value }, MAX_RECOMMENDATION_ENTRIES)
   return { ...value, cached: false }
 }
 
@@ -395,7 +416,7 @@ export function recordInsertResult(input = {}) {
     finishedAt: new Date().toISOString(),
   }
   inflightInserts.delete(requestId)
-  insertResults.set(requestId, result)
+  setRecentBounded(insertResults, requestId, result, MAX_INSERT_RESULTS)
   return result
 }
 
@@ -404,6 +425,7 @@ export function contextDiagnostics() {
     contexts: contexts.size,
     queuedInserts: [...insertQueues.values()].reduce((total, queue) => total + queue.length, 0),
     inflightInserts: inflightInserts.size,
+    storedInsertResults: insertResults.size,
     cachedRecommendations: recommendationCache.size,
   }
 }

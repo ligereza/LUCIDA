@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, nativeImage } = require("electron")
 const { spawn } = require("node:child_process")
 const http = require("node:http")
-const { statSync } = require("node:fs")
+const { realpathSync, statSync } = require("node:fs")
 const fs = require("node:fs/promises")
 const path = require("node:path")
 const { pathToFileURL } = require("node:url")
@@ -11,7 +11,7 @@ const BRIDGE_PORT = 47921
 const TOOLKIT_ROOT = path.resolve(__dirname, "..")
 const SERVER_ENTRY = path.join(TOOLKIT_ROOT, "src", "server.mjs")
 const ALLOWED_ROUTES = new Set(["/context/current", "/recommendations", "/catalog/groups", "/catalog/assets", "/catalog/projects", "/semantic/status", "/semantic/index", "/insert", "/surface/current"])
-const ASSET_ROOT = path.resolve(__dirname, "..", "..")
+const ASSET_ROOT = path.resolve(__dirname, "..")
 const DRAG_EXTENSIONS = new Set([".svg", ".png", ".jpg", ".jpeg", ".webp", ".gif"])
 const DRAG_ICON_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 let bridgeProcess = null
@@ -100,9 +100,14 @@ function stopBridge() {
   ownsBridgeProcess = false
 }
 
-function isWithinAssetRoot(file) {
-  const relative = path.relative(ASSET_ROOT, path.resolve(file))
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))
+function resolveAllowedAsset(file) {
+  if (typeof file !== "string") throw new Error("Asset path must be a string")
+  const root = realpathSync(ASSET_ROOT)
+  const resolved = realpathSync(path.resolve(file))
+  const relative = path.relative(root, resolved)
+  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Asset path is outside the package")
+  if (!statSync(resolved).isFile()) throw new Error("Asset path is not a file")
+  return resolved
 }
 
 function bridgeRequest(route, options = {}) {
@@ -168,8 +173,7 @@ ipcMain.handle("window:toggle-maximize", (event) => {
 })
 ipcMain.handle("window:close", (event) => BrowserWindow.fromWebContents(event.sender)?.close())
 ipcMain.handle("asset:preview", async (_event, file) => {
-  if (typeof file !== "string" || !isWithinAssetRoot(file)) throw new Error("Asset preview path is not allowlisted")
-  const resolved = path.resolve(file)
+  const resolved = resolveAllowedAsset(file)
   const extension = path.extname(resolved).toLowerCase()
   const mime = { ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif" }[extension]
   if (!mime) return null
@@ -184,13 +188,9 @@ ipcMain.handle("asset:preview", async (_event, file) => {
 // Starts a native OS file drag. This path is deliberately independent of the
 // bridge so Photoshop and Illustrator can receive the real local file.
 ipcMain.on("asset:drag", (event, file) => {
-  if (typeof file !== "string" || !isWithinAssetRoot(file)) return
-
-  const resolved = path.resolve(file)
-  if (!DRAG_EXTENSIONS.has(path.extname(resolved).toLowerCase())) return
-
   try {
-    if (!statSync(resolved).isFile()) return
+    const resolved = resolveAllowedAsset(file)
+    if (!DRAG_EXTENSIONS.has(path.extname(resolved).toLowerCase())) return
     if (!dragIcon) dragIcon = nativeImage.createFromDataURL(DRAG_ICON_DATA_URL)
     event.sender.startDrag({ file: resolved, icon: dragIcon })
   } catch (error) {

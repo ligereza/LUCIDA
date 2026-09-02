@@ -58,6 +58,18 @@ export async function ensureDir(directory) {
   return directory
 }
 
+export async function readFilePrefix(file, maxBytes = 256 * 1024) {
+  const limit = Math.max(1, Math.floor(Number(maxBytes) || 1))
+  const handle = await fs.open(file, "r")
+  try {
+    const buffer = Buffer.alloc(limit)
+    const { bytesRead } = await handle.read(buffer, 0, limit, 0)
+    return buffer.subarray(0, bytesRead)
+  } finally {
+    await handle.close().catch(() => {})
+  }
+}
+
 export async function writeJson(file, value) {
   await ensureDir(path.dirname(file))
   await fs.writeFile(file, `${JSON.stringify(value, null, 2)}\n`, "utf8")

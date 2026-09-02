@@ -2,7 +2,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import path from "node:path"
 import { TOOLKIT_ROOT } from "../src/utils.mjs"
-import { claimInsert, currentContext, publishContext, queueInsert, recommendationCacheKey, recordInsertResult } from "../src/tools/context.mjs"
+import { claimInsert, contextDiagnostics, currentContext, publishContext, queueInsert, recommendationCacheKey, recordInsertResult } from "../src/tools/context.mjs"
 
 function context(sessionId, text = "") {
   return {
@@ -55,4 +55,14 @@ test("insert queue rejects an unknown context session", () => {
 test("recommendation cache depends on the derived external surface", () => {
   assert.notEqual(recommendationCacheKey("context-1", 8, "surface-a"), recommendationCacheKey("context-1", 8, "surface-b"))
   assert.equal(recommendationCacheKey("context-1", 8, "surface-a"), recommendationCacheKey("context-1", 8, "surface-a"))
+})
+
+test("context state stays bounded across many sessions", () => {
+  const prefix = `bounded-context-${Date.now()}`
+  for (let index = 0; index < 40; index += 1) publishContext(context(`${prefix}-${index}`))
+  const diagnostics = contextDiagnostics()
+  assert.ok(diagnostics.contexts <= 32)
+  assert.equal(currentContext({ sessionId: `${prefix}-0` }), null)
+  assert.ok(diagnostics.storedInsertResults <= 256)
+  assert.ok(diagnostics.cachedRecommendations <= 128)
 })

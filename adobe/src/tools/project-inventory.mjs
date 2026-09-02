@@ -1,6 +1,6 @@
 import fs from "node:fs/promises"
 import path from "node:path"
-import { TOOLKIT_ROOT } from "../utils.mjs"
+import { readFilePrefix, TOOLKIT_ROOT } from "../utils.mjs"
 import { AUTHORED_PROJECT_VARIATION_ROOTS } from "../asset-provenance.mjs"
 
 const REPO_ROOT = path.resolve(TOOLKIT_ROOT, "..")
@@ -245,10 +245,10 @@ async function buildRecord(file, sourceArea) {
   const extension = path.extname(file).slice(1).toLowerCase()
   let metadata = { width: null, height: null, aspectRatio: null, viewBox: null, embeddedLabel: null }
   if (extension === "svg") {
-    const source = await fs.readFile(file, "utf8")
+    const source = (await readFilePrefix(file, MAX_SVG_METADATA_BYTES)).toString("utf8")
     metadata = svgMetadata(source.slice(0, MAX_SVG_METADATA_BYTES))
   } else {
-    metadata = rasterMetadata(await fs.readFile(file).then((value) => value.subarray(0, 256 * 1024)), extension)
+    metadata = rasterMetadata(await readFilePrefix(file, 256 * 1024), extension)
   }
   const relative = relativePath(file)
   const label = cleanLabel(file, metadata.embeddedLabel)
@@ -527,13 +527,26 @@ async function buildProjectInventory(projectId, refresh = false) {
   for (const source of PROJECT_VARIATION_ROOTS[cacheKey.toLowerCase()] || []) await collectFiles(source.root, allFiles)
   const manifestFiles = allFiles.filter((file) => /\.json$/i.test(file) && MANIFEST_NAME.test(path.basename(file)))
   const visualFiles = allFiles.filter((file) => VISUAL_EXTENSIONS.has(path.extname(file).toLowerCase()))
-  const records = (await mapConcurrent(visualFiles, 16, async (file) => {
+  const indexed = await mapConcurrent(visualFiles, 16, async (file) => {
     const area = sourceRoots.find(({ root }) => {
       const relative = path.relative(root, file)
       return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))
     })?.area || "project"
-    try { return await buildRecord(file, area) } catch (_) { return null }
-  })).filter(Boolean)
+    try {
+      return { record: await buildRecord(file, area), error: null }
+    } catch (error) {
+      return {
+        record: null,
+        error: {
+          relativePath: relativePath(file),
+          code: String(error?.code || "INDEX_ERROR"),
+          message: String(error?.message || error || "Unable to index asset").replaceAll(file, "[asset]").slice(0, 400),
+        },
+      }
+    }
+  })
+  const records = indexed.map((entry) => entry.record).filter(Boolean)
+  const indexErrors = indexed.map((entry) => entry.error).filter(Boolean)
   const storySlides = projectSlides(storyboard, 0)
   const canonical = await canonicalGroups(projectRoot, manifestFiles, storySlides.length)
   const slides = projectSlides(storyboard, Math.max(canonical.slideCount || 0, ...records.flatMap((record) => record.slideIndexes || []), 0))
@@ -607,6 +620,7 @@ async function buildProjectInventory(projectId, refresh = false) {
     slides: slideValues,
     collections: collectionValues,
     unassigned: unassigned.map((record) => publicVariant(record, { id: "unassigned", label: "Sin lámina", slideIndex: null }, null, false)),
+    indexErrors,
     stats: {
       visualFiles: records.length,
       assignedFiles: records.length - unassigned.length,
@@ -617,6 +631,7 @@ async function buildProjectInventory(projectId, refresh = false) {
       variants: slideValues.reduce((total, slide) => total + slide.groups.reduce((subtotal, group) => subtotal + group.variants.length, 0), 0) + collectionValues.reduce((total, collection) => total + collection.variants.length, 0) + unassigned.length,
       rejected: records.filter((record) => record.status === "rejected").length,
       legacy: records.filter((record) => record.status === "legacy").length,
+      indexErrors: indexErrors.length,
     },
   }
   inventoryCache.set(cacheKey, inventory)
@@ -642,7 +657,7 @@ async function listProjectSummaries() {
 
 export async function listProjectInventory({ projectId = null, refresh = false } = {}) {
   const summaries = await listProjectSummaries()
-  if (!summaries.length) return { schemaVersion: 1, generatedAt: new Date().toISOString(), projects: [], project: null, slides: [], unassigned: [], stats: {} }
+  if (!summaries.length) return { schemaVersion: 1, generatedAt: new Date().toISOString(), projects: [], project: null, slides: [], collections: [], unassigned: [], indexErrors: [], stats: { collections: 0, collectionFiles: 0, indexErrors: 0 } }
   const requested = String(projectId || summaries[0].id)
   const selected = summaries.find((project) => project.id === requested) || summaries[0]
   const inventory = await buildProjectInventory(selected.id, refresh)

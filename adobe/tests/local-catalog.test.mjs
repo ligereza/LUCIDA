@@ -46,3 +46,14 @@ test("local catalog indexes editable SVGs and returns direct file paths", async 
   await fs.rm(semanticRoot, { recursive: true, force: true })
   await fs.rm(temporary, { recursive: true, force: true })
 })
+
+test("concurrent catalog refreshes leave a complete JSON cache", async () => {
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "context-shelf-catalog-concurrent-"))
+  const cachePath = path.join(temporary, "catalog.json")
+  const root = path.join(TOOLKIT_ROOT, "tests", "fixtures")
+  const summaries = await Promise.all(Array.from({ length: 4 }, () => indexLocalCatalog({ roots: [root], cachePath, refresh: true })))
+  const cached = JSON.parse(await fs.readFile(cachePath, "utf8"))
+  assert.equal(summaries.every((summary) => summary.files === 1), true)
+  assert.equal(Object.keys(cached.entries || {}).length, 1)
+  await fs.rm(temporary, { recursive: true, force: true })
+})

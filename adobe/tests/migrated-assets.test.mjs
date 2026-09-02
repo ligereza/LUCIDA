@@ -16,6 +16,8 @@ test("branch-local migrated assets are searchable and grouped by slide", async (
   const inventory = await listProjectInventory({ projectId: "chemsex", refresh: true })
   assert.equal(inventory.project.id, "chemsex")
   assert.equal(inventory.stats.unassignedFiles, 0)
+  assert.equal(inventory.stats.indexErrors, 0)
+  assert.deepEqual(inventory.indexErrors, [])
   assert.equal(inventory.stats.collectionFiles, 96)
   assert.equal(inventory.collections.find((collection) => collection.id === "mini-icons")?.variants.length, 96)
   assert.ok(inventory.slides.find((slide) => slide.index === 3)?.groups.length > 0)

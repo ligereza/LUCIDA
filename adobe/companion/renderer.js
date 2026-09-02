@@ -462,7 +462,7 @@ function renderProjectControls() {
   const project = projectInventory?.project
   if ($("#project-summary")) {
     $("#project-summary").innerHTML = project
-      ? `<strong>${escapeHtml(project.name || project.id)}</strong><span>${projectInventory.slides?.length || 0} láminas · ${stats.groups || 0} grupos · ${stats.visualFiles || 0} archivos · ${stats.variants || 0} vinculaciones · ${stats.rejected || 0} rechazados</span>`
+      ? `<strong>${escapeHtml(project.name || project.id)}</strong><span>${projectInventory.slides?.length || 0} láminas · ${stats.groups || 0} grupos · ${stats.collections || 0} colecciones · ${stats.visualFiles || 0} archivos · ${stats.variants || 0} vinculaciones · ${stats.rejected || 0} rechazados · ${stats.indexErrors || 0} errores de índice</span>`
       : `<span>No hay proyectos indexables.</span>`
   }
   const slides = projectInventory?.slides || []
@@ -516,6 +516,20 @@ function renderProjectView() {
       visible.push(...unassigned)
       markup += `<section class="project-slide"><div class="project-slide-heading"><strong>Sin lámina asignada</strong><span>${unassigned.length} archivo${unassigned.length === 1 ? "" : "s"}</span></div><section class="project-group"><div class="project-variant-grid">${unassigned.map((item) => assetCard(item)).join("")}</div></section></section>`
     }
+  }
+  const collectionMarkup = (projectInventory.collections || []).map((collection) => {
+    const variants = (collection.variants || []).filter(projectVariantMatches)
+    if (!variants.length) return ""
+    visible.push(...variants)
+    const label = collection.label || collection.id || "Colección"
+    return `<section class="project-slide project-collection" data-collection-id="${escapeHtml(collection.id || "collection")}"><div class="project-slide-heading"><strong>${escapeHtml(label)}</strong><span>${variants.length} recurso${variants.length === 1 ? "" : "s"}</span></div><section class="project-group"><div class="project-variant-grid">${variants.map((item) => assetCard(item)).join("")}</div></section></section>`
+  }).filter(Boolean).join("")
+  markup += collectionMarkup
+  const indexErrors = projectInventory.indexErrors || []
+  if (indexErrors.length) {
+    const errorItems = indexErrors.slice(0, 8).map((error) => `<li><strong>${escapeHtml(error.relativePath || "archivo")}</strong>: ${escapeHtml(error.message || "No se pudo indexar")}</li>`).join("")
+    const more = indexErrors.length > 8 ? `<p>Y ${indexErrors.length - 8} errores adicionales.</p>` : ""
+    markup = `<section class="project-slide project-index-errors"><div class="project-slide-heading"><strong>Archivos no indexados</strong><span>${indexErrors.length}</span></div><ul>${errorItems}</ul>${more}</section>${markup}`
   }
   if (!markup) return showEmpty(projectQuery ? "No hay capas o variaciones que coincidan." : projectSlideFilter === "all" ? "Este proyecto todavía no tiene archivos visuales indexados." : "Esta lámina todavía no tiene archivos visuales indexados.")
   prepareVisibleResults(visible)
