@@ -77,6 +77,24 @@ def test_engine_expires_proposal_at_explicit_time():
     assert engine.render_plan(state, at=future).items == ()
 
 
+def test_engine_prunes_expired_proposals_when_a_later_event_arrives():
+    engine = LucidaEngine()
+    state = engine.initial_state("session-001")
+    first = _event()
+    first["proposal"] = _proposal()
+    state, _ = engine.apply(first, state)
+
+    later = _event(
+        event_id="event-002",
+        sequence=2,
+        timestamp="2026-09-02T12:00:02Z",
+    )
+    state, plan = engine.apply(later, state)
+
+    assert state.active_proposals == ()
+    assert plan.items == ()
+
+
 def test_engine_rejects_unsafe_proposal():
     engine = LucidaEngine()
     state = engine.initial_state("session-001")

@@ -77,7 +77,12 @@ class LucidaEngine:
         timestamps = dict(state.last_timestamp_by_source)
         sequences[parsed.source] = parsed.sequence
         timestamps[parsed.source] = parsed.timestamp
-        active = list(state.active_proposals)
+        now = _utc(parsed.timestamp)
+        active = [
+            item
+            for item in state.active_proposals
+            if _utc(item.expires_at()) > now
+        ]
         if parsed.proposal is not None:
             active = [item for item in active if item.proposal_id != parsed.proposal.proposal_id]
             active.append(parsed.proposal)
