@@ -18,6 +18,10 @@ The Adobe companion is a visual surface, not a second host application. The brid
 4. The companion renders the state and the recommendation engine may use the allowed terms as query context.
 5. Any host operation still goes through an existing explicit Adobe queue and host adapter.
 
+The recommendation cache includes the derived `surfaceHash`. A new bounded
+signal, a source becoming stale, or a proposal expiring therefore invalidates
+old recommendations without disabling caching for an unchanged surface.
+
 ## Boundary
 
 The bridge never forwards raw text, source files, image data, paths, keyboard values, scripts, shell commands, URLs or arbitrary payloads. Signals do not execute host actions. `vizz` and `pupila` proposals are confirmation-only and proposal-only.

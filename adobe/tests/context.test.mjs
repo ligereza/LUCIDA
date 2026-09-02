@@ -2,7 +2,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import path from "node:path"
 import { TOOLKIT_ROOT } from "../src/utils.mjs"
-import { claimInsert, currentContext, publishContext, queueInsert, recordInsertResult } from "../src/tools/context.mjs"
+import { claimInsert, currentContext, publishContext, queueInsert, recommendationCacheKey, recordInsertResult } from "../src/tools/context.mjs"
 
 function context(sessionId, text = "") {
   return {
@@ -50,4 +50,9 @@ test("insert queue is session-bound and returns a completed result", () => {
 
 test("insert queue rejects an unknown context session", () => {
   assert.throws(() => queueInsert({ sessionId: `missing-${Date.now()}`, assetId: "local:test" }), /live context session/)
+})
+
+test("recommendation cache depends on the derived external surface", () => {
+  assert.notEqual(recommendationCacheKey("context-1", 8, "surface-a"), recommendationCacheKey("context-1", 8, "surface-b"))
+  assert.equal(recommendationCacheKey("context-1", 8, "surface-a"), recommendationCacheKey("context-1", 8, "surface-a"))
 })

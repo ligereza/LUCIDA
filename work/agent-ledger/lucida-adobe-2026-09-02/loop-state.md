@@ -19,6 +19,8 @@ completed:
     evidence: The companion accepts only an ADOBE bridge identity, avoids overlapping refresh requests, and the shared signal surface now exposes only active proposals with bounded state.
   - item: Added an aggregate status to the shared signal surface.
     evidence: Surface schema and runtime now expose empty/active/stale state, active and stale source counts, and current proposal count; the companion renders proposal origin and reason while keeping confirmation required.
+  - item: Made external signal changes invalidate recommendation cache entries.
+    evidence: recommendationCacheKey includes context hash, result limit and derived surface hash; a signal or lifecycle change cannot leave the companion on an older recommendation set.
 in_progress:
   - item: Audit the insertion path against external signal proposals.
     acceptance: XIO, VIZZ and PUPILA signals can enrich context but cannot create or bypass an Adobe host command without the existing explicit authorization path.

@@ -180,14 +180,18 @@ function preferredAssetTerms(context) {
   return [`slide ${number}`, `slide ${padded}`, `lamina ${number}`, `lamina ${padded}`, `slide-${number}`, `slide-${padded}`]
 }
 
+export function recommendationCacheKey(contextHash, limit, surfaceHash) {
+  return `${contextHash}:${limit}:${surfaceHash || "surface-empty"}`
+}
+
 export async function recommendContext({ context: rawContext = null, sessionId = null, host = null, limit = 8 } = {}) {
   const context = rawContext ? normalizeContext(rawContext) : findContext({ sessionId, host })
   if (!context) return { context: null, contextHash: null, results: [], errors: ["No current Adobe context"] }
   const safeLimit = Math.min(12, Math.max(1, Number(limit) || 8))
-  const cacheKey = `${context.contextHash}:${safeLimit}`
+  const surface = currentSurface({ sessionId: context.sessionId, context })
+  const cacheKey = recommendationCacheKey(context.contextHash, safeLimit, surface.surfaceHash)
   const cached = recommendationCache.get(cacheKey)
   if (cached && Date.now() - cached.createdAt < RECOMMENDATION_TTL_MS) return { ...cached.value, cached: true }
-  const surface = currentSurface({ sessionId: context.sessionId, context })
   const query = [visualQueryForContext(context), ...signalTerms(surface)].filter(Boolean).join(" ").trim()
   if (!query) return { contextHash: context.contextHash, query: "", results: [], errors: ["Context has no searchable text"] }
   const terms = [
@@ -250,6 +254,7 @@ export async function recommendContext({ context: rawContext = null, sessionId =
     analysis: context.analysis,
     surface: {
       surfaceHash: surface.surfaceHash,
+      status: surface.status,
       sources: Object.fromEntries(Object.entries(surface.sources).map(([source, value]) => [source, { state: value.state, eventType: value.eventType, sequence: value.sequence }])),
       proposalCount: surface.proposals.length,
     },
