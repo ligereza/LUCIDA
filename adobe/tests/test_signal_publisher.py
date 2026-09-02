@@ -39,11 +39,13 @@ class SignalPublisherTest(unittest.TestCase):
                     "text": "private",
                     "payload": {"secret": True},
                 },
+                timestamp="2026-09-01T12:00:00+00:00",
             )
         self.assertTrue(result["accepted"])
         body = json.loads(urlopen.call_args.args[0].data.decode("utf-8"))
         self.assertEqual(body["metadata"]["signalPercent"], 84)
         self.assertEqual(body["metadata"]["lossPercent"], 1.5)
+        self.assertEqual(body["timestamp"], "2026-09-01T12:00:00+00:00")
         self.assertNotIn("text", body["metadata"])
         self.assertNotIn("payload", body)
 

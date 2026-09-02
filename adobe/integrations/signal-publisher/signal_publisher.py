@@ -58,6 +58,13 @@ def _token(value: Any, fallback: str = "") -> str:
     return text or fallback
 
 
+def _timestamp(value: Any) -> str:
+    text = unicodedata.normalize("NFD", str(value or ""))
+    text = text.encode("ascii", "ignore").decode("ascii")
+    text = re.sub(r"[^A-Za-z0-9TtZz:._+ -]+", "", text)
+    return re.sub(r"\s+", " ", text).strip()[:80]
+
+
 def _source(value: Any) -> str:
     source = _token(value)
     if source not in SOURCES:
@@ -122,7 +129,12 @@ def sanitize_proposal(proposal: Mapping[str, Any] | None) -> dict[str, Any] | No
     for key in ("proposalId", "kind", "title", "reason", "target", "expiresAt"):
         if key not in proposal:
             continue
-        value = _token(proposal[key]) if key in {"kind", "target"} else _ascii(proposal[key], 400 if key == "reason" else 180)
+        if key in {"kind", "target"}:
+            value = _token(proposal[key])
+        elif key == "expiresAt":
+            value = _timestamp(proposal[key])
+        else:
+            value = _ascii(proposal[key], 400 if key == "reason" else 180)
         if value:
             result[key] = value
     if "reversible" in proposal:
@@ -164,7 +176,7 @@ class SignalPublisher:
         if signal_id:
             envelope["signalId"] = _ascii(signal_id, 160)
         if timestamp:
-            envelope["timestamp"] = _ascii(timestamp, 80)
+            envelope["timestamp"] = _timestamp(timestamp)
         safe_proposal = sanitize_proposal(proposal)
         if safe_proposal:
             envelope["proposal"] = safe_proposal
@@ -193,7 +205,7 @@ class SignalPublisher:
             safe_envelope["signalId"] = _ascii(signal_id, 160)
         timestamp = input_envelope.get("timestamp") or input_envelope.get("timestamp_utc")
         if timestamp:
-            safe_envelope["timestamp"] = _ascii(timestamp, 80)
+            safe_envelope["timestamp"] = _timestamp(timestamp)
         safe_proposal = sanitize_proposal(input_envelope.get("proposal"))
         if safe_proposal:
             safe_envelope["proposal"] = safe_proposal
