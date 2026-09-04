@@ -1,3 +1,5 @@
+import { proposeAdaptiveComposition } from "./adaptive-composition.mjs"
+
 const TOPICS = [
   { id: "chemsex", label: "chemsex", terms: ["chemsex", "chem sex", "sexo y drogas"], visualTerms: ["sexual health", "substance", "care", "consent"], roles: ["illustration", "symbol", "diagram"] },
   { id: "sexual-health", label: "salud sexual", terms: ["salud sexual", "sexual health", "its", "vih", "hiv", "condon", "condom", "sexo seguro", "reproductive"], visualTerms: ["sexual health", "condom", "care", "protection"], roles: ["health", "care", "symbol"] },
@@ -351,6 +353,7 @@ export function analyzeContext(context = {}) {
   const content = analyzeContent(context)
   const layout = analyzeLayout(context)
   const layers = analyzeLayerStructure(context)
+  const composition = proposeAdaptiveComposition({ ...context, occupiedRegions: layout.occupied, safeRegions: layout.safeRegions }, { canvas: layout.canvas })
   const palette = Array.isArray(context.palette) && context.palette.length
     ? { source: "host", colors: context.palette.slice(0, 12), available: true }
     : { source: "not-provided", colors: [], available: false, note: "El adaptador todavía no envió una muestra de píxeles o paleta." }
@@ -361,6 +364,7 @@ export function analyzeContext(context = {}) {
     content,
     layout,
     layers,
+    composition,
     palette,
     suggestions: [
       { type: "content", priority: 1, title: `Buscar recursos para ${primary}`, reason: content.visualTerms.length ? `Términos visuales: ${content.visualTerms.slice(0, 5).join(", ")}.` : "No hay texto semántico suficiente; se usará el nombre de la capa/documento." },
