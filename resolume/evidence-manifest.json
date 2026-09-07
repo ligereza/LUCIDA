@@ -1,0 +1,49 @@
+{
+  "evidence": {
+    "automatic_actions": false,
+    "execution_mode": "proposal_only",
+    "external_side_effects": false,
+    "frame_count": 1,
+    "frames_copied": false,
+    "overlay_status": "pending_approval",
+    "proposal_id": "proposal-cli-light-field-001",
+    "replay_status": "REVIEW",
+    "requires_explicit_approval": true,
+    "resolume_opened": false,
+    "reversible": true,
+    "tape_schema": "farmaxia:semantic-light-field-tape:0.1",
+    "tape_sha256": "f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec"
+  },
+  "fixtures": {
+    "osc_fixture": "lucida/signals/fixtures/osc-session-fictional.json",
+    "osc_fixture_sha256": "921db961990f49df3c1439bf5bdad01d9724e7b29d43072d0121ed5fe63161c1",
+    "semantic_report_fixture": "tests/lucida/fixtures/mosaik-semantic-light-field-report.json",
+    "semantic_report_fixture_sha256": "0df0f80e5f2004fea4993f416d671c9c523c068be13037a388dbce140d1dd3fb",
+    "tape_schema": "farmaxia:semantic-light-field-tape:0.1",
+    "tape_sha256": "f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec"
+  },
+  "guarantees": {
+    "automatic_actions": false,
+    "external_side_effects": false,
+    "frames_copied": false,
+    "proposal_only": true,
+    "requires_explicit_approval": true,
+    "resolume_opened": false,
+    "reversible": true
+  },
+  "integration_commit": "ac0fb16734483f48517696c2a1d3619d72a5df84",
+  "limitations": [
+    "Live Resolume and hardware were not tested.",
+    "No network, GPU, camera, or subprocess execution was performed."
+  ],
+  "manifest_type": "LucidaResolumeEvidenceManifest",
+  "schema_version": "0.1",
+  "smoke_command": "python -m lucida.signals.smoke --manifest",
+  "tests": {
+    "compile_command": "python -m compileall -q lucida tests",
+    "diff_check_command": "git diff --check",
+    "focal_command": "python -m pytest -q tests/lucida/test_resolume_smoke.py",
+    "full_suite_command": "python -m pytest -q",
+    "regression_module": "tests/lucida/test_resolume_smoke.py"
+  }
+}

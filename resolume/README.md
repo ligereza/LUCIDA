@@ -44,6 +44,7 @@ tape_schema=farmaxia:semantic-light-field-tape:0.1
 tape_sha256=f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec
 frame_count=1
 frames_copied=false
+automatic_actions=false
 resolume_opened=false
 external_side_effects=false
 ```
@@ -59,6 +60,20 @@ replay-to-overlay contract, deterministic proposal metadata, explicit approval
 requirement, reversibility, tape identity, and no-effect safety boundary. It is
 not hardware validation and does not claim Resolume execution, network
 transport, GPU behavior, camera input, timing, or fixture calibration.
+
+The committed machine-readable artifact is
+[`resolume/evidence-manifest.json`](evidence-manifest.json). Reproduce the
+artifact in one command from the repository root:
+
+```text
+python -m lucida.signals.smoke --manifest
+```
+
+The command prints stable JSON containing the fixture hashes, tape hash,
+`integration_commit`, reproducible test commands, proposal-only guarantees,
+and the exact live-system limitation. The manifest regression compares this
+generated JSON with the committed artifact and compares its evidence section
+with the current smoke result.
 
 The test suite validates the adapter, the XIO application-event consumer and
 the explicit host-result boundary, including receipt deserialization, offline.

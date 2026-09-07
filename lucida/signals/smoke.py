@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 from pathlib import Path
 import sys
 from typing import Any, Sequence
@@ -21,6 +23,9 @@ DEFAULT_REPORT_FIXTURE = (
     / "fixtures"
     / "mosaik-semantic-light-field-report.json"
 )
+INTEGRATION_COMMIT = "ac0fb16734483f48517696c2a1d3619d72a5df84"
+MANIFEST_SCHEMA_VERSION = "0.1"
+MANIFEST_PATH = REPOSITORY_ROOT / "resolume" / "evidence-manifest.json"
 
 
 def run_smoke(
@@ -84,9 +89,60 @@ def run_smoke(
         "tape_sha256": tape["sha256"],
         "frame_count": tape["frame_count"],
         "frames_copied": False,
+        "automatic_actions": safety["automatic_actions"],
         "resolume_opened": safety["resolume_opened"],
         "external_side_effects": safety["external_side_effects"],
     }
+
+
+def build_evidence_manifest(
+    osc_fixture: str | Path = DEFAULT_OSC_FIXTURE,
+    report_fixture: str | Path = DEFAULT_REPORT_FIXTURE,
+) -> dict[str, Any]:
+    """Build the committed machine-readable evidence manifest."""
+    evidence = run_smoke(osc_fixture, report_fixture)
+    osc_path = Path(osc_fixture).expanduser().resolve()
+    report_path = Path(report_fixture).expanduser().resolve()
+    return {
+        "manifest_type": "LucidaResolumeEvidenceManifest",
+        "schema_version": MANIFEST_SCHEMA_VERSION,
+        "integration_commit": INTEGRATION_COMMIT,
+        "smoke_command": "python -m lucida.signals.smoke --manifest",
+        "fixtures": {
+            "osc_fixture": _repository_path(osc_path),
+            "osc_fixture_sha256": _sha256(osc_path),
+            "semantic_report_fixture": _repository_path(report_path),
+            "semantic_report_fixture_sha256": _sha256(report_path),
+            "tape_schema": evidence["tape_schema"],
+            "tape_sha256": evidence["tape_sha256"],
+        },
+        "evidence": evidence,
+        "guarantees": {
+            "proposal_only": evidence["execution_mode"] == "proposal_only",
+            "reversible": evidence["reversible"],
+            "requires_explicit_approval": evidence["requires_explicit_approval"],
+            "frames_copied": evidence["frames_copied"],
+            "automatic_actions": evidence["automatic_actions"],
+            "resolume_opened": evidence["resolume_opened"],
+            "external_side_effects": evidence["external_side_effects"],
+        },
+        "tests": {
+            "regression_module": "tests/lucida/test_resolume_smoke.py",
+            "focal_command": "python -m pytest -q tests/lucida/test_resolume_smoke.py",
+            "full_suite_command": "python -m pytest -q",
+            "compile_command": "python -m compileall -q lucida tests",
+            "diff_check_command": "git diff --check",
+        },
+        "limitations": [
+            "Live Resolume and hardware were not tested.",
+            "No network, GPU, camera, or subprocess execution was performed.",
+        ],
+    }
+
+
+def render_manifest(manifest: dict[str, Any]) -> str:
+    """Render a stable JSON manifest for files and machine readers."""
+    return json.dumps(manifest, ensure_ascii=True, sort_keys=True, indent=2) + "\n"
 
 
 def render_evidence(evidence: dict[str, Any]) -> str:
@@ -102,6 +158,7 @@ def render_evidence(evidence: dict[str, Any]) -> str:
         "tape_sha256",
         "frame_count",
         "frames_copied",
+        "automatic_actions",
         "resolume_opened",
         "external_side_effects",
     )
@@ -116,14 +173,33 @@ def _render_value(value: Any) -> str:
     return str(value)
 
 
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _repository_path(path: Path) -> str:
+    try:
+        return path.relative_to(REPOSITORY_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Replay the offline LUCIDA RESOLUME proposal-only smoke fixture."
     )
     parser.add_argument("--osc-fixture", type=Path, default=DEFAULT_OSC_FIXTURE)
     parser.add_argument("--report-fixture", type=Path, default=DEFAULT_REPORT_FIXTURE)
+    parser.add_argument(
+        "--manifest",
+        action="store_true",
+        help="Emit the machine-readable evidence manifest as JSON.",
+    )
     args = parser.parse_args(argv)
     try:
+        if args.manifest:
+            print(render_manifest(build_evidence_manifest(args.osc_fixture, args.report_fixture)), end="")
+            return 0
         evidence = run_smoke(args.osc_fixture, args.report_fixture)
     except (OSError, SignalReplayError) as exc:
         print(f"offline_smoke_error={exc}", file=sys.stderr)

@@ -1,7 +1,16 @@
 import socket
 import subprocess
+import json
+from pathlib import Path
 
-from lucida.signals.smoke import main, render_evidence, run_smoke
+from lucida.signals.smoke import (
+    INTEGRATION_COMMIT,
+    MANIFEST_PATH,
+    build_evidence_manifest,
+    main,
+    render_evidence,
+    run_smoke,
+)
 
 
 def test_offline_smoke_is_deterministic_and_reports_pending_overlay():
@@ -20,6 +29,7 @@ def test_offline_smoke_is_deterministic_and_reports_pending_overlay():
         "tape_sha256": "f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec",
         "frame_count": 1,
         "frames_copied": False,
+        "automatic_actions": False,
         "resolume_opened": False,
         "external_side_effects": False,
     }
@@ -29,6 +39,7 @@ def test_offline_smoke_is_deterministic_and_reports_pending_overlay():
     assert "overlay_status=pending_approval" in output
     assert "execution_mode=proposal_only" in output
     assert "frames_copied=false" in output
+    assert "automatic_actions=false" in output
     assert "external_side_effects=false" in output
 
 
@@ -42,3 +53,25 @@ def test_smoke_entrypoint_has_no_external_side_effects(monkeypatch, capsys):
 
     assert main([]) == 0
     assert "resolume_opened=false" in capsys.readouterr().out
+
+
+def test_committed_manifest_matches_current_smoke_evidence():
+    committed = json.loads(Path(MANIFEST_PATH).read_text(encoding="utf-8"))
+    generated = build_evidence_manifest()
+
+    assert committed == generated
+    assert committed["integration_commit"] == INTEGRATION_COMMIT
+    assert committed["evidence"] == run_smoke()
+    assert committed["guarantees"] == {
+        "proposal_only": True,
+        "reversible": True,
+        "requires_explicit_approval": True,
+        "frames_copied": False,
+        "automatic_actions": False,
+        "resolume_opened": False,
+        "external_side_effects": False,
+    }
+    assert committed["limitations"] == [
+        "Live Resolume and hardware were not tested.",
+        "No network, GPU, camera, or subprocess execution was performed.",
+    ]
