@@ -8,6 +8,7 @@ import pytest
 
 from adapters.vj.contracts import VJResult
 from lucida.signals import (
+    OscBridgeState,
     OscResolumeBoundary,
     SemanticLightFieldSurfaceError,
 )
@@ -44,6 +45,9 @@ def test_mosaik_report_projects_to_resolume_pending_surface_without_frames():
         "external_side_effects": False,
     }
     assert overlay["safety"]["resolume_opened"] is False
+    restored_state = OscBridgeState.from_dict(next_state.to_dict())
+    restored_overlay = boundary.read_overlay(restored_state)
+    assert restored_overlay["resolume_preview"] == overlay["resolume_preview"]
 
 
 def test_projected_resolume_proposal_can_only_be_resolved_explicitly():
@@ -63,6 +67,7 @@ def test_projected_resolume_proposal_can_only_be_resolved_explicitly():
     assert decided.lucida_state.vj_state.pending_proposal_ids == ()
     assert decided.lucida_state.vj_state.results[-1].status == "accepted"
     assert decided.lucida_state.proposals[0].execution_mode == "proposal_only"
+    assert "resolume_preview" not in boundary.read_overlay(decided)
 
 
 def test_invalid_hash_and_schema_are_rejected_without_state_mutation():

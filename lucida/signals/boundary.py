@@ -402,6 +402,11 @@ class OscResolumeBoundary:
     def read_overlay(self, state: OscBridgeState | Mapping[str, Any]) -> dict[str, Any]:
         current = state if isinstance(state, OscBridgeState) else OscBridgeState.from_dict(state)
         overlay = dict(self._orchestrator.read_overlay(current.lucida_state))
+        from .semantic_light_field import semantic_light_field_preview_from_state
+
+        semantic_preview = semantic_light_field_preview_from_state(current.lucida_state)
+        if semantic_preview is not None:
+            overlay["resolume_preview"] = semantic_preview
         overlay["signal_boundary"] = {
             "contract_type": "OscBridgeState",
             "schema_version": OSC_SCHEMA_VERSION,
