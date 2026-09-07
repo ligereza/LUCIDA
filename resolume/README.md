@@ -100,8 +100,10 @@ python -m lucida.signals.smoke --manifest
 ```
 
 The command prints stable JSON containing the fixture hashes, tape hash,
-`integration_commit`, reproducible test commands, proposal-only guarantees,
-and the exact live-system limitation. The manifest regression compares this
+`runtime_integration_base_commit`, reproducible test commands, proposal-only
+guarantees, and the exact live-system limitation. This field identifies the
+commit that introduced the offline RESOLUME smoke integration; it is not the
+source commit of later evidence artifacts. The manifest regression compares this
 generated JSON with the committed artifact and compares its evidence section
 with the current smoke result.
 
@@ -201,9 +203,14 @@ For a concise human-readable view of the same bundle:
 python -m lucida.evidence_bundle --report
 ```
 
-The bundle records the current local source commit, the projection schema hash,
-fixture and tape hashes, smoke/preview/conformance output, and test counts
-collected from the actual pytest runtime. It separates implemented code,
+The bundle records `artifact_source_commit` as the exact local HEAD used to
+generate it. Its embedded manifest carries
+`runtime_integration_base_commit`, the historical commit that introduced the
+offline RESOLUME smoke integration. These are deliberately different roles;
+the bundle rejects the old ambiguous `integration_commit` label. It also
+records the projection schema hash, fixture and tape hashes,
+smoke/preview/conformance output, and test counts collected from the actual
+pytest runtime. It separates implemented code,
 recorded replay evidence, proposed live light/audio behavior, and untested
 hardware or venue assumptions. The live behavior section is postulation only;
 the artifact does not claim live Resolume, audio, venue, timing, calibration,

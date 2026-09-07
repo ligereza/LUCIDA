@@ -49,7 +49,7 @@
     "schema": "lucida/replay/contracts/signal-envelope-v1.schema.json",
     "scope": "recorded_osc_timecode_only"
   },
-  "integration_commit": "ac0fb16734483f48517696c2a1d3619d72a5df84",
+  "runtime_integration_base_commit": "ac0fb16734483f48517696c2a1d3619d72a5df84",
   "limitations": [
     "Offline preview only; live Resolume was not tested.",
     "Live Resolume and hardware were not tested.",

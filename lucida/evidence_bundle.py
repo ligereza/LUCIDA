@@ -16,6 +16,7 @@ from .signals.smoke import (
     DEFAULT_ENVELOPE_FIXTURE,
     DEFAULT_REPORT_FIXTURE,
     build_evidence_manifest,
+    RUNTIME_INTEGRATION_BASE_COMMIT,
     run_envelope_backed_preview,
     run_envelope_backed_smoke,
 )
@@ -47,12 +48,20 @@ def build_evidence_bundle(
     conformance = run_fixture_conformance()
     counts = dict(test_counts) if test_counts is not None else run_test_suite()
     commit = source_commit or _current_commit()
+    commits = _build_commit_metadata(commit, manifest)
     envelope_path = Path(DEFAULT_ENVELOPE_FIXTURE)
     report_path = Path(DEFAULT_REPORT_FIXTURE)
     return {
         "bundle_type": BUNDLE_TYPE,
         "schema_version": BUNDLE_SCHEMA_VERSION,
-        "source_commit": commit,
+        "commits": commits,
+        "commit_semantics": {
+            "artifact_source_commit": "Exact local HEAD used to generate this bundle.",
+            "runtime_integration_base_commit": (
+                "Historical commit that introduced the offline RESOLUME smoke integration; "
+                "later commits may extend it."
+            ),
+        },
         "implemented_code": {
             "projection_contract": "lucida.surface_projection.SurfaceProjectionV1",
             "projection_schema": "lucida/contracts/surface-projection-v1.schema.json",
@@ -154,7 +163,8 @@ def render_bundle_report(bundle: Mapping[str, Any]) -> str:
     hashes = replay["hashes"]
     lines = [
         "LUCIDA_OFFLINE_EVIDENCE_BUNDLE",
-        f"source_commit={bundle['source_commit']}",
+        f"artifact_source_commit={bundle['commits']['artifact_source_commit']}",
+        f"runtime_integration_base_commit={bundle['commits']['runtime_integration_base_commit']}",
         f"projection_schema_sha256={hashes['surface_projection_schema_sha256']}",
         f"signal_envelope_fixture_sha256={hashes['signal_envelope_fixture_sha256']}",
         f"semantic_report_fixture_sha256={hashes['semantic_report_fixture_sha256']}",
@@ -187,10 +197,40 @@ def _current_commit() -> str:
         )
     except (OSError, subprocess.SubprocessError) as exc:
         raise EvidenceBundleError("cannot read the local source commit.") from exc
-    commit = result.stdout.strip()
-    if len(commit) != 40 or any(char not in "0123456789abcdef" for char in commit):
-        raise EvidenceBundleError("local source commit is invalid.")
-    return commit
+    return _validate_commit(result.stdout.strip(), "artifact source commit")
+
+
+def _build_commit_metadata(
+    artifact_source_commit: str,
+    manifest: Mapping[str, Any],
+) -> dict[str, str]:
+    if "integration_commit" in manifest:
+        raise EvidenceBundleError(
+            "manifest contains ambiguous integration_commit metadata."
+        )
+    runtime_base = manifest.get("runtime_integration_base_commit")
+    if runtime_base != RUNTIME_INTEGRATION_BASE_COMMIT:
+        raise EvidenceBundleError(
+            "manifest runtime integration base commit is stale or inconsistent."
+        )
+    return {
+        "artifact_source_commit": _validate_commit(
+            artifact_source_commit, "artifact source commit"
+        ),
+        "runtime_integration_base_commit": _validate_commit(
+            runtime_base, "runtime integration base commit"
+        ),
+    }
+
+
+def _validate_commit(value: Any, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) != 40
+        or any(char not in "0123456789abcdef" for char in value)
+    ):
+        raise EvidenceBundleError(f"{label} is invalid or abbreviated.")
+    return value
 
 
 def _sha256(path: Path) -> str:

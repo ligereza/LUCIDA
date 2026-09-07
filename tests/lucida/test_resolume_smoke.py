@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from lucida.signals.smoke import (
-    INTEGRATION_COMMIT,
+    RUNTIME_INTEGRATION_BASE_COMMIT,
     MANIFEST_PATH,
     build_evidence_manifest,
     main,
@@ -136,7 +136,7 @@ def test_committed_manifest_matches_current_smoke_evidence():
     generated = build_evidence_manifest()
 
     assert committed == generated
-    assert committed["integration_commit"] == INTEGRATION_COMMIT
+    assert committed["runtime_integration_base_commit"] == RUNTIME_INTEGRATION_BASE_COMMIT
     assert committed["preview_command"] == "python -m lucida.signals.smoke --preview"
     assert committed["conformance_command"] == "python -m lucida.surface_conformance"
     assert committed["evidence_bundle_command"] == "python -m lucida.evidence_bundle --json"

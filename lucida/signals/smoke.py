@@ -36,7 +36,7 @@ DEFAULT_ENVELOPE_FIXTURE = (
     / "fixtures"
     / "session-signal-envelope-v1-fictional.json"
 )
-INTEGRATION_COMMIT = "ac0fb16734483f48517696c2a1d3619d72a5df84"
+RUNTIME_INTEGRATION_BASE_COMMIT = "ac0fb16734483f48517696c2a1d3619d72a5df84"
 MANIFEST_SCHEMA_VERSION = "0.1"
 MANIFEST_PATH = REPOSITORY_ROOT / "resolume" / "evidence-manifest.json"
 
@@ -222,7 +222,7 @@ def build_evidence_manifest(
     return {
         "manifest_type": "LucidaResolumeEvidenceManifest",
         "schema_version": MANIFEST_SCHEMA_VERSION,
-        "integration_commit": INTEGRATION_COMMIT,
+        "runtime_integration_base_commit": RUNTIME_INTEGRATION_BASE_COMMIT,
         "smoke_command": "python -m lucida.signals.smoke --manifest",
         "preview_command": "python -m lucida.signals.smoke --preview",
         "conformance_command": "python -m lucida.surface_conformance",
