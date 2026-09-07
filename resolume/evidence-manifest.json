@@ -76,9 +76,11 @@
   "smoke_command": "python -m lucida.signals.smoke --manifest",
   "preview_command": "python -m lucida.signals.smoke --preview",
   "conformance_command": "python -m lucida.surface_conformance",
+  "evidence_bundle_command": "python -m lucida.evidence_bundle --json",
   "tests": {
     "compile_command": "python -m compileall -q lucida tests",
     "conformance_command": "python -m pytest -q tests/lucida/test_surface_conformance.py",
+    "evidence_bundle_command": "python -m lucida.evidence_bundle --json",
     "diff_check_command": "git diff --check",
     "focal_command": "python -m pytest -q tests/lucida/test_resolume_smoke.py",
     "full_suite_command": "python -m pytest -q",

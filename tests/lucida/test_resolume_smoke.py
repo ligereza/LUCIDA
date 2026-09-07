@@ -139,6 +139,7 @@ def test_committed_manifest_matches_current_smoke_evidence():
     assert committed["integration_commit"] == INTEGRATION_COMMIT
     assert committed["preview_command"] == "python -m lucida.signals.smoke --preview"
     assert committed["conformance_command"] == "python -m lucida.surface_conformance"
+    assert committed["evidence_bundle_command"] == "python -m lucida.evidence_bundle --json"
     assert committed["evidence"] == run_envelope_backed_smoke()
     assert committed["raw_evidence"] == run_smoke()
     assert committed["integration_boundary"] == {

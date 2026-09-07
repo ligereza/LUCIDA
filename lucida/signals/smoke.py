@@ -226,6 +226,7 @@ def build_evidence_manifest(
         "smoke_command": "python -m lucida.signals.smoke --manifest",
         "preview_command": "python -m lucida.signals.smoke --preview",
         "conformance_command": "python -m lucida.surface_conformance",
+        "evidence_bundle_command": "python -m lucida.evidence_bundle --json",
         "fixtures": {
             "osc_fixture": _repository_path(osc_path),
             "osc_fixture_sha256": _sha256(osc_path),
@@ -257,7 +258,7 @@ def build_evidence_manifest(
             "resolume_opened": evidence["resolume_opened"],
             "external_side_effects": evidence["external_side_effects"],
         },
-        "tests": {
+    "tests": {
             "regression_module": "tests/lucida/test_resolume_smoke.py",
             "signal_envelope_v1_command": "python -m pytest -q tests/lucida/test_signal_envelope_v1.py",
             "focal_command": "python -m pytest -q tests/lucida/test_resolume_smoke.py",
@@ -265,6 +266,7 @@ def build_evidence_manifest(
             "compile_command": "python -m compileall -q lucida tests",
             "diff_check_command": "git diff --check",
             "conformance_command": "python -m pytest -q tests/lucida/test_surface_conformance.py",
+            "evidence_bundle_command": "python -m lucida.evidence_bundle --json",
         },
         "limitations": [
             "Offline preview only; live Resolume was not tested.",

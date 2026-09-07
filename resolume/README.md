@@ -186,3 +186,25 @@ reports host/surface identity, proposal status, approval, reversibility, and
 side-effect guarantees. RESOLUME tape metadata remains outside the projection
 object. The conformance check is offline schema compatibility evidence only;
 it does not connect ADOBE, PUPILA, VIZZ, RESOLUME, hardware, or any live host.
+
+## Offline postulation evidence bundle
+
+Build the deterministic JSON evidence bundle from the repository root:
+
+```text
+python -m lucida.evidence_bundle --json
+```
+
+For a concise human-readable view of the same bundle:
+
+```text
+python -m lucida.evidence_bundle --report
+```
+
+The bundle records the current local source commit, the projection schema hash,
+fixture and tape hashes, smoke/preview/conformance output, and test counts
+collected from the actual pytest runtime. It separates implemented code,
+recorded replay evidence, proposed live light/audio behavior, and untested
+hardware or venue assumptions. The live behavior section is postulation only;
+the artifact does not claim live Resolume, audio, venue, timing, calibration,
+or hardware validation.
