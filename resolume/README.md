@@ -45,3 +45,11 @@ are never copied into `VJProposal` or the LUCIDA surface state. Approval still
 uses the existing explicit result boundary. No XIO/MOSAIK rendering engine,
 ledger, replay engine, socket, GPU, camera, or hardware implementation is
 duplicated here.
+
+The existing runtime entrypoint is
+`lucida.signals.replay.replay_path()` (or its in-memory
+`replay_fixture()` variant). A replay JSON may provide `semantic_reports`; the
+dispatcher sends each report to the existing
+`OscResolumeBoundary.ingest_semantic_light_field_report()` surface method.
+The resulting `resolume_preview` remains pending approval in the replay state.
+This wiring does not create a second runtime, router, ledger, or replay engine.

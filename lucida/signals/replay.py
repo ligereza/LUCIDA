@@ -36,12 +36,15 @@ def replay_fixture(fixture: Mapping[str, Any]) -> dict[str, Any]:
     session_id = fixture.get("session_id")
     envelopes = fixture.get("envelopes")
     results = fixture.get("results", [])
+    semantic_reports = fixture.get("semantic_reports", [])
     if not isinstance(session_id, str) or not session_id.strip():
         raise SignalReplayError("Signal fixture needs session_id.")
     if not isinstance(envelopes, list) or not envelopes:
         raise SignalReplayError("Signal fixture needs non-empty envelopes.")
     if not isinstance(results, list):
         raise SignalReplayError("Signal fixture results must be a list.")
+    if not isinstance(semantic_reports, list):
+        raise SignalReplayError("Signal fixture semantic_reports must be a list.")
 
     results_by_sequence: dict[int, list[Mapping[str, Any]]] = {}
     for result in results:
@@ -58,6 +61,7 @@ def replay_fixture(fixture: Mapping[str, Any]) -> dict[str, Any]:
     proposal_count = 0
     result_count = 0
     seen_sequences: set[int] = set()
+    semantic_transitions: list[dict[str, Any]] = []
 
     try:
         for raw_envelope in envelopes:
@@ -83,6 +87,19 @@ def replay_fixture(fixture: Mapping[str, Any]) -> dict[str, Any]:
                     "proposal_ids": [proposal.proposal_id for proposal in received.proposals],
                     "registered_result_ids": registered_result_ids,
                     "sender_called": received.sender_called,
+                }
+            )
+        for index, report in enumerate(semantic_reports):
+            state, overlay = boundary.ingest_semantic_light_field_report(report, state)
+            semantic_transitions.append(
+                {
+                    "report_index": index,
+                    "proposal_ids": [
+                        item["proposal_id"]
+                        for item in overlay["pending_proposals"]
+                        if item.get("operation") == "preview_semantic_light_field"
+                    ],
+                    "overlay": overlay,
                 }
             )
     except (ValueError, TypeError, KeyError) as exc:
@@ -116,6 +133,8 @@ def replay_fixture(fixture: Mapping[str, Any]) -> dict[str, Any]:
         "envelope_count": len(envelopes),
         "proposal_count": proposal_count,
         "result_count": result_count,
+        "semantic_report_count": len(semantic_reports),
+        "semantic_transitions": semantic_transitions,
         "capabilities_observed": sorted(active_capabilities),
         "transitions": transitions,
         "final_state": final_state,
