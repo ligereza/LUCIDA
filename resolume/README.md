@@ -28,3 +28,20 @@ The test suite validates the adapter, the XIO application-event consumer and
 the explicit host-result boundary, including receipt deserialization, offline.
 A live Resolume host connection remains an explicit integration step for a
 future host adapter.
+
+## Semantic light-field consumer
+
+The concrete RESOLUME surface entrypoint is
+`lucida.signals.boundary.OscResolumeBoundary`. Its
+`ingest_semantic_light_field_report()` method consumes the existing MOSAIK
+`MosaikSemanticLightFieldReplayReport`, validates the existing `VJProposal`
+contract and the tape SHA-256/schema evidence, and projects a bounded
+`resolume_preview` with `pending_approval` status.
+
+The projection keeps `proposal_only=true`, `reversible=true`, and
+`resolume_opened=false`. It carries tape schema, hash, frame count, and
+calibration status only; tape frames stay in the upstream replay report and
+are never copied into `VJProposal` or the LUCIDA surface state. Approval still
+uses the existing explicit result boundary. No XIO/MOSAIK rendering engine,
+ledger, replay engine, socket, GPU, camera, or hardware implementation is
+duplicated here.
