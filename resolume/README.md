@@ -214,4 +214,5 @@ pytest runtime. It separates implemented code,
 recorded replay evidence, proposed live light/audio behavior, and untested
 hardware or venue assumptions. The live behavior section is postulation only;
 the artifact does not claim live Resolume, audio, venue, timing, calibration,
-or hardware validation.
+or hardware validation. Evidence file hashes canonicalize CRLF to LF so the
+same Git blob produces the same manifest in Windows worktrees.

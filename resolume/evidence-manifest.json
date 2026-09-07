@@ -22,9 +22,9 @@
   },
   "fixtures": {
     "osc_fixture": "lucida/signals/fixtures/osc-session-fictional.json",
-    "osc_fixture_sha256": "921db961990f49df3c1439bf5bdad01d9724e7b29d43072d0121ed5fe63161c1",
+    "osc_fixture_sha256": "c6832be3a6f5b5a999b8b6e8deacafdaeee97be0e667e5511cd566555b0a5f3b",
     "semantic_report_fixture": "tests/lucida/fixtures/mosaik-semantic-light-field-report.json",
-    "semantic_report_fixture_sha256": "0df0f80e5f2004fea4993f416d671c9c523c068be13037a388dbce140d1dd3fb",
+    "semantic_report_fixture_sha256": "c0939a24b4b80850b30a351bc497323dad8dd7aaa7d9e8bfa57e6d64f1db2286",
     "signal_envelope_v1_fixture": "lucida/replay/fixtures/session-signal-envelope-v1-fictional.json",
     "signal_envelope_v1_fixture_sha256": "0b806342e2d51dd6dce4bf330579aec6bf60b494c50bb2196357eee736c5023f",
     "tape_schema": "farmaxia:semantic-light-field-tape:0.1",

@@ -1,5 +1,4 @@
 import copy
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -11,6 +10,7 @@ from lucida.evidence_bundle import (
     build_evidence_bundle,
     render_bundle_json,
     render_bundle_report,
+    _sha256,
 )
 
 
@@ -54,12 +54,21 @@ def test_bundle_is_deterministic_and_separates_evidence_layers():
 def test_bundle_records_actual_contract_and_tape_hashes():
     bundle = build_evidence_bundle(source_commit="b" * 40, test_counts=TEST_COUNTS)
     hashes = bundle["replay_evidence"]["hashes"]
-    expected_schema_hash = hashlib.sha256(Path(SURFACE_PROJECTION_SCHEMA).read_bytes()).hexdigest()
+    expected_schema_hash = _sha256(Path(SURFACE_PROJECTION_SCHEMA))
 
     assert hashes["surface_projection_schema_sha256"] == expected_schema_hash
     assert hashes["tape_sha256"] == bundle["replay_evidence"]["smoke"]["tape_sha256"]
     assert hashes["signal_envelope_fixture_sha256"]
     assert hashes["semantic_report_fixture_sha256"]
+
+
+def test_evidence_hashes_are_stable_across_checkout_line_endings(tmp_path):
+    lf_path = tmp_path / "fixture-lf.json"
+    crlf_path = tmp_path / "fixture-crlf.json"
+    lf_path.write_bytes(b'{"status":"PASS"}\n')
+    crlf_path.write_bytes(b'{"status":"PASS"}\r\n')
+
+    assert _sha256(lf_path) == _sha256(crlf_path)
 
 
 def test_commit_metadata_rejects_ambiguous_or_stale_fields():
