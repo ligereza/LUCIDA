@@ -9,6 +9,11 @@ from pathlib import Path
 import sys
 from typing import Any, Sequence
 
+from lucida.replay import (
+    load_fixture as load_session_fixture,
+    replay_signal_envelope_v1_fixture,
+)
+
 from .replay import SignalReplayError, load_fixture, replay_fixture
 
 
@@ -23,6 +28,13 @@ DEFAULT_REPORT_FIXTURE = (
     / "fixtures"
     / "mosaik-semantic-light-field-report.json"
 )
+DEFAULT_ENVELOPE_FIXTURE = (
+    REPOSITORY_ROOT
+    / "lucida"
+    / "replay"
+    / "fixtures"
+    / "session-signal-envelope-v1-fictional.json"
+)
 INTEGRATION_COMMIT = "ac0fb16734483f48517696c2a1d3619d72a5df84"
 MANIFEST_SCHEMA_VERSION = "0.1"
 MANIFEST_PATH = REPOSITORY_ROOT / "resolume" / "evidence-manifest.json"
@@ -36,7 +48,45 @@ def run_smoke(
     replay_fixture_value = load_fixture(osc_fixture)
     report = load_fixture(report_fixture)
     replay_fixture_value["semantic_reports"] = [report]
-    result = replay_fixture(replay_fixture_value)
+    return _build_evidence_from_runtime(replay_fixture(replay_fixture_value))
+
+
+def run_envelope_backed_smoke(
+    envelope_fixture: str | Path = DEFAULT_ENVELOPE_FIXTURE,
+    report_fixture: str | Path = DEFAULT_REPORT_FIXTURE,
+) -> dict[str, Any]:
+    """Validate recorded envelopes, then replay them through the runtime dispatcher."""
+    envelope_document = load_session_fixture(envelope_fixture)
+    report = load_fixture(report_fixture)
+    session_report = replay_signal_envelope_v1_fixture(envelope_document)
+    if session_report["safety"]["proposal_only"] is not True:
+        raise SignalReplayError("Envelope-backed session replay is not proposal_only.")
+    if session_report["safety"]["external_side_effects"] is not False:
+        raise SignalReplayError("Envelope-backed session replay has external effects.")
+    runtime_fixture = {
+        "session_id": envelope_document["session_id"],
+        "envelopes": [record["signal"] for record in session_report["records"]],
+        "results": [],
+        "semantic_reports": [report],
+    }
+    runtime_result = replay_fixture(runtime_fixture)
+    evidence = _build_evidence_from_runtime(runtime_result)
+    transition = runtime_result["semantic_transitions"][0]
+    overlay = transition["overlay"]
+    preview = overlay["resolume_preview"]
+    return {
+        **evidence,
+        "input_contract": "SignalEnvelopeV1",
+        "session_replay_status": session_report["status"],
+        "session_signal_count": session_report["signal_count"],
+        "runtime_dispatcher": "lucida.signals.replay.replay_fixture",
+        "overlay_surface": overlay["surface"],
+        "preview_surface": preview["surface"],
+    }
+
+
+def _build_evidence_from_runtime(result: dict[str, Any]) -> dict[str, Any]:
+    """Extract and validate the existing proposal-only overlay evidence."""
     if result.get("semantic_report_count") != 1:
         raise SignalReplayError("Offline smoke expected one semantic report.")
     transitions = result.get("semantic_transitions")
@@ -98,11 +148,14 @@ def run_smoke(
 def build_evidence_manifest(
     osc_fixture: str | Path = DEFAULT_OSC_FIXTURE,
     report_fixture: str | Path = DEFAULT_REPORT_FIXTURE,
+    envelope_fixture: str | Path = DEFAULT_ENVELOPE_FIXTURE,
 ) -> dict[str, Any]:
     """Build the committed machine-readable evidence manifest."""
-    evidence = run_smoke(osc_fixture, report_fixture)
+    evidence = run_envelope_backed_smoke(envelope_fixture, report_fixture)
+    raw_evidence = run_smoke(osc_fixture, report_fixture)
     osc_path = Path(osc_fixture).expanduser().resolve()
     report_path = Path(report_fixture).expanduser().resolve()
+    envelope_path = Path(envelope_fixture).expanduser().resolve()
     return {
         "manifest_type": "LucidaResolumeEvidenceManifest",
         "schema_version": MANIFEST_SCHEMA_VERSION,
@@ -111,12 +164,15 @@ def build_evidence_manifest(
         "fixtures": {
             "osc_fixture": _repository_path(osc_path),
             "osc_fixture_sha256": _sha256(osc_path),
+            "signal_envelope_v1_fixture": _repository_path(envelope_path),
+            "signal_envelope_v1_fixture_sha256": _sha256(envelope_path),
             "semantic_report_fixture": _repository_path(report_path),
             "semantic_report_fixture_sha256": _sha256(report_path),
             "tape_schema": evidence["tape_schema"],
             "tape_sha256": evidence["tape_sha256"],
         },
         "evidence": evidence,
+        "raw_evidence": raw_evidence,
         "integration_boundary": {
             "adapter": "lucida.replay.session.adapt_signal_envelope_v1",
             "replay": "lucida.replay.session.replay_signal_envelope_v1_fixture",
@@ -155,7 +211,15 @@ def render_manifest(manifest: dict[str, Any]) -> str:
 
 def render_evidence(evidence: dict[str, Any]) -> str:
     """Render stable key-value evidence for a human or a log parser."""
-    keys = (
+    path_keys = (
+        "input_contract",
+        "session_replay_status",
+        "session_signal_count",
+        "runtime_dispatcher",
+        "overlay_surface",
+        "preview_surface",
+    ) if "input_contract" in evidence else ()
+    keys = path_keys + (
         "replay_status",
         "proposal_id",
         "overlay_status",
@@ -197,7 +261,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         description="Replay the offline LUCIDA RESOLUME proposal-only smoke fixture."
     )
     parser.add_argument("--osc-fixture", type=Path, default=DEFAULT_OSC_FIXTURE)
+    parser.add_argument("--envelope-fixture", type=Path, default=DEFAULT_ENVELOPE_FIXTURE)
     parser.add_argument("--report-fixture", type=Path, default=DEFAULT_REPORT_FIXTURE)
+    parser.add_argument(
+        "--raw",
+        action="store_true",
+        help="Use the legacy raw OSC replay path instead of signal-envelope-v1.",
+    )
     parser.add_argument(
         "--manifest",
         action="store_true",
@@ -206,10 +276,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.manifest:
-            print(render_manifest(build_evidence_manifest(args.osc_fixture, args.report_fixture)), end="")
+            print(
+                render_manifest(
+                    build_evidence_manifest(
+                        args.osc_fixture,
+                        args.report_fixture,
+                        args.envelope_fixture,
+                    )
+                ),
+                end="",
+            )
             return 0
-        evidence = run_smoke(args.osc_fixture, args.report_fixture)
-    except (OSError, SignalReplayError) as exc:
+        evidence = (
+            run_smoke(args.osc_fixture, args.report_fixture)
+            if args.raw
+            else run_envelope_backed_smoke(args.envelope_fixture, args.report_fixture)
+        )
+    except (OSError, ValueError) as exc:
         print(f"offline_smoke_error={exc}", file=sys.stderr)
         return 2
     print(render_evidence(evidence))

@@ -30,10 +30,23 @@ Run the deterministic semantic light-field smoke evidence:
 python -m lucida.signals.smoke
 ```
 
+The default command uses the recorded `signal-envelope-v1` path. The legacy
+raw OSC path remains available for comparison:
+
+```text
+python -m lucida.signals.smoke --raw
+```
+
 Expected output:
 
 ```text
 LUCIDA_RESOLUME_OFFLINE_SMOKE
+input_contract=SignalEnvelopeV1
+session_replay_status=REVIEW
+session_signal_count=2
+runtime_dispatcher=lucida.signals.replay.replay_fixture
+overlay_surface=LUCIDA
+preview_surface=RESOLUME
 replay_status=REVIEW
 proposal_id=proposal-cli-light-field-001
 overlay_status=pending_approval
@@ -49,11 +62,17 @@ resolume_opened=false
 external_side_effects=false
 ```
 
-The smoke entry point composes the existing fictional OSC replay fixture with
-the existing MOSAIK semantic report fixture, runs the real replay dispatcher,
-and reads the existing RESOLUME overlay contract. The `REVIEW` status is
-expected because the proposal remains pending approval. Repeating the command
-with the same fixtures produces the same evidence.
+The smoke entry point validates the existing recorded signal-envelope-v1
+fixture, feeds its normalized signals into the existing replay dispatcher with
+the MOSAIK semantic report fixture, and reads the existing RESOLUME overlay
+contract. The `REVIEW` status is expected because the proposal remains pending
+approval. Repeating the command with the same fixtures produces the same
+evidence.
+
+The default envelope-backed path first validates the fictional
+`signal-envelope-v1` fixture through `SessionReplay`, then feeds the normalized
+signals into the existing RESOLUME runtime dispatcher. Its proposal and
+overlay invariants must match the preserved raw path.
 
 This is suitable evidence for live-show postulation: it demonstrates the
 replay-to-overlay contract, deterministic proposal metadata, explicit approval
