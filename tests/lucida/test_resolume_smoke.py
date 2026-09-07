@@ -138,6 +138,7 @@ def test_committed_manifest_matches_current_smoke_evidence():
     assert committed == generated
     assert committed["integration_commit"] == INTEGRATION_COMMIT
     assert committed["preview_command"] == "python -m lucida.signals.smoke --preview"
+    assert committed["conformance_command"] == "python -m lucida.surface_conformance"
     assert committed["evidence"] == run_envelope_backed_smoke()
     assert committed["raw_evidence"] == run_smoke()
     assert committed["integration_boundary"] == {
@@ -146,6 +147,7 @@ def test_committed_manifest_matches_current_smoke_evidence():
         "schema": "lucida/replay/contracts/signal-envelope-v1.schema.json",
         "projection_contract": "lucida.surface_projection.SurfaceProjectionV1",
         "projection_schema": "lucida/contracts/surface-projection-v1.schema.json",
+        "consumer_conformance": "lucida.surface_conformance.run_conformance",
         "scope": "recorded_osc_timecode_only",
         "live_xio_support": False,
     }
@@ -162,4 +164,5 @@ def test_committed_manifest_matches_current_smoke_evidence():
         "Offline preview only; live Resolume was not tested.",
         "Live Resolume and hardware were not tested.",
         "No network, GPU, camera, or subprocess execution was performed.",
+        "Conformance validates serialized shared fields only; no ADOBE, PUPILA, or VIZZ host was connected.",
     ]

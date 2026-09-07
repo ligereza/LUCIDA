@@ -41,6 +41,7 @@
   },
   "integration_boundary": {
     "adapter": "lucida.replay.session.adapt_signal_envelope_v1",
+    "consumer_conformance": "lucida.surface_conformance.run_conformance",
     "live_xio_support": false,
     "projection_contract": "lucida.surface_projection.SurfaceProjectionV1",
     "projection_schema": "lucida/contracts/surface-projection-v1.schema.json",
@@ -52,7 +53,8 @@
   "limitations": [
     "Offline preview only; live Resolume was not tested.",
     "Live Resolume and hardware were not tested.",
-    "No network, GPU, camera, or subprocess execution was performed."
+    "No network, GPU, camera, or subprocess execution was performed.",
+    "Conformance validates serialized shared fields only; no ADOBE, PUPILA, or VIZZ host was connected."
   ],
   "manifest_type": "LucidaResolumeEvidenceManifest",
   "raw_evidence": {
@@ -73,8 +75,10 @@
   "schema_version": "0.1",
   "smoke_command": "python -m lucida.signals.smoke --manifest",
   "preview_command": "python -m lucida.signals.smoke --preview",
+  "conformance_command": "python -m lucida.surface_conformance",
   "tests": {
     "compile_command": "python -m compileall -q lucida tests",
+    "conformance_command": "python -m pytest -q tests/lucida/test_surface_conformance.py",
     "diff_check_command": "git diff --check",
     "focal_command": "python -m pytest -q tests/lucida/test_resolume_smoke.py",
     "full_suite_command": "python -m pytest -q",

@@ -173,3 +173,16 @@ proposal-only and explicit-approval guarantees. They do not need to import
 Unknown optional fields are ignored, while malformed required fields fail
 closed. This is a reusable offline contract, not live support for any of those
 hosts.
+
+Run the two-consumer conformance check from the repository root:
+
+```text
+python -m lucida.surface_conformance
+```
+
+The command validates the RESOLUME projection emitted by this candidate and a
+fictional consumer projection using only `SurfaceProjectionV1` fields. It
+reports host/surface identity, proposal status, approval, reversibility, and
+side-effect guarantees. RESOLUME tape metadata remains outside the projection
+object. The conformance check is offline schema compatibility evidence only;
+it does not connect ADOBE, PUPILA, VIZZ, RESOLUME, hardware, or any live host.

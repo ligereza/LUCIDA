@@ -1,0 +1,24 @@
+{
+  "contract_type": "SurfaceProjection",
+  "schema_version": "1.0",
+  "host_id": "LUCIDA",
+  "surface_id": "FICTIONAL",
+  "status": "pending_approval",
+  "proposal": {
+    "proposal_id": "proposal-fictional-consumer-001",
+    "reason": "Review a fictional consumer projection",
+    "evidence": ["source:fictional_fixture"],
+    "execution_mode": "proposal_only",
+    "requires_explicit_approval": true,
+    "reversible": true,
+    "optional_consumer_field": "ignored"
+  },
+  "safety": {
+    "proposal_only": true,
+    "automatic_actions": false,
+    "external_side_effects": false,
+    "host_opened": false,
+    "optional_safety_field": "ignored"
+  },
+  "optional_projection_field": "ignored"
+}

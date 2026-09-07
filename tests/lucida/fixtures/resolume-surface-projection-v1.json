@@ -1,0 +1,26 @@
+{
+  "contract_type": "SurfaceProjection",
+  "schema_version": "1.0",
+  "host_id": "LUCIDA",
+  "surface_id": "RESOLUME",
+  "status": "pending_approval",
+  "proposal": {
+    "proposal_id": "proposal-cli-light-field-001",
+    "reason": "Review deterministic semantic light-field tape",
+    "evidence": [
+      "consumer:mosaik-vj",
+      "tape_schema:farmaxia:semantic-light-field-tape:0.1",
+      "tape_sha256:f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec",
+      "frame_count:1"
+    ],
+    "execution_mode": "proposal_only",
+    "requires_explicit_approval": true,
+    "reversible": true
+  },
+  "safety": {
+    "proposal_only": true,
+    "automatic_actions": false,
+    "external_side_effects": false,
+    "host_opened": false
+  }
+}

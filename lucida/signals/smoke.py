@@ -225,6 +225,7 @@ def build_evidence_manifest(
         "integration_commit": INTEGRATION_COMMIT,
         "smoke_command": "python -m lucida.signals.smoke --manifest",
         "preview_command": "python -m lucida.signals.smoke --preview",
+        "conformance_command": "python -m lucida.surface_conformance",
         "fixtures": {
             "osc_fixture": _repository_path(osc_path),
             "osc_fixture_sha256": _sha256(osc_path),
@@ -243,6 +244,7 @@ def build_evidence_manifest(
             "schema": "lucida/replay/contracts/signal-envelope-v1.schema.json",
             "projection_contract": "lucida.surface_projection.SurfaceProjectionV1",
             "projection_schema": "lucida/contracts/surface-projection-v1.schema.json",
+            "consumer_conformance": "lucida.surface_conformance.run_conformance",
             "scope": "recorded_osc_timecode_only",
             "live_xio_support": False,
         },
@@ -262,11 +264,13 @@ def build_evidence_manifest(
             "full_suite_command": "python -m pytest -q",
             "compile_command": "python -m compileall -q lucida tests",
             "diff_check_command": "git diff --check",
+            "conformance_command": "python -m pytest -q tests/lucida/test_surface_conformance.py",
         },
         "limitations": [
             "Offline preview only; live Resolume was not tested.",
             "Live Resolume and hardware were not tested.",
             "No network, GPU, camera, or subprocess execution was performed.",
+            "Conformance validates serialized shared fields only; no ADOBE, PUPILA, or VIZZ host was connected.",
         ],
     }
 
