@@ -316,9 +316,87 @@ class OscResolumeBoundary:
         result: VJResult | Mapping[str, Any],
     ) -> OscBridgeState:
         current = state if isinstance(state, OscBridgeState) else OscBridgeState.from_dict(state)
+        parsed_result = result if isinstance(result, VJResult) else VJResult.from_dict(result)
+        semantic_pending = current.lucida_state.metadata.get(
+            "resolume_semantic_light_field_pending"
+        )
+        if isinstance(semantic_pending, list):
+            matching = [
+                item
+                for item in semantic_pending
+                if isinstance(item, Mapping)
+                and item.get("proposal_id") == parsed_result.proposal_id
+            ]
+            if matching and parsed_result.status == "executed":
+                raise OscBoundaryError(
+                    "semantic light-field proposals remain proposal_only and cannot execute."
+                )
         return replace(
             current,
-            lucida_state=self._orchestrator.register_result(current.lucida_state, result),
+            lucida_state=self._record_semantic_result(
+                self._orchestrator.register_result(current.lucida_state, parsed_result),
+                parsed_result,
+            ),
+        )
+
+    def approve_proposal(
+        self,
+        state: OscBridgeState | Mapping[str, Any],
+        proposal_id: str,
+        result_id: str,
+        recorded_at: str,
+        notes: str = "Explicit approval recorded; no action executed.",
+    ) -> OscBridgeState:
+        """Record explicit approval without executing a RESOLUME action."""
+        return self.register_result(
+            state,
+            {
+                "result_id": result_id,
+                "proposal_id": proposal_id,
+                "recorded_at": recorded_at,
+                "status": "accepted",
+                "notes": notes,
+            },
+        )
+
+    def reject_proposal(
+        self,
+        state: OscBridgeState | Mapping[str, Any],
+        proposal_id: str,
+        result_id: str,
+        recorded_at: str,
+        notes: str = "Explicit rejection recorded; no action executed.",
+    ) -> OscBridgeState:
+        """Record explicit rejection without executing a RESOLUME action."""
+        return self.register_result(
+            state,
+            {
+                "result_id": result_id,
+                "proposal_id": proposal_id,
+                "recorded_at": recorded_at,
+                "status": "rejected",
+                "notes": notes,
+            },
+        )
+
+    def undo_proposal(
+        self,
+        state: OscBridgeState | Mapping[str, Any],
+        proposal_id: str,
+        result_id: str,
+        recorded_at: str,
+        notes: str = "Explicit undo recorded; no action executed.",
+    ) -> OscBridgeState:
+        """Cancel a pending proposal explicitly; no executed action is undone."""
+        return self.register_result(
+            state,
+            {
+                "result_id": result_id,
+                "proposal_id": proposal_id,
+                "recorded_at": recorded_at,
+                "status": "skipped",
+                "notes": notes,
+            },
         )
 
     def read_overlay(self, state: OscBridgeState | Mapping[str, Any]) -> dict[str, Any]:
@@ -331,6 +409,37 @@ class OscResolumeBoundary:
             "received_count": current.received_count,
         }
         return overlay
+
+    @staticmethod
+    def _record_semantic_result(lucida_state: LucidaState, result: VJResult) -> LucidaState:
+        refs = lucida_state.metadata.get("resolume_semantic_light_field_pending")
+        if not isinstance(refs, list):
+            return lucida_state
+        status_by_result = {
+            "accepted": "approved",
+            "rejected": "rejected",
+            "skipped": "undone",
+            "observed": "observed",
+            "failed": "failed",
+        }
+        status = status_by_result.get(result.status, result.status)
+        next_refs = [
+            {
+                **item,
+                "status": status,
+                "result_id": result.result_id,
+            }
+            if isinstance(item, Mapping) and item.get("proposal_id") == result.proposal_id
+            else item
+            for item in refs
+        ]
+        return replace(
+            lucida_state,
+            metadata={
+                **lucida_state.metadata,
+                "resolume_semantic_light_field_pending": next_refs,
+            },
+        )
 
     @staticmethod
     def _validate_sequence(envelope: OscEnvelope, state: OscBridgeState) -> None:
