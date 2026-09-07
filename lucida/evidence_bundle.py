@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 from contextlib import redirect_stderr, redirect_stdout
-import hashlib
 import io
 import json
 from pathlib import Path
@@ -17,6 +16,7 @@ from .signals.smoke import (
     DEFAULT_REPORT_FIXTURE,
     build_evidence_manifest,
     RUNTIME_INTEGRATION_BASE_COMMIT,
+    _sha256,
     run_envelope_backed_preview,
     run_envelope_backed_smoke,
 )
@@ -231,10 +231,6 @@ def _validate_commit(value: Any, label: str) -> str:
     ):
         raise EvidenceBundleError(f"{label} is invalid or abbreviated.")
     return value
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _count_value(counts: Mapping[str, int], name: str) -> int:
