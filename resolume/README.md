@@ -24,6 +24,42 @@ Run from this repository root:
 python -m pytest -q
 ```
 
+Run the deterministic semantic light-field smoke evidence:
+
+```text
+python -m lucida.signals.smoke
+```
+
+Expected output:
+
+```text
+LUCIDA_RESOLUME_OFFLINE_SMOKE
+replay_status=REVIEW
+proposal_id=proposal-cli-light-field-001
+overlay_status=pending_approval
+execution_mode=proposal_only
+reversible=true
+requires_explicit_approval=true
+tape_schema=farmaxia:semantic-light-field-tape:0.1
+tape_sha256=f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec
+frame_count=1
+frames_copied=false
+resolume_opened=false
+external_side_effects=false
+```
+
+The smoke entry point composes the existing fictional OSC replay fixture with
+the existing MOSAIK semantic report fixture, runs the real replay dispatcher,
+and reads the existing RESOLUME overlay contract. The `REVIEW` status is
+expected because the proposal remains pending approval. Repeating the command
+with the same fixtures produces the same evidence.
+
+This is suitable evidence for live-show postulation: it demonstrates the
+replay-to-overlay contract, deterministic proposal metadata, explicit approval
+requirement, reversibility, tape identity, and no-effect safety boundary. It is
+not hardware validation and does not claim Resolume execution, network
+transport, GPU behavior, camera input, timing, or fixture calibration.
+
 The test suite validates the adapter, the XIO application-event consumer and
 the explicit host-result boundary, including receipt deserialization, offline.
 A live Resolume host connection remains an explicit integration step for a
