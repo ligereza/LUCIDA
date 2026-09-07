@@ -11,7 +11,9 @@ from lucida.signals.smoke import (
     build_evidence_manifest,
     main,
     render_evidence,
+    render_preview,
     run_envelope_backed_smoke,
+    run_envelope_backed_preview,
     run_smoke,
 )
 
@@ -56,6 +58,27 @@ def test_smoke_entrypoint_has_no_external_side_effects(monkeypatch, capsys):
 
     assert main([]) == 0
     assert "resolume_opened=false" in capsys.readouterr().out
+    assert main(["--preview"]) == 0
+    assert "pending_approval" in capsys.readouterr().out
+
+
+def test_offline_preview_is_stable_and_inspectable():
+    first = run_envelope_backed_preview()
+    second = run_envelope_backed_preview()
+
+    assert first == second
+    assert json.loads(render_preview(first)) == first
+    assert first["surface"] == "LUCIDA"
+    assert first["preview_surface"] == "RESOLUME"
+    assert first["status"] == "pending_approval"
+    assert first["proposal"]["reason"] == "Review deterministic semantic light-field tape"
+    assert first["proposal"]["evidence"]
+    assert first["proposal"]["execution_mode"] == "proposal_only"
+    assert first["proposal"]["reversible"] is True
+    assert first["proposal"]["requires_explicit_approval"] is True
+    assert first["safety"]["external_side_effects"] is False
+    assert first["safety"]["resolume_opened"] is False
+    assert "frames" not in first["proposal"]
 
 
 def test_envelope_backed_smoke_matches_raw_proposal_overlay_invariants():
@@ -110,6 +133,7 @@ def test_committed_manifest_matches_current_smoke_evidence():
 
     assert committed == generated
     assert committed["integration_commit"] == INTEGRATION_COMMIT
+    assert committed["preview_command"] == "python -m lucida.signals.smoke --preview"
     assert committed["evidence"] == run_envelope_backed_smoke()
     assert committed["raw_evidence"] == run_smoke()
     assert committed["integration_boundary"] == {
@@ -129,6 +153,7 @@ def test_committed_manifest_matches_current_smoke_evidence():
         "external_side_effects": False,
     }
     assert committed["limitations"] == [
+        "Offline preview only; live Resolume was not tested.",
         "Live Resolume and hardware were not tested.",
         "No network, GPU, camera, or subprocess execution was performed.",
     ]

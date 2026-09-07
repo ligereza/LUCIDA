@@ -56,6 +56,67 @@ def run_envelope_backed_smoke(
     report_fixture: str | Path = DEFAULT_REPORT_FIXTURE,
 ) -> dict[str, Any]:
     """Validate recorded envelopes, then replay them through the runtime dispatcher."""
+    session_report, runtime_result = _run_envelope_backed_runtime(
+        envelope_fixture,
+        report_fixture,
+    )
+    evidence = _build_evidence_from_runtime(runtime_result)
+    transition = runtime_result["semantic_transitions"][0]
+    overlay = transition["overlay"]
+    preview = overlay["resolume_preview"]
+    return {
+        **evidence,
+        "input_contract": "SignalEnvelopeV1",
+        "session_replay_status": session_report["status"],
+        "session_signal_count": session_report["signal_count"],
+        "runtime_dispatcher": "lucida.signals.replay.replay_fixture",
+        "overlay_surface": overlay["surface"],
+        "preview_surface": preview["surface"],
+    }
+
+
+def run_envelope_backed_preview(
+    envelope_fixture: str | Path = DEFAULT_ENVELOPE_FIXTURE,
+    report_fixture: str | Path = DEFAULT_REPORT_FIXTURE,
+) -> dict[str, Any]:
+    """Return a compact JSON surface from the existing pending overlay."""
+    session_report, runtime_result = _run_envelope_backed_runtime(
+        envelope_fixture,
+        report_fixture,
+    )
+    _build_evidence_from_runtime(runtime_result)
+    transition = runtime_result["semantic_transitions"][0]
+    overlay = transition["overlay"]
+    preview = overlay["resolume_preview"]
+    proposal = preview["proposal"]
+    return {
+        "surface": overlay["surface"],
+        "preview_surface": preview["surface"],
+        "status": preview["status"],
+        "proposal": {
+            "proposal_id": proposal["proposal_id"],
+            "reason": proposal["reason"],
+            "evidence": list(proposal["evidence"]),
+            "execution_mode": proposal["execution_mode"],
+            "reversible": proposal["reversible"],
+            "requires_explicit_approval": proposal["requires_explicit_approval"],
+        },
+        "tape": dict(preview["tape"]),
+        "safety": dict(preview["safety"]),
+        "source": {
+            "input_contract": "SignalEnvelopeV1",
+            "session_replay_status": session_report["status"],
+            "session_signal_count": session_report["signal_count"],
+            "runtime_dispatcher": "lucida.signals.replay.replay_fixture",
+        },
+    }
+
+
+def _run_envelope_backed_runtime(
+    envelope_fixture: str | Path,
+    report_fixture: str | Path,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Run validation and the existing runtime once for surface consumers."""
     envelope_document = load_session_fixture(envelope_fixture)
     report = load_fixture(report_fixture)
     session_report = replay_signal_envelope_v1_fixture(envelope_document)
@@ -70,19 +131,7 @@ def run_envelope_backed_smoke(
         "semantic_reports": [report],
     }
     runtime_result = replay_fixture(runtime_fixture)
-    evidence = _build_evidence_from_runtime(runtime_result)
-    transition = runtime_result["semantic_transitions"][0]
-    overlay = transition["overlay"]
-    preview = overlay["resolume_preview"]
-    return {
-        **evidence,
-        "input_contract": "SignalEnvelopeV1",
-        "session_replay_status": session_report["status"],
-        "session_signal_count": session_report["signal_count"],
-        "runtime_dispatcher": "lucida.signals.replay.replay_fixture",
-        "overlay_surface": overlay["surface"],
-        "preview_surface": preview["surface"],
-    }
+    return session_report, runtime_result
 
 
 def _build_evidence_from_runtime(result: dict[str, Any]) -> dict[str, Any]:
@@ -161,6 +210,7 @@ def build_evidence_manifest(
         "schema_version": MANIFEST_SCHEMA_VERSION,
         "integration_commit": INTEGRATION_COMMIT,
         "smoke_command": "python -m lucida.signals.smoke --manifest",
+        "preview_command": "python -m lucida.signals.smoke --preview",
         "fixtures": {
             "osc_fixture": _repository_path(osc_path),
             "osc_fixture_sha256": _sha256(osc_path),
@@ -198,6 +248,7 @@ def build_evidence_manifest(
             "diff_check_command": "git diff --check",
         },
         "limitations": [
+            "Offline preview only; live Resolume was not tested.",
             "Live Resolume and hardware were not tested.",
             "No network, GPU, camera, or subprocess execution was performed.",
         ],
@@ -207,6 +258,11 @@ def build_evidence_manifest(
 def render_manifest(manifest: dict[str, Any]) -> str:
     """Render a stable JSON manifest for files and machine readers."""
     return json.dumps(manifest, ensure_ascii=True, sort_keys=True, indent=2) + "\n"
+
+
+def render_preview(preview: dict[str, Any]) -> str:
+    """Render a compact deterministic JSON surface for offline inspection."""
+    return json.dumps(preview, ensure_ascii=True, sort_keys=True, separators=(",", ":")) + "\n"
 
 
 def render_evidence(evidence: dict[str, Any]) -> str:
@@ -263,12 +319,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--osc-fixture", type=Path, default=DEFAULT_OSC_FIXTURE)
     parser.add_argument("--envelope-fixture", type=Path, default=DEFAULT_ENVELOPE_FIXTURE)
     parser.add_argument("--report-fixture", type=Path, default=DEFAULT_REPORT_FIXTURE)
-    parser.add_argument(
+    output_mode = parser.add_mutually_exclusive_group()
+    output_mode.add_argument(
         "--raw",
         action="store_true",
         help="Use the legacy raw OSC replay path instead of signal-envelope-v1.",
     )
-    parser.add_argument(
+    output_mode.add_argument(
+        "--preview",
+        action="store_true",
+        help="Emit the pending proposal overlay as compact JSON.",
+    )
+    output_mode.add_argument(
         "--manifest",
         action="store_true",
         help="Emit the machine-readable evidence manifest as JSON.",
@@ -282,6 +344,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                         args.osc_fixture,
                         args.report_fixture,
                         args.envelope_fixture,
+                    )
+                ),
+                end="",
+            )
+            return 0
+        if args.preview:
+            print(
+                render_preview(
+                    run_envelope_backed_preview(
+                        args.envelope_fixture,
+                        args.report_fixture,
                     )
                 ),
                 end="",

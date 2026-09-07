@@ -80,6 +80,17 @@ requirement, reversibility, tape identity, and no-effect safety boundary. It is
 not hardware validation and does not claim Resolume execution, network
 transport, GPU behavior, camera input, timing, or fixture calibration.
 
+Inspect the pending overlay directly as compact JSON:
+
+```text
+python -m lucida.signals.smoke --preview
+```
+
+The output contains the LUCIDA and RESOLUME surface names, pending proposal
+reason and evidence, tape schema and hash, reversibility, explicit approval,
+and no-side-effect status. This is an offline preview only; live Resolume was
+not tested.
+
 The committed machine-readable artifact is
 [`resolume/evidence-manifest.json`](evidence-manifest.json). Reproduce the
 artifact in one command from the repository root:
