@@ -101,6 +101,54 @@ def project_semantic_light_field_report(
     return next_state, preview.to_dict()
 
 
+def semantic_light_field_preview_from_state(
+    state: LucidaState | Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Rebuild the bounded preview from persisted pending surface state."""
+    current = state if isinstance(state, LucidaState) else LucidaState.from_dict(state)
+    refs = current.metadata.get(PENDING_METADATA_KEY)
+    if not isinstance(refs, list):
+        return None
+    pending_ids = set(current.vj_state.pending_proposal_ids)
+    for raw_ref in refs:
+        if not isinstance(raw_ref, Mapping):
+            continue
+        proposal_id = raw_ref.get("proposal_id")
+        if (
+            raw_ref.get("status") != "pending_approval"
+            or not isinstance(proposal_id, str)
+            or proposal_id not in pending_ids
+        ):
+            continue
+        proposal = next(
+            (
+                item
+                for item in current.proposals
+                if item.proposal_id == proposal_id
+                and item.operation == "preview_semantic_light_field"
+                and item.execution_mode == "proposal_only"
+                and item.requires_explicit_approval is True
+                and item.reversible is True
+            ),
+            None,
+        )
+        tape_sha256 = raw_ref.get("tape_sha256")
+        frame_count = raw_ref.get("frame_count")
+        if (
+            proposal is None
+            or raw_ref.get("tape_schema") != SEMANTIC_TAPE_SCHEMA
+            or not isinstance(tape_sha256, str)
+            or len(tape_sha256) != 64
+            or any(char not in "0123456789abcdef" for char in tape_sha256)
+            or isinstance(frame_count, bool)
+            or not isinstance(frame_count, int)
+            or frame_count <= 0
+        ):
+            continue
+        return SemanticLightFieldPreview(proposal, tape_sha256, frame_count).to_dict()
+    return None
+
+
 def _validate_report(report: Mapping[str, Any]) -> SemanticLightFieldPreview:
     if not isinstance(report, Mapping):
         raise SemanticLightFieldSurfaceError("semantic light-field report must be an object.")
@@ -258,4 +306,5 @@ __all__ = [
     "SemanticLightFieldPreview",
     "SemanticLightFieldSurfaceError",
     "project_semantic_light_field_report",
+    "semantic_light_field_preview_from_state",
 ]

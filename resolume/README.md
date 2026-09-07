@@ -53,3 +53,7 @@ dispatcher sends each report to the existing
 `OscResolumeBoundary.ingest_semantic_light_field_report()` surface method.
 The resulting `resolume_preview` remains pending approval in the replay state.
 This wiring does not create a second runtime, router, ledger, or replay engine.
+The same bounded preview is reconstructed by `OscResolumeBoundary.read_overlay()`
+from the persisted pending state, so a consumer can refresh the existing
+overlay without retaining tape frames. After an explicit approval, rejection,
+or undo, the pending preview is removed from that overlay.
