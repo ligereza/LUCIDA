@@ -216,3 +216,22 @@ hardware or venue assumptions. The live behavior section is postulation only;
 the artifact does not claim live Resolume, audio, venue, timing, calibration,
 or hardware validation. Evidence file hashes canonicalize CRLF to LF so the
 same Git blob produces the same manifest in Windows worktrees.
+
+## RESOLUME release candidate rehearsal
+
+The integration gate is recorded in
+[`resolume/release-candidate-manifest.json`](release-candidate-manifest.json).
+It compares base `e2f2cb15a51b0b82be72973de40e96f40675ab23` with candidate
+`a155762d946cff2cf41f2cc68c721ad77f3b4445`, lists the complete 26-file scope,
+records the offline checks and hashes, and excludes `adobe/` and assets.
+
+After an explicit integration decision, run this only from the clean
+`C:\IA\LUCIDA` checkout after reviewing its status:
+
+```text
+git merge --ff-only a155762d946cff2cf41f2cc68c721ad77f3b4445
+```
+
+The command is a fast-forward rehearsal result, not a live Resolume or venue
+validation. The untracked `adobe/` path is outside the candidate file set and
+must remain untouched.
