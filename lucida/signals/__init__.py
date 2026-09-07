@@ -12,6 +12,11 @@ from .boundary import (
     UnknownAddressError,
 )
 from .replay import SignalReplayError, replay_fixture, replay_path
+from .semantic_light_field import (
+    SemanticLightFieldPreview,
+    SemanticLightFieldSurfaceError,
+    project_semantic_light_field_report,
+)
 
 _XIO_EXPORTS = {
     "ApplicationEvent",
@@ -45,6 +50,8 @@ __all__ = [
     "SignalReceive",
     "SignalReplayError",
     "UnknownAddressError",
+    "SemanticLightFieldPreview",
+    "SemanticLightFieldSurfaceError",
     "ApplicationEvent",
     "XioClockError",
     "XioConsumeResult",
@@ -57,4 +64,5 @@ __all__ = [
     "parse_application_event",
     "replay_fixture",
     "replay_path",
+    "project_semantic_light_field_report",
 ]
