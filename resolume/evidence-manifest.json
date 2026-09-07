@@ -42,6 +42,8 @@
   "integration_boundary": {
     "adapter": "lucida.replay.session.adapt_signal_envelope_v1",
     "live_xio_support": false,
+    "projection_contract": "lucida.surface_projection.SurfaceProjectionV1",
+    "projection_schema": "lucida/contracts/surface-projection-v1.schema.json",
     "replay": "lucida.replay.session.replay_signal_envelope_v1_fixture",
     "schema": "lucida/replay/contracts/signal-envelope-v1.schema.json",
     "scope": "recorded_osc_timecode_only"

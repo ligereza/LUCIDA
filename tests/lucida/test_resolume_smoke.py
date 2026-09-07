@@ -76,6 +76,10 @@ def test_offline_preview_is_stable_and_inspectable():
     assert first["proposal"]["execution_mode"] == "proposal_only"
     assert first["proposal"]["reversible"] is True
     assert first["proposal"]["requires_explicit_approval"] is True
+    assert first["projection"]["contract_type"] == "SurfaceProjection"
+    assert first["projection"]["host_id"] == "LUCIDA"
+    assert first["projection"]["surface_id"] == "RESOLUME"
+    assert first["projection"]["safety"]["external_side_effects"] is False
     assert first["safety"]["external_side_effects"] is False
     assert first["safety"]["resolume_opened"] is False
     assert "frames" not in first["proposal"]
@@ -140,6 +144,8 @@ def test_committed_manifest_matches_current_smoke_evidence():
         "adapter": "lucida.replay.session.adapt_signal_envelope_v1",
         "replay": "lucida.replay.session.replay_signal_envelope_v1_fixture",
         "schema": "lucida/replay/contracts/signal-envelope-v1.schema.json",
+        "projection_contract": "lucida.surface_projection.SurfaceProjectionV1",
+        "projection_schema": "lucida/contracts/surface-projection-v1.schema.json",
         "scope": "recorded_osc_timecode_only",
         "live_xio_support": False,
     }

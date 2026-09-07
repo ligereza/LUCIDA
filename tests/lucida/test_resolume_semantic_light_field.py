@@ -33,6 +33,32 @@ def test_mosaik_report_projects_to_resolume_pending_surface_without_frames():
     assert overlay["surface"] == "LUCIDA"
     assert overlay["resolume_preview"]["surface"] == "RESOLUME"
     assert overlay["resolume_preview"]["status"] == "pending_approval"
+    assert overlay["resolume_preview"]["projection"] == {
+        "contract_type": "SurfaceProjection",
+        "schema_version": "1.0",
+        "host_id": "LUCIDA",
+        "surface_id": "RESOLUME",
+        "status": "pending_approval",
+        "proposal": {
+            "proposal_id": "proposal-cli-light-field-001",
+            "reason": "Review deterministic semantic light-field tape",
+            "evidence": [
+                "consumer:mosaik-vj",
+                "tape_schema:farmaxia:semantic-light-field-tape:0.1",
+                "tape_sha256:f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec",
+                "frame_count:1",
+            ],
+            "execution_mode": "proposal_only",
+            "requires_explicit_approval": True,
+            "reversible": True,
+        },
+        "safety": {
+            "proposal_only": True,
+            "automatic_actions": False,
+            "external_side_effects": False,
+            "host_opened": False,
+        },
+    }
     assert overlay["resolume_preview"]["proposal"]["execution_mode"] == "proposal_only"
     assert "frames" not in overlay["resolume_preview"]["proposal"]
     assert overlay["pending_proposals"][0] == overlay["resolume_preview"]["proposal"]

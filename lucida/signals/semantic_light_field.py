@@ -11,6 +11,11 @@ from typing import Any, Mapping
 from adapters.vj.contracts import VJProposal
 
 from ..contracts import LucidaState
+from ..surface_projection import (
+    SurfaceProjectionProposalV1,
+    SurfaceProjectionSafetyV1,
+    SurfaceProjectionV1,
+)
 
 
 SEMANTIC_REPLAY_REPORT_TYPE = "MosaikSemanticLightFieldReplayReport"
@@ -32,10 +37,30 @@ class SemanticLightFieldPreview:
     frame_count: int
 
     def to_dict(self) -> dict[str, Any]:
+        projection = SurfaceProjectionV1(
+            host_id="LUCIDA",
+            surface_id="RESOLUME",
+            status="pending_approval",
+            proposal=SurfaceProjectionProposalV1(
+                proposal_id=self.proposal.proposal_id,
+                reason=self.proposal.reason,
+                evidence=tuple(self.proposal.evidence),
+                execution_mode=self.proposal.execution_mode,
+                requires_explicit_approval=self.proposal.requires_explicit_approval,
+                reversible=self.proposal.reversible,
+            ),
+            safety=SurfaceProjectionSafetyV1(
+                proposal_only=True,
+                automatic_actions=False,
+                external_side_effects=False,
+                host_opened=False,
+            ),
+        )
         return {
             "surface": "RESOLUME",
             "status": "pending_approval",
             "proposal": self.proposal.to_dict(),
+            "projection": projection.to_dict(),
             "tape": {
                 "schema": SEMANTIC_TAPE_SCHEMA,
                 "sha256": self.tape_sha256,

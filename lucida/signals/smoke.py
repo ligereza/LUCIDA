@@ -13,6 +13,7 @@ from lucida.replay import (
     load_fixture as load_session_fixture,
     replay_signal_envelope_v1_fixture,
 )
+from lucida.surface_projection import SurfaceProjectionV1
 
 from .replay import SignalReplayError, load_fixture, replay_fixture
 
@@ -88,11 +89,13 @@ def run_envelope_backed_preview(
     transition = runtime_result["semantic_transitions"][0]
     overlay = transition["overlay"]
     preview = overlay["resolume_preview"]
+    projection = SurfaceProjectionV1.from_dict(preview["projection"])
     proposal = preview["proposal"]
     return {
         "surface": overlay["surface"],
         "preview_surface": preview["surface"],
         "status": preview["status"],
+        "projection": projection.to_dict(),
         "proposal": {
             "proposal_id": proposal["proposal_id"],
             "reason": proposal["reason"],
@@ -151,10 +154,21 @@ def _build_evidence_from_runtime(result: dict[str, Any]) -> dict[str, Any]:
     proposal = preview.get("proposal")
     tape = preview.get("tape")
     safety = preview.get("safety")
+    projection = preview.get("projection")
     if not isinstance(proposal, dict) or not isinstance(tape, dict):
         raise SignalReplayError("Offline smoke proposal or tape evidence is missing.")
     if not isinstance(safety, dict):
         raise SignalReplayError("Offline smoke safety evidence is missing.")
+    try:
+        projection_value = SurfaceProjectionV1.from_dict(projection)
+    except (TypeError, ValueError) as exc:
+        raise SignalReplayError("Offline smoke surface projection is invalid.") from exc
+    if (
+        projection_value.host_id != "LUCIDA"
+        or projection_value.surface_id != "RESOLUME"
+        or projection_value.status != "pending_approval"
+    ):
+        raise SignalReplayError("Offline smoke surface projection identity is invalid.")
     if "frames" in proposal:
         raise SignalReplayError("Offline smoke proposal must not contain tape frames.")
     expected_safety = {
@@ -227,6 +241,8 @@ def build_evidence_manifest(
             "adapter": "lucida.replay.session.adapt_signal_envelope_v1",
             "replay": "lucida.replay.session.replay_signal_envelope_v1_fixture",
             "schema": "lucida/replay/contracts/signal-envelope-v1.schema.json",
+            "projection_contract": "lucida.surface_projection.SurfaceProjectionV1",
+            "projection_schema": "lucida/contracts/surface-projection-v1.schema.json",
             "scope": "recorded_osc_timecode_only",
             "live_xio_support": False,
         },

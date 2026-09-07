@@ -153,3 +153,23 @@ The same bounded preview is reconstructed by `OscResolumeBoundary.read_overlay()
 from the persisted pending state, so a consumer can refresh the existing
 overlay without retaining tape frames. After an explicit approval, rejection,
 or undo, the pending preview is removed from that overlay.
+
+## Shared surface-projection-v1 contract
+
+The portable projection is `lucida.surface_projection.SurfaceProjectionV1`,
+defined by `lucida/contracts/surface-projection-v1.schema.json`. It carries only
+the common fields needed by a proposal-only surface: `host_id`, `surface_id`,
+pending status, proposal identity, reason, evidence, explicit approval,
+reversibility, execution mode, and no-side-effect guarantees. The current
+RESOLUME adapter emits this object as `resolume_preview.projection` and keeps
+RESOLUME-specific tape metadata beside it; tape frames are not part of the
+shared projection.
+
+ADOBE, PUPILA, and VIZZ can consume the serialized `projection` object by
+validating the shared schema or calling `SurfaceProjectionV1.from_dict()`.
+Their adapters should map `surface_id` to their own surface and preserve the
+proposal-only and explicit-approval guarantees. They do not need to import
+`lucida.signals.semantic_light_field`, RESOLUME code, or any replay engine.
+Unknown optional fields are ignored, while malformed required fields fail
+closed. This is a reusable offline contract, not live support for any of those
+hosts.
