@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lucida:replay:signal-envelope-v1",
+  "title": "Lucida Signal Envelope V1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "contract_type",
+    "schema_version",
+    "envelope_id",
+    "event_id",
+    "timestamp",
+    "sequence",
+    "source",
+    "address",
+    "arguments",
+    "transport"
+  ],
+  "properties": {
+    "contract_type": { "const": "SignalEnvelope" },
+    "schema_version": { "const": "1.0" },
+    "envelope_id": { "type": "string", "minLength": 1 },
+    "event_id": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "minLength": 1 },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "source": { "type": "string", "minLength": 1 },
+    "address": { "type": "string", "minLength": 1 },
+    "arguments": { "type": "array" },
+    "transport": { "enum": ["osc", "timecode"] },
+    "timecode": { "type": "string", "minLength": 1 }
+  }
+}

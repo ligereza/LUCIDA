@@ -75,6 +75,21 @@ and the exact live-system limitation. The manifest regression compares this
 generated JSON with the committed artifact and compares its evidence section
 with the current smoke result.
 
+## Recorded signal-envelope-v1 boundary
+
+The reusable offline boundary is
+`lucida.replay.session.adapt_signal_envelope_v1()`. It normalizes recorded
+`osc` and `timecode` envelopes into the existing `SignalEnvelope` contract;
+`replay_signal_envelope_v1_fixture()` then reuses `SessionReplay` and the
+existing proposal-only runtime. Unknown optional fields are ignored, while
+schema, identity, timestamp, sequence, address, argument, and transport
+errors fail closed. The recorded schema is
+`lucida/replay/contracts/signal-envelope-v1.schema.json`.
+
+This is a recorded integration boundary only. It is not live XIO support,
+does not import or activate an XIO transport, and does not open Resolume or
+any external device.
+
 The test suite validates the adapter, the XIO application-event consumer and
 the explicit host-result boundary, including receipt deserialization, offline.
 A live Resolume host connection remains an explicit integration step for a

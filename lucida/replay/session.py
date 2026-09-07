@@ -33,6 +33,14 @@ class EventSignalMismatchError(SessionReplayError):
     """Raised when an event and signal envelope cannot be paired."""
 
 
+class SignalEnvelopeV1Error(SessionReplayError):
+    """Raised when a recorded signal-envelope-v1 input is malformed."""
+
+
+SIGNAL_ENVELOPE_V1_SCHEMA_VERSION = "1.0"
+SIGNAL_ENVELOPE_V1_TRANSPORTS = {"osc", "timecode"}
+
+
 def _ascii_text(value: Any, field_name: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise SessionReplayError(f"{field_name} must be non-empty ASCII text.")
@@ -80,8 +88,8 @@ class SignalEnvelope:
         envelope_id = _ascii_text(value.get("envelope_id"), "envelope_id")
         event_id = _ascii_text(value.get("event_id"), "event_id")
         transport = value.get("transport", "osc")
-        if transport not in {"osc", "xio"}:
-            raise SessionReplayError("transport must be osc or xio.")
+        if transport not in {"osc", "timecode", "xio"}:
+            raise SessionReplayError("transport must be osc, timecode, or xio.")
         return cls(
             envelope_id=envelope_id,
             event_id=event_id,
@@ -106,6 +114,49 @@ class SignalEnvelope:
             "arguments": list(self.arguments),
             "transport": self.transport,
         }
+
+
+def adapt_signal_envelope_v1(value: Mapping[str, Any]) -> SignalEnvelope:
+    """Normalize one recorded signal-envelope-v1 input to SignalEnvelope."""
+    if not isinstance(value, Mapping):
+        raise SignalEnvelopeV1Error("signal-envelope-v1 must be an object.")
+    if value.get("contract_type") != "SignalEnvelope":
+        raise SignalEnvelopeV1Error("signal-envelope-v1 contract_type is invalid.")
+    if value.get("schema_version") != SIGNAL_ENVELOPE_V1_SCHEMA_VERSION:
+        raise SignalEnvelopeV1Error("signal-envelope-v1 schema_version is unsupported.")
+    transport = value.get("transport")
+    if not isinstance(transport, str) or transport not in SIGNAL_ENVELOPE_V1_TRANSPORTS:
+        raise SignalEnvelopeV1Error("signal-envelope-v1 transport is unsupported.")
+    if "timecode" in value:
+        try:
+            _ascii_text(value["timecode"], "timecode")
+        except SessionReplayError as exc:
+            raise SignalEnvelopeV1Error(str(exc)) from exc
+    required_fields = (
+        "envelope_id",
+        "event_id",
+        "timestamp",
+        "sequence",
+        "source",
+        "address",
+        "arguments",
+    )
+    if any(field_name not in value for field_name in required_fields):
+        raise SignalEnvelopeV1Error("signal-envelope-v1 is missing a required field.")
+    normalized = {
+        "envelope_id": value["envelope_id"],
+        "event_id": value["event_id"],
+        "timestamp": value["timestamp"],
+        "sequence": value["sequence"],
+        "source": value["source"],
+        "address": value["address"],
+        "arguments": value["arguments"],
+        "transport": transport,
+    }
+    try:
+        return SignalEnvelope.from_dict(normalized)
+    except (SessionReplayError, TypeError, ValueError) as exc:
+        raise SignalEnvelopeV1Error(str(exc)) from exc
 
 
 @dataclass(frozen=True)
@@ -366,3 +417,39 @@ def replay_fixture(fixture: Mapping[str, Any]) -> dict[str, Any]:
             raise SessionReplayError("Replay entry results must be a list.")
         replay.append(raw_event, raw_signal, tuple(raw_results))
     return replay.report()
+
+
+def replay_signal_envelope_v1_fixture(fixture: Mapping[str, Any]) -> dict[str, Any]:
+    """Replay recorded signal-envelope-v1 entries through SessionReplay."""
+    if not isinstance(fixture, Mapping):
+        raise SignalEnvelopeV1Error("signal-envelope-v1 replay fixture must be an object.")
+    if fixture.get("fixture_type") != "LucidaSignalEnvelopeV1ReplayFixture":
+        raise SignalEnvelopeV1Error("signal-envelope-v1 replay fixture type is invalid.")
+    if fixture.get("schema_version") != SIGNAL_ENVELOPE_V1_SCHEMA_VERSION:
+        raise SignalEnvelopeV1Error("signal-envelope-v1 replay schema_version is unsupported.")
+    session_id = fixture.get("session_id")
+    entries = fixture.get("entries")
+    if not isinstance(session_id, str) or not session_id.strip():
+        raise SignalEnvelopeV1Error("signal-envelope-v1 replay needs session_id.")
+    if not isinstance(entries, list) or not entries:
+        raise SignalEnvelopeV1Error("signal-envelope-v1 replay needs non-empty entries.")
+
+    normalized_entries: list[dict[str, Any]] = []
+    for entry in entries:
+        if not isinstance(entry, Mapping):
+            raise SignalEnvelopeV1Error("signal-envelope-v1 replay entry must be an object.")
+        event = entry.get("event")
+        signal = entry.get("signal")
+        results = entry.get("results", [])
+        if not isinstance(event, Mapping) or not isinstance(signal, Mapping):
+            raise SignalEnvelopeV1Error("signal-envelope-v1 entry needs event and signal.")
+        if not isinstance(results, list):
+            raise SignalEnvelopeV1Error("signal-envelope-v1 entry results must be a list.")
+        normalized_entries.append(
+            {
+                "event": dict(event),
+                "signal": adapt_signal_envelope_v1(signal).to_dict(),
+                "results": list(results),
+            }
+        )
+    return replay_fixture({"session_id": session_id, "entries": normalized_entries})

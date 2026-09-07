@@ -32,6 +32,13 @@
     "reversible": true
   },
   "integration_commit": "ac0fb16734483f48517696c2a1d3619d72a5df84",
+  "integration_boundary": {
+    "adapter": "lucida.replay.session.adapt_signal_envelope_v1",
+    "replay": "lucida.replay.session.replay_signal_envelope_v1_fixture",
+    "schema": "lucida/replay/contracts/signal-envelope-v1.schema.json",
+    "scope": "recorded_osc_timecode_only",
+    "live_xio_support": false
+  },
   "limitations": [
     "Live Resolume and hardware were not tested.",
     "No network, GPU, camera, or subprocess execution was performed."
@@ -44,6 +51,7 @@
     "diff_check_command": "git diff --check",
     "focal_command": "python -m pytest -q tests/lucida/test_resolume_smoke.py",
     "full_suite_command": "python -m pytest -q",
-    "regression_module": "tests/lucida/test_resolume_smoke.py"
+    "regression_module": "tests/lucida/test_resolume_smoke.py",
+    "signal_envelope_v1_command": "python -m pytest -q tests/lucida/test_signal_envelope_v1.py"
   }
 }

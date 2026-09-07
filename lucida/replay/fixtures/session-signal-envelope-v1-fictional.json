@@ -1,0 +1,69 @@
+{
+  "fixture_type": "LucidaSignalEnvelopeV1ReplayFixture",
+  "schema_version": "1.0",
+  "session_id": "signal-envelope-v1-session-001",
+  "recording_label": "fictional-offline-recording",
+  "entries": [
+    {
+      "event": {
+        "event_id": "evt-v1-001",
+        "timestamp": "2026-01-10T20:00:00Z",
+        "phase": "preparation",
+        "event_type": "signal.nayade",
+        "payload": {
+          "transport": "osc",
+          "address": "/lucida/nayade/soundcheck",
+          "arguments": ["stable"],
+          "sequence": 1,
+          "route": "nayade"
+        },
+        "source": "recording"
+      },
+      "signal": {
+        "contract_type": "SignalEnvelope",
+        "schema_version": "1.0",
+        "envelope_id": "sig-v1-001",
+        "event_id": "evt-v1-001",
+        "timestamp": "2026-01-10T20:00:00Z",
+        "sequence": 1,
+        "source": "recording",
+        "address": "/lucida/nayade/soundcheck",
+        "arguments": ["stable"],
+        "transport": "osc",
+        "vendor_optional": {"ignored": true}
+      },
+      "results": []
+    },
+    {
+      "event": {
+        "event_id": "evt-v1-002",
+        "timestamp": "2026-01-10T20:00:01Z",
+        "phase": "show",
+        "event_type": "show.started",
+        "payload": {
+          "transport": "timecode",
+          "address": "/composition/timecode",
+          "arguments": [1],
+          "sequence": 2,
+          "route": "imago"
+        },
+        "source": "recording"
+      },
+      "signal": {
+        "contract_type": "SignalEnvelope",
+        "schema_version": "1.0",
+        "envelope_id": "sig-v1-002",
+        "event_id": "evt-v1-002",
+        "timestamp": "2026-01-10T20:00:01Z",
+        "sequence": 2,
+        "source": "recording",
+        "address": "/composition/timecode",
+        "arguments": [1],
+        "transport": "timecode",
+        "timecode": "00:00:01:00",
+        "unknown_optional": "ignored"
+      },
+      "results": []
+    }
+  ]
+}

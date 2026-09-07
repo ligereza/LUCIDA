@@ -117,6 +117,13 @@ def build_evidence_manifest(
             "tape_sha256": evidence["tape_sha256"],
         },
         "evidence": evidence,
+        "integration_boundary": {
+            "adapter": "lucida.replay.session.adapt_signal_envelope_v1",
+            "replay": "lucida.replay.session.replay_signal_envelope_v1_fixture",
+            "schema": "lucida/replay/contracts/signal-envelope-v1.schema.json",
+            "scope": "recorded_osc_timecode_only",
+            "live_xio_support": False,
+        },
         "guarantees": {
             "proposal_only": evidence["execution_mode"] == "proposal_only",
             "reversible": evidence["reversible"],
@@ -128,6 +135,7 @@ def build_evidence_manifest(
         },
         "tests": {
             "regression_module": "tests/lucida/test_resolume_smoke.py",
+            "signal_envelope_v1_command": "python -m pytest -q tests/lucida/test_signal_envelope_v1.py",
             "focal_command": "python -m pytest -q tests/lucida/test_resolume_smoke.py",
             "full_suite_command": "python -m pytest -q",
             "compile_command": "python -m compileall -q lucida tests",

@@ -62,6 +62,13 @@ def test_committed_manifest_matches_current_smoke_evidence():
     assert committed == generated
     assert committed["integration_commit"] == INTEGRATION_COMMIT
     assert committed["evidence"] == run_smoke()
+    assert committed["integration_boundary"] == {
+        "adapter": "lucida.replay.session.adapt_signal_envelope_v1",
+        "replay": "lucida.replay.session.replay_signal_envelope_v1_fixture",
+        "schema": "lucida/replay/contracts/signal-envelope-v1.schema.json",
+        "scope": "recorded_osc_timecode_only",
+        "live_xio_support": False,
+    }
     assert committed["guarantees"] == {
         "proposal_only": True,
         "reversible": True,
