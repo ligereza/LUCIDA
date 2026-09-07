@@ -292,6 +292,24 @@ class OscResolumeBoundary:
             source=f"osc:{parsed.source}",
         )
 
+    def ingest_semantic_light_field_report(
+        self,
+        report: Mapping[str, Any],
+        state: OscBridgeState | Mapping[str, Any],
+    ) -> tuple[OscBridgeState, dict[str, Any]]:
+        """Project a MOSAIK proposal report into the RESOLUME surface state."""
+        current = state if isinstance(state, OscBridgeState) else OscBridgeState.from_dict(state)
+        from .semantic_light_field import project_semantic_light_field_report
+
+        lucida_state, preview = project_semantic_light_field_report(
+            current.lucida_state,
+            report,
+        )
+        next_state = replace(current, lucida_state=lucida_state)
+        overlay = self.read_overlay(next_state)
+        overlay["resolume_preview"] = preview
+        return next_state, overlay
+
     def register_result(
         self,
         state: OscBridgeState | Mapping[str, Any],
