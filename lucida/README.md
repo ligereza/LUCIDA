@@ -86,6 +86,14 @@ La frontera opcional de señales OSC/Resolume está documentada en
 [`signals/README.md`](signals/README.md); recibe envelopes inyectados y no abre
 sockets por sí misma.
 
+La conformance integrada de los conectores se puede ejecutar con:
+
+    python -m lucida.connector_conformance
+
+Comprueba en offline ADOBE, MULTI/XIO y RESOLUME como entradas separadas,
+preserva la propiedad de cada dominio y exige una salida proposal-only sin
+hosts ni sockets abiertos.
+
 ## Siguiente integración con XIO
 
 El siguiente paso es acordar un contrato de entrada con XIO para convertir su
