@@ -1,0 +1,144 @@
+{
+  "claim_status_vocabulary": [
+    "OPERATOR_DEPENDENT",
+    "PROSPECTIVE",
+    "VERIFIED"
+  ],
+  "commit_refs": {
+    "base_commit": "e2f2cb15a51b0b82be72973de40e96f40675ab23",
+    "candidate_commit": "a155762d946cff2cf41f2cc68c721ad77f3b4445",
+    "candidate_parent_commit": "7722ce7ae5c619c63e7587b8f08854bb403fed4a",
+    "current_handoff_snapshot_commit": "ef6262a7d408db873dc8f25e969253a954cf95bb",
+    "rehearsal_commit": "ef6262a7d408db873dc8f25e969253a954cf95bb",
+    "runtime_integration_base_commit": "ac0fb16734483f48517696c2a1d3619d72a5df84"
+  },
+  "handoff_file": "resolume/postulation-handoff.json",
+  "handoff_sha256": "23c9f12f44c60f8d9bb71b0837106681e024153911b1821d042eab07f1176540",
+  "matrix_type": "LucidaPostulationEvidenceMatrix",
+  "records": [
+    {
+      "allowed_use": "Use to describe a declared design axis and a preparation path.",
+      "claim": "The proposal treats mathematical layout as a declared prospective axis supported by offline semantic identity and projection evidence.",
+      "claim_id": "MATHEMATICAL_LAYOUT_AXIS",
+      "evidence_refs": [
+        "postulation-handoff.json#/postulation_mapping/mathematical_layout",
+        "postulation-handoff.json#/evidence/tape_sha256",
+        "postulation-handoff.json#/architecture_boundary/surface_projection"
+      ],
+      "limit": "Do not present this as physical layout reconstruction, venue geometry, camera calibration, photometry, mapping accuracy, or fixture accuracy.",
+      "status": "PROSPECTIVE",
+      "verification_command": "python -m lucida.evidence_bundle --json"
+    },
+    {
+      "allowed_use": "Use to support offline software feasibility in the proposal.",
+      "claim": "The candidate provides an offline signal-to-proposal-to-projection-to-evidence path.",
+      "claim_id": "SOFTWARE_FEASIBILITY",
+      "evidence_refs": [
+        "postulation-handoff.json#/architecture_boundary/input_validation",
+        "postulation-handoff.json#/architecture_boundary/runtime_dispatch",
+        "postulation-handoff.json#/architecture_boundary/semantic_adapter",
+        "postulation-handoff.json#/architecture_boundary/surface_projection",
+        "postulation-handoff.json#/architecture_boundary/evidence_bundle",
+        "postulation-handoff.json#/evidence/freeze_snapshot_tests_passed"
+      ],
+      "limit": "The result is bounded to the recorded repository path and does not establish execution outside it.",
+      "status": "VERIFIED",
+      "verification_command": "python -m pytest -q"
+    },
+    {
+      "allowed_use": "Describe deterministic replay of the registered fixtures.",
+      "claim": "The recorded signal envelope replays into a stable review result.",
+      "claim_id": "DETERMINISTIC_REPLAY",
+      "evidence_refs": [
+        "postulation-handoff.json#/verified_implementation/deterministic_replay",
+        "postulation-handoff.json#/reproduction/envelope_replay",
+        "postulation-handoff.json#/evidence/smoke_status",
+        "postulation-handoff.json#/evidence/signal_envelope_fixture_sha256"
+      ],
+      "limit": "The determinism claim applies to the registered fixtures and not to an unrecorded input.",
+      "status": "VERIFIED",
+      "verification_command": "python -m lucida.signals.smoke"
+    },
+    {
+      "allowed_use": "Describe a proposal-only state with no automatic decision.",
+      "claim": "The recorded proposal uses proposal_only execution mode and declares no automatic actions.",
+      "claim_id": "PROPOSAL_ONLY_BEHAVIOR",
+      "evidence_refs": [
+        "postulation-handoff.json#/evidence/execution_mode",
+        "postulation-handoff.json#/verified_implementation/proposal_only",
+        "postulation-handoff.json#/evidence/external_side_effects"
+      ],
+      "limit": "This state is evidence of a bounded proposal and is not execution permission.",
+      "status": "VERIFIED",
+      "verification_command": "python -m lucida.signals.smoke --preview"
+    },
+    {
+      "allowed_use": "Describe the explicit human approval gate in the pending state.",
+      "claim": "The pending projection requires explicit approval.",
+      "claim_id": "EXPLICIT_APPROVAL",
+      "evidence_refs": [
+        "postulation-handoff.json#/evidence/requires_explicit_approval",
+        "postulation-handoff.json#/evidence/overlay_status",
+        "postulation-handoff.json#/verified_implementation/explicit_approval"
+      ],
+      "limit": "No operator approval event is included in the recorded evidence.",
+      "status": "VERIFIED",
+      "verification_command": "python -m lucida.signals.smoke --preview"
+    },
+    {
+      "allowed_use": "Describe a reversible pending projection.",
+      "claim": "The proposal and shared projection declare reversible pending state.",
+      "claim_id": "REVERSIBLE_PROJECTION",
+      "evidence_refs": [
+        "postulation-handoff.json#/evidence/reversible",
+        "postulation-handoff.json#/architecture_boundary/shared_contract_boundary",
+        "postulation-handoff.json#/verified_implementation/reversible"
+      ],
+      "limit": "The matrix does not claim a host rollback event or recovery measurement.",
+      "status": "VERIFIED",
+      "verification_command": "python -m lucida.surface_conformance"
+    },
+    {
+      "allowed_use": "Describe the offline no-effect safety boundary.",
+      "claim": "The recorded path declares no external side effects and no automatic actions.",
+      "claim_id": "NO_EXTERNAL_SIDE_EFFECTS",
+      "evidence_refs": [
+        "postulation-handoff.json#/evidence/external_side_effects",
+        "postulation-handoff.json#/verified_implementation/external_side_effects",
+        "postulation-handoff.json#/contamination_check/subprocess_or_socket_side_effects"
+      ],
+      "limit": "The result is a software boundary check and not an observation of an external installation.",
+      "status": "VERIFIED",
+      "verification_command": "python -m pytest -q tests/lucida/test_resolume_smoke.py"
+    },
+    {
+      "allowed_use": "Use as shared contract evidence for future consumers without importing RESOLUME domain code.",
+      "claim": "SurfaceProjectionV1 carries shared proposal, evidence, identity, approval, reversibility, and safety fields.",
+      "claim_id": "SHARED_PROJECTION_CONTRACT",
+      "evidence_refs": [
+        "postulation-handoff.json#/architecture_boundary/surface_projection",
+        "postulation-handoff.json#/architecture_boundary/shared_contract_boundary",
+        "postulation-handoff.json#/verified_implementation/shared_projection"
+      ],
+      "limit": "Future consumers remain contract candidates and are not represented as completed host integrations.",
+      "status": "VERIFIED",
+      "verification_command": "python -m lucida.surface_conformance"
+    },
+    {
+      "allowed_use": "State the required future validation gate and keep all live claims out of verified evidence.",
+      "claim": "Live Resolume, audio, lighting, venue, hardware, camera, GPU, network, and transport validation remains pending operator-approved work.",
+      "claim_id": "LIVE_VALIDATION_BOUNDARY",
+      "evidence_refs": [
+        "postulation-handoff.json#/verified_implementation/live_resolume",
+        "postulation-handoff.json#/verified_implementation/live_audio",
+        "postulation-handoff.json#/verified_implementation/live_hardware",
+        "postulation-handoff.json#/limitations",
+        "postulation-handoff.json#/safe_integration"
+      ],
+      "limit": "Do not describe any of these live behaviors as completed evidence before an authorized validation run.",
+      "status": "OPERATOR_DEPENDENT",
+      "verification_command": "python -m lucida.evidence_bundle --json"
+    }
+  ],
+  "schema_version": "1.0"
+}

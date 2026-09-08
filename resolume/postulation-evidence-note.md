@@ -42,6 +42,23 @@ afirmaciones que deben permanecer prospectivas en la propuesta. En particular,
 `mathematical_layout` se presenta como un eje declarado y preparatorio, no como
 un resultado fisico ya obtenido.
 
+## Matriz machine-readable para el package manifest
+
+`[VERIFIED]` La matriz determinista
+`resolume/postulation-evidence-matrix.json` convierte cada claim en un registro
+con `claim_id`, `evidence_refs`, `status`, `allowed_use`, `limit` y
+`verification_command`. Su referencia al handoff usa el SHA-256
+`23c9f12f44c60f8d9bb71b0837106681e024153911b1821d042eab07f1176540`.
+
+`[VERIFIED]` La matriz conserva la separacion entre `VERIFIED`, `PROSPECTIVE` y
+`OPERATOR_DEPENDENT`. Sus registros no contienen frames, source code, media ni
+otra copia del replay.
+
+`[OPERATOR_DEPENDENT]` El package manifest de Obras puede consumir esta matriz
+como metadata interna para seleccionar claims permitidos y sus limites, sin
+convertirla en un attachment ni presentarla como una observacion independiente
+de venue.
+
 ## Frontera de software comprobada
 
 `[VERIFIED]` El camino offline comprobado es:
