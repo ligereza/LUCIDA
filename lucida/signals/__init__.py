@@ -32,6 +32,15 @@ from .semantic_light_field import (
     SemanticLightFieldSurfaceError,
     project_semantic_light_field_report,
 )
+from .mosaik import (
+    MOSAIK_SOURCES,
+    MosaikBridgeError,
+    MosaikConsumeResult,
+    MosaikEventConsumer,
+    parse_mosaik_event,
+    replay_fixture as replay_mosaik_fixture,
+    replay_path as replay_mosaik_path,
+)
 
 _XIO_EXPORTS = {
     "ApplicationEvent",
@@ -92,4 +101,11 @@ __all__ = [
     "consume_adobe_signal",
     "convert_adobe_signal",
     "parse_adobe_signal",
+    "MOSAIK_SOURCES",
+    "MosaikBridgeError",
+    "MosaikConsumeResult",
+    "MosaikEventConsumer",
+    "parse_mosaik_event",
+    "replay_mosaik_fixture",
+    "replay_mosaik_path",
 ]
