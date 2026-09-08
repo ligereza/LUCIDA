@@ -122,9 +122,19 @@ handoff, conserva sus commits y hashes, y traduce resultados de fixtures y
 tests a limites de la propuesta. No es un attachment de instalacion ni una
 observacion independiente de un venue.
 
-`[OPERATOR_DEPENDENT]` Un evaluador puede reproducir la evidencia con
+`[OPERATOR_DEPENDENT]` Un evaluador puede reproducir la evidencia solo desde el full LUCIDA worktree,
+que contiene `lucida/`, `tests/`, schemas, fixtures y
+las dependencias Python. Desde ese worktree puede ejecutar
 `python -m lucida.evidence_bundle --report`,
 `python -m lucida.evidence_bundle --json` y los comandos de replay descritos en
-el handoff. La reproduccion confirma software offline; no convierte en
-verificadas las partes live que el handoff marca como prospectivas o no
-testeadas.
+el handoff.
+
+`[VERIFIED]` El transfer artifact set descrito en
+`resolume/postulation-integration-manifest.json` contiene solo tres artifacts
+de evidencia. No contiene source modules, tests, schemas, fixtures ni runtime
+dependencies; por tanto no es ejecutable por si solo y solo permite inspeccion
+de JSON, hashes y texto.
+
+`[PROSPECTIVE]` La reproduccion desde el full LUCIDA worktree confirma
+software offline; no convierte en verificadas las partes live que el handoff
+marca como prospectivas o no testeadas.
