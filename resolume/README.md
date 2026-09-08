@@ -235,3 +235,46 @@ git merge --ff-only a155762d946cff2cf41f2cc68c721ad77f3b4445
 The command is a fast-forward rehearsal result, not a live Resolume or venue
 validation. The untracked `adobe/` path is outside the candidate file set and
 must remain untouched.
+
+## Postulation handoff
+
+The release-candidate handoff is the machine-readable artifact
+[`resolume/postulation-handoff.json`](postulation-handoff.json). It records the
+exact base, candidate, parent, and rehearsal commits; the 26-file candidate
+scope; canonical schema, fixture, and tape hashes; executed test counts; the
+offline architecture boundary; and the safe integration command.
+
+The handoff separates four claims:
+
+- implemented code: recorded envelope validation, deterministic replay,
+  proposal-only dispatch, shared projection, read-only overlay, and evidence
+  generation;
+- replay evidence: the fixture-driven status, proposal identity, hashes,
+  approval requirement, reversibility, and no-side-effect result;
+- proposed live behavior: future approved light/audio consumers only;
+- untested assumptions: live Resolume, hardware, venue, calibration, timing,
+  transport, camera, GPU, and network behavior.
+
+Reproduce the human-readable evidence report with one command from the
+repository root:
+
+```text
+python -m lucida.evidence_bundle --report
+```
+
+The report is generated from the local HEAD. Its `artifact_source_commit` is
+the exact source revision used for that report. The separate
+`runtime_integration_base_commit` identifies the historical offline runtime
+integration and must not be treated as the artifact revision.
+
+The handoff is ready for operator review, not automatic integration. After
+reviewing the clean main checkout status, the only proposed integration command
+is:
+
+```text
+git merge --ff-only a155762d946cff2cf41f2cc68c721ad77f3b4445
+```
+
+This command must not be run without explicit authorization. No live host,
+hardware, network, GPU, camera, or Resolume process was used to produce this
+handoff.
