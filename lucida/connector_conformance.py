@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .evidence_bundle import run_adobe_summary_preview
+from .signals.adobe import ADOBE_SOURCE_FIXTURES
 from .signals.smoke import run_envelope_backed_smoke
 from .signals.xio import replay_path
 from .surface_conformance import run_fixture_conformance
@@ -21,7 +22,11 @@ XIO_FIXTURE = (
 
 def run_connector_conformance() -> dict[str, Any]:
     """Exercise each connector's offline boundary and report safety facts."""
-    adobe = run_adobe_summary_preview()
+    adobe_sources = {
+        source: run_adobe_summary_preview(path)
+        for source, path in ADOBE_SOURCE_FIXTURES.items()
+    }
+    adobe = adobe_sources["vizz"]
     xio = replay_path(XIO_FIXTURE)
     smoke = run_envelope_backed_smoke()
     surfaces = run_fixture_conformance()
@@ -36,6 +41,7 @@ def run_connector_conformance() -> dict[str, Any]:
             "proposal_only": adobe["proposal_only"],
             "external_side_effects": adobe["external_side_effects"],
             "raw_content_forwarded": adobe["raw_content_forwarded"],
+            "sources": adobe_sources,
         },
         "multi_xio": {
             "status": "PASS"

@@ -114,10 +114,10 @@ def build_evidence_bundle(
     }
 
 
-def run_adobe_summary_preview() -> dict[str, Any]:
+def run_adobe_summary_preview(fixture_path: Path = ADOBE_SIGNAL_FIXTURE) -> dict[str, Any]:
     """Replay the canonical Adobe summary fixture without opening a host."""
     try:
-        fixture = json.loads(ADOBE_SIGNAL_FIXTURE.read_text(encoding="utf-8"))
+        fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise EvidenceBundleError("Adobe summary fixture cannot be read.") from exc
     consumer = AdobeSignalConsumer(fixture["sessionId"], first_sequence=fixture["sequence"])

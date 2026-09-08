@@ -3,6 +3,7 @@ import json
 import pytest
 
 from lucida.signals.adobe import (
+    ADOBE_SOURCE_FIXTURES,
     DEFAULT_ADOBE_FIXTURE,
     AdobeSignalConsumer,
     AdobeSignalError,
@@ -53,3 +54,15 @@ def test_adobe_signal_requires_explicit_phase():
 
     with pytest.raises(AdobeSignalError, match="metadata.phase"):
         consumer.consume(signal)
+
+
+@pytest.mark.parametrize("source", sorted(ADOBE_SOURCE_FIXTURES))
+def test_each_adobe_source_family_replays_as_a_safe_summary(source):
+    fixture = json.loads(ADOBE_SOURCE_FIXTURES[source].read_text(encoding="utf-8"))
+    consumer = AdobeSignalConsumer(fixture["sessionId"], first_sequence=fixture["sequence"])
+
+    result = consumer.consume(fixture)
+
+    assert result.signal.source == source
+    assert result.signal.to_dict()["redaction"]["rawContentForwarded"] is False
+    assert result.record.audit["external_side_effects"] is False

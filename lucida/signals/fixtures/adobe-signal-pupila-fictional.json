@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "signalId": "adobe-pupila-signal-001",
+  "source": "pupila",
+  "sessionId": "fictional-adobe-pupila-session",
+  "sequence": 0,
+  "eventType": "collaboration.sample",
+  "timestamp": "2026-01-10T20:00:00Z",
+  "metadata": {
+    "phase": "preflight",
+    "participantCount": 4,
+    "confidence": 0.8,
+    "kind": "collaboration",
+    "target": "surface"
+  },
+  "proposal": {
+    "proposalId": "pupila-proposal-001",
+    "kind": "collaboration-review",
+    "reason": "A bounded collaboration summary suggests a review.",
+    "target": "surface",
+    "reversible": true,
+    "requiresConfirmation": true,
+    "proposalOnly": true,
+    "expiresAt": "2026-01-10T20:00:30Z"
+  },
+  "redaction": {
+    "rawContentForwarded": false
+  }
+}

@@ -18,6 +18,11 @@ ADOBE_SIGNAL_SCHEMA_VERSION = 1
 DEFAULT_ADOBE_FIXTURE = (
     Path(__file__).resolve().parent / "fixtures" / "adobe-signal-fictional.json"
 )
+ADOBE_SOURCE_FIXTURES = {
+    "xio": Path(__file__).resolve().parent / "fixtures" / "adobe-signal-xio-fictional.json",
+    "vizz": DEFAULT_ADOBE_FIXTURE,
+    "pupila": Path(__file__).resolve().parent / "fixtures" / "adobe-signal-pupila-fictional.json",
+}
 ADOBE_SOURCES = frozenset({"xio", "vizz", "pupila"})
 ADOBE_PHASES = frozenset(
     {"preflight", "preparation", "show", "incident", "recovery", "closure"}
@@ -361,6 +366,7 @@ __all__ = [
     "ADOBE_PHASES",
     "ADOBE_SIGNAL_SCHEMA_VERSION",
     "ADOBE_SOURCES",
+    "ADOBE_SOURCE_FIXTURES",
     "AdobeConsumeResult",
     "AdobeSignal",
     "AdobeSignalConsumer",

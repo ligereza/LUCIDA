@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "signalId": "adobe-xio-signal-001",
+  "source": "xio",
+  "sessionId": "fictional-adobe-xio-session",
+  "sequence": 0,
+  "eventType": "radio.sample",
+  "timestamp": "2026-01-10T20:00:00Z",
+  "metadata": {
+    "phase": "preflight",
+    "signalPercent": 84,
+    "lossPercent": 1.5,
+    "latencyMs": 12.5,
+    "transport": "wifi"
+  },
+  "redaction": {
+    "rawContentForwarded": false
+  }
+}
