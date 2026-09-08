@@ -1,7 +1,9 @@
 {
+  "artifact_hash_semantics": "SHA-256 over UTF-8 bytes after CRLF to LF canonicalization, matching lucida.evidence_bundle._sha256.",
   "attachment_recommendation": {
     "candidate_package_is_runtime_free": true,
     "mode": "evidence_reference_only",
+    "official_attachment_decision": "OPERATOR_DEPENDENT",
     "operator_review_required": true,
     "recommendation": "Transfer exactly the three included artifacts as internal postulation evidence references.",
     "runtime_material_transferred": false
@@ -42,14 +44,14 @@
       "role": "Machine-readable claim status, evidence references, limits, and verification commands.",
       "sha256": "338c0029ef78d1eecbba48e39d94b0d7afb44a1bab37884507eb5cbfdf38906e",
       "status": "VERIFIED",
-      "transfer_class": "candidate_attachment"
+      "transfer_class": "internal_reference"
     },
     {
       "path": "resolume/postulation-evidence-note.md",
       "role": "Human-readable evidence-to-proposal mapping with verified, prospective, and operator-dependent boundaries.",
       "sha256": "1d23d4e1ffd49304c7c5ed717e86572accdf4435baaf0fd0219a1055baefa43e",
       "status": "VERIFIED",
-      "transfer_class": "candidate_attachment"
+      "transfer_class": "internal_reference"
     },
     {
       "path": "resolume/postulation-handoff.json",
@@ -59,6 +61,8 @@
       "transfer_class": "internal_reference"
     }
   ],
+  "manifest_commit_meaning": "The containing commit is the child commit created from manifest_parent_commit; this manifest does not self-reference its own commit hash.",
+  "manifest_parent_commit": "be2af673b9a7fe06d4e1c95b274ac20675b3e566",
   "manifest_type": "LucidaResolumePostulationIntegrationManifest",
   "operator_action": {
     "contact_remote_package": false,
@@ -103,7 +107,7 @@
     }
   },
   "schema_version": "1.0",
-  "source_commit": "73f6708cfef083f512f8a4fea1c880edb6b07d86",
-  "source_commit_meaning": "Revision audited before this transfer manifest commit; it contains the included artifact content.",
+  "source_commit": "be2af673b9a7fe06d4e1c95b274ac20675b3e566",
+  "source_commit_meaning": "Commit tree containing the exact canonical bytes of every included artifact; distinct from the later manifest commit.",
   "target_package_relative_path": "evidence/lucida-resolume/"
 }

@@ -1,4 +1,5 @@
 import json
+import hashlib
 from pathlib import Path
 import subprocess
 
@@ -11,7 +12,7 @@ HANDOFF_PATH = REPOSITORY_ROOT / "resolume" / "postulation-handoff.json"
 NOTE_PATH = REPOSITORY_ROOT / "resolume" / "postulation-evidence-note.md"
 MATRIX_PATH = REPOSITORY_ROOT / "resolume" / "postulation-evidence-matrix.json"
 ALLOWED_ARTIFACT_STATUSES = {"VERIFIED", "PROSPECTIVE", "OPERATOR_DEPENDENT"}
-ALLOWED_TRANSFER_CLASSES = {"internal_reference", "candidate_attachment"}
+ALLOWED_TRANSFER_CLASSES = {"internal_reference"}
 ALLOWED_SCOPE_STATUSES = {"VERIFIED", "INSPECTABLE_ONLY", "NOT_REPRODUCIBLE"}
 FORBIDDEN_POSITIVE_LIVE_CLAIMS = (
     "live resolume was validated",
@@ -31,6 +32,17 @@ def _load_ascii_json(path: Path):
     return raw, json.loads(raw.decode("ascii"))
 
 
+def _canonical_bytes(data: bytes) -> bytes:
+    return data.replace(b"\r\n", b"\n")
+
+
+def _git_blob(commit: str, path: str) -> bytes:
+    return subprocess.check_output(
+        ["git", "show", f"{commit}:{path}"],
+        cwd=REPOSITORY_ROOT,
+    )
+
+
 def test_transfer_manifest_is_sorted_ascii_and_hash_complete():
     raw, manifest = _load_ascii_json(MANIFEST_PATH)
     handoff_raw, handoff = _load_ascii_json(HANDOFF_PATH)
@@ -39,8 +51,21 @@ def test_transfer_manifest_is_sorted_ascii_and_hash_complete():
         "ascii"
     )
     assert handoff_raw.decode("ascii")
-    assert manifest["source_commit"] == "73f6708cfef083f512f8a4fea1c880edb6b07d86"
-    assert manifest["source_commit_meaning"].startswith("Revision audited before")
+    assert manifest["source_commit"] == "be2af673b9a7fe06d4e1c95b274ac20675b3e566"
+    assert manifest["source_commit_meaning"].startswith("Commit tree containing")
+    assert manifest["manifest_parent_commit"] == manifest["source_commit"]
+    assert manifest["artifact_hash_semantics"].startswith("SHA-256 over UTF-8")
+    current_head = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPOSITORY_ROOT,
+        text=True,
+    ).strip()
+    assert current_head != manifest["source_commit"]
+    assert subprocess.check_output(
+        ["git", "rev-parse", "HEAD^"],
+        cwd=REPOSITORY_ROOT,
+        text=True,
+    ).strip() == manifest["manifest_parent_commit"]
     assert subprocess.run(
         ["git", "cat-file", "-e", manifest["source_commit"] + "^{commit}"],
         cwd=REPOSITORY_ROOT,
@@ -59,6 +84,9 @@ def test_transfer_manifest_is_sorted_ascii_and_hash_complete():
         path = expected[record["path"]]
         assert path.is_file()
         assert record["sha256"] == _sha256(path)
+        blob = _git_blob(manifest["source_commit"], record["path"])
+        assert _canonical_bytes(blob) == _canonical_bytes(path.read_bytes())
+        assert hashlib.sha256(_canonical_bytes(blob)).hexdigest() == record["sha256"]
 
 
 def test_transfer_manifest_schema_scope_and_operator_guards():
@@ -79,9 +107,13 @@ def test_transfer_manifest_schema_scope_and_operator_guards():
     assert manifest["operator_action"]["push_executed"] is False
     assert manifest["operator_action"]["contact_remote_package"] is False
     assert manifest["evidence_boundary"]["live_validation_claim"] is False
+    assert manifest["attachment_recommendation"]["official_attachment_decision"] == (
+        "OPERATOR_DEPENDENT"
+    )
     for record in manifest["included_artifacts"]:
         assert record["status"] in ALLOWED_ARTIFACT_STATUSES
         assert record["transfer_class"] in ALLOWED_TRANSFER_CLASSES
+        assert record["transfer_class"] == "internal_reference"
     assert all(
         scope["status"] in ALLOWED_SCOPE_STATUSES
         for scope in manifest["reproducibility_scope"].values()
