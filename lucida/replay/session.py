@@ -38,7 +38,7 @@ class SignalEnvelopeV1Error(SessionReplayError):
 
 
 SIGNAL_ENVELOPE_V1_SCHEMA_VERSION = "1.0"
-SIGNAL_ENVELOPE_V1_TRANSPORTS = {"osc", "timecode"}
+SIGNAL_ENVELOPE_V1_TRANSPORTS = {"osc", "timecode", "adobe"}
 
 
 def _ascii_text(value: Any, field_name: str) -> str:
@@ -88,8 +88,8 @@ class SignalEnvelope:
         envelope_id = _ascii_text(value.get("envelope_id"), "envelope_id")
         event_id = _ascii_text(value.get("event_id"), "event_id")
         transport = value.get("transport", "osc")
-        if transport not in {"osc", "timecode", "xio"}:
-            raise SessionReplayError("transport must be osc, timecode, or xio.")
+        if transport not in {"osc", "timecode", "xio", "adobe"}:
+            raise SessionReplayError("transport must be osc, timecode, xio, or adobe.")
         return cls(
             envelope_id=envelope_id,
             event_id=event_id,

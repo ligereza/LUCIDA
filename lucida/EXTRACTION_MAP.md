@@ -61,3 +61,14 @@ XIO puede convertirse en un productor de eventos o consumidor de resultados,
 pero esa integración requiere un contrato explícito y no se incluye aquí. La
 frontera recomendada es `XIO → VJEvent → LUCIDA → propuesta → resultado`, sin
 que LUCIDA tome control irreversible del show.
+
+## Conectores ya integrables
+
+| Origen | Entrada aceptada por LUCIDA | Responsabilidad que permanece fuera |
+| --- | --- | --- |
+| ADOBE | lucida.signals.adobe.AdobeSignalConsumer | Photoshop/Illustrator/After Effects/Premiere y el bridge local |
+| MULTI/XIO | lucida.signals.xio_bridge | captura, transporte, red, OSC, Art-Net, timecode y registro |
+| RESOLUME/MOSAIK | lucida.signals.boundary y semantic_light_field | Resolume, liveshow, clips, cues, showfiles y hardware |
+
+Las tres entradas desembocan en replay y propuestas explícitas. Ninguna
+transfiere contenido crudo ni convierte a LUCIDA en dueño del host de origen.

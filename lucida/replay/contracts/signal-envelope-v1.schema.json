@@ -26,7 +26,7 @@
     "source": { "type": "string", "minLength": 1 },
     "address": { "type": "string", "minLength": 1 },
     "arguments": { "type": "array" },
-    "transport": { "enum": ["osc", "timecode"] },
+    "transport": { "enum": ["osc", "timecode", "adobe"] },
     "timecode": { "type": "string", "minLength": 1 }
   }
 }

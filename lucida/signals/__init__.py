@@ -1,4 +1,17 @@
-"""Injected OSC/Resolume signal boundary for LUCIDA."""
+"""Injected signal boundaries for the proposal-only LUCIDA surface."""
+
+from .adobe import (
+    ADOBE_PHASES,
+    ADOBE_SIGNAL_SCHEMA_VERSION,
+    ADOBE_SOURCES,
+    AdobeConsumeResult,
+    AdobeSignal,
+    AdobeSignalConsumer,
+    AdobeSignalError,
+    consume_adobe_signal,
+    convert_adobe_signal,
+    parse_adobe_signal,
+)
 
 from .boundary import (
     DuplicateEnvelopeError,
@@ -40,6 +53,13 @@ def __getattr__(name: str):
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
+    "ADOBE_PHASES",
+    "ADOBE_SIGNAL_SCHEMA_VERSION",
+    "ADOBE_SOURCES",
+    "AdobeConsumeResult",
+    "AdobeSignal",
+    "AdobeSignalConsumer",
+    "AdobeSignalError",
     "DuplicateEnvelopeError",
     "EnvelopeValidationError",
     "OscBridgeState",
@@ -65,4 +85,7 @@ __all__ = [
     "replay_fixture",
     "replay_path",
     "project_semantic_light_field_report",
+    "consume_adobe_signal",
+    "convert_adobe_signal",
+    "parse_adobe_signal",
 ]

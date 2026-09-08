@@ -57,7 +57,7 @@ def test_signal_envelope_v1_schema_is_recorded_as_the_boundary_contract():
 
     assert schema["$id"] == "urn:lucida:replay:signal-envelope-v1"
     assert schema["additionalProperties"] is True
-    assert schema["properties"]["transport"]["enum"] == ["osc", "timecode"]
+    assert schema["properties"]["transport"]["enum"] == ["osc", "timecode", "adobe"]
 
 
 def test_unknown_optional_fields_are_ignored():

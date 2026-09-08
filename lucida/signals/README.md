@@ -76,3 +76,21 @@ de Resolume. Todavía se debe resolver, fuera de este boundary:
 
 La frontera recomendada sigue siendo `host -> injected envelope -> VJEvent ->
 LUCIDA -> proposal -> explicit result`.
+
+## Adobe summary connector
+
+lucida.signals.adobe consumes the normalized summary returned by the ADOBE
+bridge for xio, vizz, or pupila. The connector accepts only scalar,
+allow-listed metadata, requires redaction.rawContentForwarded=false, and
+requires an explicit metadata.phase before entering the common replay.
+Adobe remains the host connector; LUCIDA only converts the summary into a
+proposal-only VJEvent and a replay envelope with transport=adobe.
+
+This keeps the boundaries separate:
+
+- ADOBE publishes bounded context or proposal signals.
+- MULTI/XIO owns transport, peer sessions, clocks, hashes, and provenance.
+- RESOLUME/MOSAIK owns the visual host adapter and live-show concerns.
+- LUCIDA integrates the resulting summaries and records explicit outcomes.
+
+No connector opens a host, socket, router, or device from this package.

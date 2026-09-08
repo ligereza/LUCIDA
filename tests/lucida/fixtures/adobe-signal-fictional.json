@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "signalId": "adobe-signal-001",
+  "source": "vizz",
+  "sessionId": "fictional-adobe-session",
+  "sequence": 0,
+  "eventType": "attention.sample",
+  "timestamp": "2026-01-10T20:00:00Z",
+  "metadata": {
+    "phase": "preflight",
+    "attentionScore": 0.75,
+    "target": "surface"
+  },
+  "proposal": {
+    "proposalId": "proposal-001",
+    "kind": "visual-emphasis",
+    "title": "Review visual emphasis",
+    "reason": "A bounded attention summary suggests a review.",
+    "target": "surface",
+    "reversible": true,
+    "requiresConfirmation": true,
+    "proposalOnly": true,
+    "expiresAt": "2026-01-10T20:00:30Z"
+  },
+  "redaction": {
+    "rawContentForwarded": false
+  }
+}
