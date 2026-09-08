@@ -11,7 +11,7 @@ const BRIDGE_HOST = "127.0.0.1"
 const BRIDGE_PORT = 47921
 const TOOLKIT_ROOT = path.resolve(__dirname, "..")
 const SERVER_ENTRY = path.join(TOOLKIT_ROOT, "src", "server.mjs")
-const ALLOWED_ROUTES = new Set(["/context/current", "/recommendations", "/catalog/groups", "/catalog/assets", "/catalog/projects", "/semantic/status", "/semantic/index", "/insert", "/surface/current"])
+const ALLOWED_ROUTES = new Set(["/context/current", "/recommendations", "/catalog/groups", "/catalog/assets", "/catalog/projects", "/semantic/status", "/semantic/index", "/insert", "/analysis/layer", "/surface/current"])
 const ASSET_ROOT = path.resolve(__dirname, "..")
 const DRAG_EXTENSIONS = new Set([".svg", ".png", ".jpg", ".jpeg", ".webp", ".gif"])
 const DRAG_ICON_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
@@ -31,6 +31,12 @@ function bridgeHeaders() {
 
 function bridgeStatus() {
   return new Promise((resolve) => {
+    let settled = false
+    const finish = (value) => {
+      if (settled) return
+      settled = true
+      resolve(value)
+    }
     const request = http.get({
       hostname: BRIDGE_HOST,
       port: BRIDGE_PORT,
@@ -48,17 +54,18 @@ function bridgeStatus() {
         }
         value += chunk
       })
-      response.on("error", reject)
+      response.on("error", () => finish({ reachable: false, compatible: false }))
+      response.on("aborted", () => finish({ reachable: false, compatible: false }))
       response.on("end", () => {
         let payload = null
         try { payload = JSON.parse(value) } catch (_) {}
         const reachable = response.statusCode >= 200 && response.statusCode < 300
         const compatible = reachable && payload?.service === "lucida-adobe" && payload?.apiVersion === 1 && payload?.branch === "ADOBE" && payload?.focus === "adobe" && payload?.capabilities?.includes("catalog/projects")
-        resolve({ reachable, compatible })
+        finish({ reachable, compatible })
       })
     })
     request.setTimeout(500, () => request.destroy())
-    request.on("error", () => resolve({ reachable: false, compatible: false }))
+    request.on("error", () => finish({ reachable: false, compatible: false }))
   })
 }
 
@@ -137,13 +144,30 @@ function bridgeRequest(route, options = {}) {
       headers: { "content-type": "application/json", "content-length": Buffer.byteLength(body), ...bridgeHeaders() },
     }, (response) => {
       let value = ""
+      let bytes = 0
+      let settled = false
+      const finish = (handler, payload) => {
+        if (settled) return
+        settled = true
+        handler(payload)
+      }
       response.setEncoding("utf8")
-      response.on("data", (chunk) => { value += chunk })
+      response.on("data", (chunk) => {
+        bytes += Buffer.byteLength(chunk)
+        if (bytes > MAX_BRIDGE_RESPONSE_BYTES) {
+          response.destroy(new Error("Bridge response is too large"))
+          return
+        }
+        value += chunk
+      })
+      response.on("error", (error) => finish(reject, error))
+      response.on("aborted", () => finish(reject, new Error("Bridge response was aborted")))
       response.on("end", () => {
+        if (bytes > MAX_BRIDGE_RESPONSE_BYTES) return
         let payload
         try { payload = value ? JSON.parse(value) : {} } catch (_) { payload = { error: "Bridge returned invalid JSON" } }
-        if (response.statusCode < 200 || response.statusCode >= 300) reject(new Error(payload.error || `Bridge HTTP ${response.statusCode}`))
-        else resolve(payload)
+        if (response.statusCode < 200 || response.statusCode >= 300) finish(reject, new Error(payload.error || `Bridge HTTP ${response.statusCode}`))
+        else finish(resolve, payload)
       })
     })
     const timeoutMs = url.pathname === "/catalog/projects" ? 30_000 : 2_500

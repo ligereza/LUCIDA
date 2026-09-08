@@ -126,6 +126,16 @@ test("Companion bounds bridge response accumulation", async () => {
   assert.match(main, /Bridge response is too large/)
 })
 
+test("Companion keeps bridge health, renderer routes and error handlers aligned", async () => {
+  const main = await readFile(path.join(root, "companion/main.cjs"), "utf8")
+  const renderer = await readFile(path.join(root, "companion/renderer.js"), "utf8")
+  const bridgeStatus = main.slice(main.indexOf("function bridgeStatus()"), main.indexOf("function startBridgeProcess()"))
+  assert.match(main, /new Promise\(\(resolve\) => \{/)
+  assert.doesNotMatch(bridgeStatus, /response\.on\("error", reject\)/)
+  assert.match(main, /"\/analysis\/layer"/)
+  assert.match(renderer, /request\("\/analysis\/layer"/)
+})
+
 test("Project companion keeps slide text visible without visual groups", async () => {
   const source = await readFile(path.join(root, "companion/renderer.js"), "utf8")
   assert.match(source, /function projectTextMarkup\(text\)/)

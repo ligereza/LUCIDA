@@ -64,7 +64,7 @@ completed:
   - item: Recorded the semantic difference between generic and Adobe context boundaries.
     evidence: A runtime fixture demonstrates that the generic layer preserves `document.path` and `unknown`, while the Adobe normalizer drops the path and enforces Adobe-specific fields; the distinction is now executable evidence rather than only documentation.
   - item: Added hostless execution coverage for the Photoshop UXP producer.
-    evidence: A VM harness runs the UXP source with mocked Photoshop collections and fetch, confirming bounded serialization, null document path, AbortSignal propagation and start/stop polling behavior without misrepresenting it as host validation.
+    evidence: A VM harness runs the UXP source with mocked Photoshop collections and fetch, confirming bounded serialization, null document path, AbortSignal propagation, timeout-to-offline behavior and start/stop polling without misrepresenting it as host validation.
 in_progress:
   - item: Prepare the next operator validation pass.
     acceptance: Repository checks remain green and the remaining uncertainty is isolated to user-operated Adobe host execution, not local bridge structure.
@@ -75,8 +75,8 @@ files_or_resources:
   - adobe/adobe-context-shelf/photoshop-uxp/index.js
   - adobe/contracts/stable.mjs
 tests_and_checks:
-  - npm run test: 11 core tests and 58 runtime tests passed
-  - npm run test:runtime: 58 passed
+  - npm run test: 11 core tests and 59 runtime tests passed
+  - npm run test:runtime: 59 passed
   - npm run smoke: passed
   - npm run companion:check: passed
   - npm run verify: passed
