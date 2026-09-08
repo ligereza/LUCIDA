@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from math import isfinite
+from pathlib import Path
 import re
 from typing import Any, Mapping
 
@@ -14,6 +15,9 @@ from ..replay.session import SessionReplay, SessionReplayRecord, SignalEnvelope
 
 
 ADOBE_SIGNAL_SCHEMA_VERSION = 1
+DEFAULT_ADOBE_FIXTURE = (
+    Path(__file__).resolve().parent / "fixtures" / "adobe-signal-fictional.json"
+)
 ADOBE_SOURCES = frozenset({"xio", "vizz", "pupila"})
 ADOBE_PHASES = frozenset(
     {"preflight", "preparation", "show", "incident", "recovery", "closure"}
@@ -353,6 +357,7 @@ def consume_adobe_signal(
 
 
 __all__ = [
+    "DEFAULT_ADOBE_FIXTURE",
     "ADOBE_PHASES",
     "ADOBE_SIGNAL_SCHEMA_VERSION",
     "ADOBE_SOURCES",

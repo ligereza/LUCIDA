@@ -38,6 +38,15 @@ def test_bundle_is_deterministic_and_separates_evidence_layers():
     assert first["tests"]["command"] == "python -m pytest -q"
     assert first["replay_evidence"]["conformance"]["consumer_count"] == 2
     assert first["replay_evidence"]["preview"]["projection"]["surface_id"] == "RESOLUME"
+    assert first["replay_evidence"]["adobe_summary"] == {
+        "replay_status": "PASS",
+        "source": "vizz",
+        "transport": "adobe",
+        "phase": "preflight",
+        "proposal_only": True,
+        "external_side_effects": False,
+        "raw_content_forwarded": False,
+    }
     assert "tape" not in first["replay_evidence"]["preview"]["projection"]
     assert first["proposed_live_behavior"]["status"] == "postulation_only"
     assert first["untested_hardware_venue_assumptions"]
@@ -60,6 +69,7 @@ def test_bundle_records_actual_contract_and_tape_hashes():
     assert hashes["tape_sha256"] == bundle["replay_evidence"]["smoke"]["tape_sha256"]
     assert hashes["signal_envelope_fixture_sha256"]
     assert hashes["semantic_report_fixture_sha256"]
+    assert hashes["adobe_signal_fixture_sha256"]
 
 
 def test_evidence_hashes_are_stable_across_checkout_line_endings(tmp_path):

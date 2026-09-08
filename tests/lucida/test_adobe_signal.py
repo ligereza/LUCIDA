@@ -1,12 +1,16 @@
 import json
-from pathlib import Path
 
 import pytest
 
-from lucida.signals.adobe import AdobeSignalConsumer, AdobeSignalError, parse_adobe_signal
+from lucida.signals.adobe import (
+    DEFAULT_ADOBE_FIXTURE,
+    AdobeSignalConsumer,
+    AdobeSignalError,
+    parse_adobe_signal,
+)
 
 
-FIXTURE = Path(__file__).parent / "fixtures" / "adobe-signal-fictional.json"
+FIXTURE = DEFAULT_ADOBE_FIXTURE
 
 
 def _signal():

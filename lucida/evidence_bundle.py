@@ -20,6 +20,7 @@ from .signals.smoke import (
     run_envelope_backed_preview,
     run_envelope_backed_smoke,
 )
+from .signals.adobe import DEFAULT_ADOBE_FIXTURE, AdobeSignalConsumer
 from .surface_conformance import run_fixture_conformance
 
 
@@ -29,6 +30,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 SURFACE_PROJECTION_SCHEMA = (
     REPOSITORY_ROOT / "lucida" / "contracts" / "surface-projection-v1.schema.json"
 )
+ADOBE_SIGNAL_FIXTURE = DEFAULT_ADOBE_FIXTURE
 TEST_COMMAND = "python -m pytest -q"
 
 
@@ -46,6 +48,7 @@ def build_evidence_bundle(
     smoke = run_envelope_backed_smoke()
     preview = run_envelope_backed_preview()
     conformance = run_fixture_conformance()
+    adobe_summary = run_adobe_summary_preview()
     counts = dict(test_counts) if test_counts is not None else run_test_suite()
     commit = source_commit or _current_commit()
     commits = _build_commit_metadata(commit, manifest)
@@ -68,6 +71,7 @@ def build_evidence_bundle(
             "resolume_runtime": "lucida.signals.boundary.OscResolumeBoundary",
             "offline_preview": "lucida.signals.smoke.run_envelope_backed_preview",
             "consumer_conformance": "lucida.surface_conformance.run_conformance",
+            "adobe_summary_consumer": "lucida.signals.adobe.AdobeSignalConsumer",
             "execution_mode": "proposal_only",
             "external_side_effects": False,
         },
@@ -76,11 +80,13 @@ def build_evidence_bundle(
             "smoke": smoke,
             "preview": preview,
             "conformance": conformance,
+            "adobe_summary": adobe_summary,
             "hashes": {
                 "surface_projection_schema_sha256": _sha256(SURFACE_PROJECTION_SCHEMA),
                 "signal_envelope_fixture_sha256": _sha256(envelope_path),
                 "semantic_report_fixture_sha256": _sha256(report_path),
                 "tape_sha256": smoke["tape_sha256"],
+                "adobe_signal_fixture_sha256": _sha256(ADOBE_SIGNAL_FIXTURE),
             },
         },
         "tests": {
@@ -102,8 +108,29 @@ def build_evidence_bundle(
             "Live Resolume was not opened or controlled.",
             "No projector, lighting device, audio device, camera, GPU, or venue network was used.",
             "Venue timing, calibration, photometry, acoustics, and physical routing remain untested.",
-            "ADOBE, PUPILA, and VIZZ consumers remain offline contract candidates only.",
+            "The ADOBE summary connector was replayed offline; no Adobe host was opened.",
+            "PUPILA and VIZZ host integrations remain untested outside summary signals.",
         ],
+    }
+
+
+def run_adobe_summary_preview() -> dict[str, Any]:
+    """Replay the canonical Adobe summary fixture without opening a host."""
+    try:
+        fixture = json.loads(ADOBE_SIGNAL_FIXTURE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise EvidenceBundleError("Adobe summary fixture cannot be read.") from exc
+    consumer = AdobeSignalConsumer(fixture["sessionId"], first_sequence=fixture["sequence"])
+    result = consumer.consume(fixture)
+    report = consumer.report()
+    return {
+        "replay_status": "PASS" if report["event_count"] == 1 else "FAIL",
+        "source": result.signal.source,
+        "transport": result.envelope.transport,
+        "phase": result.event.phase,
+        "proposal_only": result.record.audit["mode"] == "proposal_only",
+        "external_side_effects": result.record.audit["external_side_effects"],
+        "raw_content_forwarded": result.signal.to_dict()["redaction"]["rawContentForwarded"],
     }
 
 
@@ -169,7 +196,10 @@ def render_bundle_report(bundle: Mapping[str, Any]) -> str:
         f"signal_envelope_fixture_sha256={hashes['signal_envelope_fixture_sha256']}",
         f"semantic_report_fixture_sha256={hashes['semantic_report_fixture_sha256']}",
         f"tape_sha256={hashes['tape_sha256']}",
+        f"adobe_signal_fixture_sha256={hashes['adobe_signal_fixture_sha256']}",
         f"replay_status={smoke['replay_status']}",
+        f"adobe_summary_status={replay['adobe_summary']['replay_status']}",
+        f"adobe_summary_transport={replay['adobe_summary']['transport']}",
         f"proposal_id={smoke['proposal_id']}",
         f"projection_surface={preview['projection']['surface_id']}",
         f"proposal_only={smoke['execution_mode'] == 'proposal_only'}",
