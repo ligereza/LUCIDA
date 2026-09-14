@@ -15,10 +15,17 @@ host.
 | Rama | Responsabilidad | Destino en X-ANA-X/LUCIDA |
 |---|---|---|
 | main | Base de LUCIDA | LUCIDA/ |
+| ADOBE | Superficie y adaptación para Adobe | LUCIDA/adapters/ y señales Adobe |
 | RESOLUME | Integración VJ y Resolume | LUCIDA/resolume/ y LUCIDA/resolume/adapter |
 | MULTI | Frontera multiusuario futura | LUCIDA/multi/ |
 | codex/adobe-adaptive-composition | Composición para Adobe | LUCIDA/adapters/ y señales Adobe |
 | codex/lucida-python-engine | Motor Python de la capa | LUCIDA/lucida/ |
+| codex/lucida-resolume-final-merge-gate | Gate de merge de Resolume | LUCIDA/resolume/adapter |
+| codex/lucida-resolume-freeze | Congelamiento de Resolume | LUCIDA/resolume/adapter |
+| codex/lucida-resolume-overlay | Overlay de Resolume | LUCIDA/resolume/adapter |
+| codex/lucida-resolume-rc-rehearsal | Ensayo de release candidate | LUCIDA/resolume/adapter |
+| codex/lucida-resolume-runtime | Runtime de Resolume | LUCIDA/resolume/adapter |
+| codex/lucida-resolume-semantic-light-field | Campo semántico de Resolume | LUCIDA/resolume/adapter |
 | docs/next | Documentación y decisiones | documentación de LUCIDA |
 
 El adaptador de Resolume no se trabaja como repositorio independiente: su
