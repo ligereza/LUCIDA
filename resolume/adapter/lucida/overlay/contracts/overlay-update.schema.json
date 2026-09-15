@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:resolume_adapter:lucida:overlay-update",
+  "title": "LUCIDA Atomic Overlay Update",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_type", "schema_version", "surface", "mode", "view", "view_digest", "changes", "cursor", "safety"],
+  "properties": {
+    "contract_type": { "const": "LucidaOverlayUpdate" },
+    "schema_version": { "const": "0.1" },
+    "surface": { "const": "LUCIDA" },
+    "mode": { "const": "read_only" },
+    "view": { "$ref": "urn:resolume_adapter:lucida:overlay-view" },
+    "view_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "changes": {
+      "type": "array",
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field", "before", "after"],
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": [
+              "status",
+              "overlay_status",
+              "capabilities",
+              "pending_proposals",
+              "unknowns",
+              "next_attention",
+              "safety"
+            ]
+          },
+          "before": {},
+          "after": {}
+        }
+      }
+    },
+    "cursor": { "$ref": "urn:resolume_adapter:lucida:overlay-cursor" },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposal_only", "automatic_actions", "external_side_effects"],
+      "properties": {
+        "proposal_only": { "const": true },
+        "automatic_actions": { "const": false },
+        "external_side_effects": { "const": false }
+      }
+    }
+  }
+}

@@ -1,0 +1,236 @@
+{
+  "schema_version": "0.1",
+  "catalog_type": "ResolumeAdapterProcessorCatalog",
+  "updated_at": "2026-08-31T00:00:00Z",
+  "scope": "Initial read-only catalog for LED processors commonly encountered by VJs and LED technicians.",
+  "processors": [
+    {
+      "profile_id": "novastar-vx600",
+      "manufacturer": "NovaStar",
+      "family": "VX",
+      "device_class": "led_video_controller",
+      "identifiers": { "keywords": ["novastar", "vx600", "vx 600"] },
+      "transports": ["usb_control", "ethernet"],
+      "capabilities": {
+        "read": ["device_identity", "input_signal", "input_resolution", "input_frame_rate", "input_color_space", "input_color_range", "input_color_conversion", "brightness", "contrast", "saturation", "hue", "gamma", "output_frame_rate", "screen_configuration", "ethernet_port_status"],
+        "write": ["brightness", "contrast", "saturation", "hue", "gamma", "input_color_conversion", "screen_configuration", "save_to_hardware"],
+        "test_patterns": "yes",
+        "backup_restore": "yes"
+      },
+      "parameters": {
+        "gamma": { "range": [0.25, 4.0], "default": 2.8, "unit": "gamma_value", "risk": "high", "status": "documented" },
+        "input_brightness": { "range": [0, 100], "default": 50, "unit": "percent", "risk": "medium", "status": "documented" },
+        "input_contrast": { "range": [0, 100], "default": 50, "unit": "percent", "risk": "high", "status": "documented" },
+        "input_saturation": { "range": [0, 100], "default": 50, "unit": "percent", "risk": "medium", "status": "documented" },
+        "input_hue": { "range": [-180, 180], "default": 0, "unit": "degrees", "risk": "high", "status": "documented" },
+        "limited_to_full": { "values": ["on", "off"], "risk": "high", "status": "documented" },
+        "output_frame_rate": { "values": [23.98, 24, 25, 29.97, 30, 47.95, 48, 50, 59.94, 60, 72, 75, 85, 100, 120], "unit": "hz", "risk": "high", "status": "documented" }
+      },
+      "screen_relation": {
+        "can_identify_receiving_cards": "yes",
+        "can_identify_pixel_pitch": "no",
+        "requires_fixture_profile": true
+      },
+      "safety": {
+        "default_mode": "read_only",
+        "write_requires_confirmation": true,
+        "unknown_device_policy": "no_write"
+      },
+      "sources": [
+        {
+          "kind": "official_manual",
+          "title": "VX600 All-in-One Controller User Manual V1.3.0",
+          "url": "https://oss.novastar.tech/uploads/2023/06/VX600-All-in-One-Controller-User-Manual-V1.3.0.pdf",
+          "local_path": "docs/references/processors/novastar-vx600-user-manual-v1.3.0.pdf",
+          "notes": "USB Type-B control, input color/range, gamma, brightness, output frame rate and backup sections."
+        },
+        {
+          "kind": "official_product_page",
+          "title": "NovaStar VX400/VX600/VX1000 product comparison",
+          "url": "https://www.novastar.tech/product/detail.html?catid=3&id=35",
+          "notes": "Official input/output and loading-capacity comparison."
+        },
+        {
+          "kind": "official_manual",
+          "title": "NovaLCT LED Configuration Tool User Manual V5.5.0",
+          "url": "https://oss.novastar.tech/uploads/2024/02/NovaLCT-LED-Configuration-Tool-for-Synchronous-Control-System-User-Manual-V5.5.0.pdf",
+          "local_path": "docs/references/processors/novalct-user-manual-v5.5.0.pdf",
+          "notes": "Referencia para configuración de receiving cards y relación con el módulo; usar solo con modelo y firmware confirmados."
+        },
+        {
+          "kind": "open_source_reference",
+          "title": "novastar TypeScript protocol wrapper",
+          "url": "https://github.com/sarakusha/novastar",
+          "notes": "Protocol and transport reference only; not trusted for automatic writes."
+        }
+      ]
+    },
+    {
+      "profile_id": "colorlight-x6-x7",
+      "manufacturer": "Colorlight",
+      "family": "X6/X7",
+      "device_class": "led_video_controller",
+      "identifiers": { "keywords": ["colorlight", "x6", "x7"] },
+      "transports": ["ethernet", "usb_control", "proprietary"],
+      "capabilities": {
+        "read": ["device_identity", "input_signal", "input_resolution", "input_frame_rate", "output_capacity", "screen_configuration"],
+        "write": [],
+        "test_patterns": "unknown",
+        "backup_restore": "unknown"
+      },
+      "parameters": {
+        "input_color_range": { "status": "model_and_firmware_dependent", "risk": "high" },
+        "gamma": { "status": "model_and_firmware_dependent", "risk": "high" },
+        "brightness": { "status": "model_and_firmware_dependent", "risk": "medium" },
+        "screen_mapping": { "status": "model_and_firmware_dependent", "risk": "critical" }
+      },
+      "screen_relation": {
+        "can_identify_receiving_cards": "unknown",
+        "can_identify_pixel_pitch": "unknown",
+        "requires_fixture_profile": true
+      },
+      "safety": {
+        "default_mode": "read_only",
+        "write_requires_confirmation": true,
+        "unknown_device_policy": "no_write"
+      },
+      "sources": [
+        {
+          "kind": "official_product_page",
+          "title": "Colorlight downloads and documents",
+          "url": "https://en.colorlightinside.com/service/download/index_2.html?cat=201",
+          "notes": "Official index listing X6/X7 specifications and manuals; exact capabilities must be matched by model and firmware."
+        },
+        {
+          "kind": "open_source_reference",
+          "title": "Colorlight 5A protocol research",
+          "url": "https://github.com/haraldkubota/colorlight",
+          "notes": "Reference for 5A-family communication; not a universal Colorlight adapter."
+        }
+      ]
+    },
+    {
+      "profile_id": "brompton-tessera",
+      "manufacturer": "Brompton Technology",
+      "family": "Tessera",
+      "device_class": "led_processor",
+      "identifiers": { "keywords": ["brompton", "tessera", "sx40", "s8", "m2", "t1", "s4"] },
+      "transports": ["ethernet", "http", "telnet", "proprietary"],
+      "capabilities": {
+        "read": ["device_identity", "processor_status", "input_signal", "input_resolution", "input_frame_rate", "canvas", "fixture_types", "pixel_pitch_metadata", "topology", "brightness", "colour_pipeline", "test_pattern_status"],
+        "write": ["brightness", "input_source", "canvas", "fixture_mapping", "colour_pipeline", "presets"],
+        "test_patterns": "yes",
+        "backup_restore": "yes"
+      },
+      "parameters": {
+        "pixel_pitch": { "status": "fixture_profile", "risk": "medium" },
+        "mapping_mode": { "values": ["1:1", "interpolated"], "risk": "high", "status": "documented" },
+        "scaler_zoom": { "values": ["1:1", "fit", "fill", "stretch"], "risk": "high", "status": "documented" },
+        "global_brightness": { "status": "documented", "risk": "medium" },
+        "osca": { "status": "documented", "risk": "high" }
+      },
+      "screen_relation": {
+        "can_identify_receiving_cards": "yes",
+        "can_identify_pixel_pitch": "yes",
+        "requires_fixture_profile": true
+      },
+      "safety": {
+        "default_mode": "read_only",
+        "write_requires_confirmation": true,
+        "unknown_device_policy": "no_write"
+      },
+      "sources": [
+        {
+          "kind": "official_manual",
+          "title": "Tessera User Manual V3.1",
+          "url": "https://www.bromptontech.com/wp-content/uploads/2021/03/Tessera-User-Manual-V3.1-Rev-A.pdf",
+          "local_path": "docs/references/processors/brompton-tessera-user-manual-v3.1.pdf",
+          "notes": "Fixture topology, pixel pitch, mapping, scaling/cropping, test patterns and IP control."
+        },
+        {
+          "kind": "official_product_page",
+          "title": "Tessera IP control",
+          "url": "https://www.bromptontech.com/online-help/Content/Tessera%20User%20Manual/03.%20Feature%20Topics/13.2.7%20-%20IP%20Control.htm",
+          "notes": "Documents status monitoring and remote control through HTTP/Telnet."
+        }
+      ]
+    },
+    {
+      "profile_id": "megapixel-helios",
+      "manufacturer": "Megapixel VR",
+      "family": "HELIOS",
+      "device_class": "led_processor",
+      "identifiers": { "keywords": ["megapixel", "helios", "helios processor"] },
+      "transports": ["ethernet", "proprietary"],
+      "capabilities": {
+        "read": ["device_identity", "processor_status", "input_signal", "input_resolution", "input_frame_rate", "tile_compatibility", "output_capacity", "health", "pixel_fault_status"],
+        "write": ["project_configuration", "tile_configuration", "brightness", "colour_processing"],
+        "test_patterns": "unknown",
+        "backup_restore": "yes"
+      },
+      "parameters": {
+        "tile_pixel_count": { "status": "tile_profile", "risk": "medium" },
+        "low_latency": { "status": "platform_and_tile_dependent", "risk": "high" },
+        "pixel_fault_compensation": { "status": "platform_and_tile_dependent", "risk": "medium" }
+      },
+      "screen_relation": {
+        "can_identify_receiving_cards": "yes",
+        "can_identify_pixel_pitch": "yes",
+        "requires_fixture_profile": true
+      },
+      "safety": {
+        "default_mode": "read_only",
+        "write_requires_confirmation": true,
+        "unknown_device_policy": "no_write"
+      },
+      "sources": [
+        {
+          "kind": "official_manual",
+          "title": "HELIOS Processing System User Guide",
+          "url": "https://megapixelvr.com/wp-content/uploads/2023/09/megapixel-helios-processing-system-user-guide.pdf",
+          "local_path": "docs/references/processors/megapixel-helios-user-guide.pdf",
+          "notes": "Input constraints, output capacity and compatible tile concepts."
+        },
+        {
+          "kind": "official_product_page",
+          "title": "HELIOS support and compatible tiles",
+          "url": "https://support.megapixelvr.com/",
+          "notes": "Current platform releases and compatible tile database."
+        }
+      ]
+    },
+    {
+      "profile_id": "unknown-led-processor",
+      "manufacturer": "Unknown",
+      "family": "Unknown",
+      "device_class": "unknown",
+      "identifiers": { "keywords": [] },
+      "transports": ["unknown"],
+      "capabilities": {
+        "read": ["usb_descriptor", "serial_port_metadata", "network_reachability"],
+        "write": [],
+        "test_patterns": "unknown",
+        "backup_restore": "unknown"
+      },
+      "parameters": {},
+      "screen_relation": {
+        "can_identify_receiving_cards": "no",
+        "can_identify_pixel_pitch": "no",
+        "requires_fixture_profile": true
+      },
+      "safety": {
+        "default_mode": "read_only",
+        "write_requires_confirmation": true,
+        "unknown_device_policy": "no_write"
+      },
+      "sources": [
+        {
+          "kind": "case",
+          "title": "RESOLUME_ADAPTER unknown processor policy",
+          "url": "https://github.com/ligereza/LUCIDA/tree/RESOLUME",
+          "notes": "Fallback profile: identify only, never write."
+        }
+      ]
+    }
+  ]
+}

@@ -1,54 +1,33 @@
-# Integración con X-ANA-X
+# Integración de LUCIDA con X-ANA-X
 
-## Fuente canónica
+La implementación canónica está en `https://github.com/ligereza/X-ANA-X`,
+rama `LUCIDA`. `X-ANA-X` conserva el motor compartido; este repositorio
+independiente conserva las ramas de trabajo de host.
 
-La integración canónica vive en:
-
-https://github.com/ligereza/X-ANA-X/tree/LUCIDA
-
-LUCIDA es la capa transparente de integración con aplicaciones. Mantiene la
-separación entre el motor común, la representación y el adaptador de cada
-host.
-
-## Mapa de ramas de este repositorio
-
-| Rama | Responsabilidad | Destino en X-ANA-X/LUCIDA |
+| Rama LUCIDA | Destino canónico | Responsabilidad |
 |---|---|---|
-| main | Base de LUCIDA | LUCIDA/ |
-| ADOBE | Superficie y adaptación para Adobe | LUCIDA/adapters/ y señales Adobe |
-| RESOLUME | Integración VJ y Resolume | LUCIDA/resolume/ y LUCIDA/resolume/adapter |
-| MULTI | Frontera multiusuario futura | LUCIDA/multi/ |
-| codex/adobe-adaptive-composition | Composición para Adobe | LUCIDA/adapters/ y señales Adobe |
-| codex/lucida-python-engine | Motor Python de la capa | LUCIDA/lucida/ |
-| codex/lucida-resolume-final-merge-gate | Gate de merge de Resolume | LUCIDA/resolume/adapter |
-| codex/lucida-resolume-freeze | Congelamiento de Resolume | LUCIDA/resolume/adapter |
-| codex/lucida-resolume-overlay | Overlay de Resolume | LUCIDA/resolume/adapter |
-| codex/lucida-resolume-rc-rehearsal | Ensayo de release candidate | LUCIDA/resolume/adapter |
-| codex/lucida-resolume-runtime | Runtime de Resolume | LUCIDA/resolume/adapter |
-| codex/lucida-resolume-semantic-light-field | Campo semántico de Resolume | LUCIDA/resolume/adapter |
-| docs/next | Documentación y decisiones | documentación de LUCIDA |
+| `ADOBE` | `LUCIDA/adobe/` | Companion local y adaptadores Adobe. |
+| `RESOLUME` | `LUCIDA/lucida/`, `LUCIDA/adapters/vj/`, `LUCIDA/resolume/` | Replay, propuesta y herramientas de show/venue. |
+| `MULTI` | `LUCIDA/multi/` | Frontera futura de sesiones; no activa por sí sola transporte. |
 
-El adaptador de Resolume no se trabaja como repositorio independiente: su
-destino activo es LUCIDA/resolume/adapter dentro de X-ANA-X.
+El paquete de preflight y herramientas específicas de show vive en
+`resolume/adapter/` y se refleja en `LUCIDA/resolume/adapter/`. El código
+compartido nuevo se modifica en el motor canónico; una mejora de host se
+desarrolla en su rama de superficie y se porta con su commit de origen.
 
-## Cómo portar trabajo
+## Límites de integración
 
-1. Mantener el cambio en la rama de host que le corresponde.
-2. Probarlo sin abrir una aplicación real cuando el contrato sea de replay,
-   preview o propuesta.
-3. Portar el commit a X-ANA-X/LUCIDA en la ruta indicada.
-4. No mover lógica común al adaptador si puede vivir en LUCIDA/lucida o en
-   core; no mover lógica específica del host al núcleo.
+- Las ramas de host no se fusionan entre sí.
+- Replay, fixtures y propuestas no prueban uso de Resolume, GPU, cámara, red,
+  hardware ni timing de venue.
+- Las propuestas siguen siendo `proposal_only`; ninguna prueba de esta rama
+  abre Resolume ni ejecuta acciones del host.
+- No se incluyen work ledgers, caches, assets privados ni resultados locales.
 
-La integración no afirma que una aplicación real, GPU, cámara, red o hardware
-hayan sido probados si no existe evidencia de esa ejecución.
+## Validación offline
 
-## Validación
-
-En el adaptador integrado:
-
-PYTHONPATH=tools:. python -m pytest -q -o addopts=
-
-En las pruebas compartidas de X-ANA-X:
-
-PYTHONPATH=LUCIDA python -m pytest -q -o addopts= LUCIDA/tests
+```text
+python -B -m pytest -q -o addopts= tests
+python -B -m lucida.signals.smoke
+python -B -m pytest -q -o addopts= resolume/adapter/tests resolume/adapter/tools/tests
+```

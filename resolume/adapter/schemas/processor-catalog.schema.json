@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:processor-catalog.schema.json",
+  "title": "RESOLUME_ADAPTER Processor Catalog",
+  "description": "Profiles of LED video processors and control systems. A profile describes capabilities, not an automatic write policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "catalog_type", "processors"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "catalog_type": { "const": "ResolumeAdapterProcessorCatalog" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "scope": { "type": "string" },
+    "processors": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/processor" }
+    }
+  },
+  "$defs": {
+    "processor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile_id", "manufacturer", "family", "device_class", "identifiers", "transports", "capabilities", "safety", "sources"],
+      "properties": {
+        "profile_id": { "type": "string", "minLength": 1 },
+        "manufacturer": { "type": "string", "minLength": 1 },
+        "family": { "type": "string", "minLength": 1 },
+        "device_class": { "enum": ["led_video_controller", "led_processor", "scaler_switcher", "unknown"] },
+        "identifiers": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "keywords": { "type": "array", "items": { "type": "string" } },
+            "vid_pid": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "transports": { "type": "array", "items": { "enum": ["usb_control", "serial", "ethernet", "http", "telnet", "proprietary", "unknown"] } },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["read", "write", "test_patterns", "backup_restore"],
+          "properties": {
+            "read": { "type": "array", "items": { "type": "string" } },
+            "write": { "type": "array", "items": { "type": "string" } },
+            "test_patterns": { "enum": ["yes", "no", "unknown"] },
+            "backup_restore": { "enum": ["yes", "no", "unknown"] }
+          }
+        },
+        "parameters": { "type": "object", "additionalProperties": { "type": "object" } },
+        "screen_relation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "can_identify_receiving_cards": { "enum": ["yes", "no", "unknown"] },
+            "can_identify_pixel_pitch": { "enum": ["yes", "no", "unknown"] },
+            "requires_fixture_profile": { "type": "boolean" }
+          }
+        },
+        "safety": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["default_mode", "write_requires_confirmation", "unknown_device_policy"],
+          "properties": {
+            "default_mode": { "const": "read_only" },
+            "write_requires_confirmation": { "const": true },
+            "unknown_device_policy": { "const": "no_write" }
+          }
+        },
+        "sources": { "type": "array", "items": { "$ref": "#/$defs/source" } }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "title", "url"],
+      "properties": {
+        "kind": { "enum": ["official_manual", "official_product_page", "open_source_reference", "case"] },
+        "title": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri" },
+        "local_path": { "type": "string" },
+        "retrieved_at": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:nayade-processor-observation.schema.json",
+  "title": "RESOLUME_ADAPTER NayadeProcessorObservation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "observation_type", "model", "firmware", "transport", "confidence", "evidence", "input_signal", "output_signal", "module_profile", "read_only", "commands_sent", "unknowns"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "observation_type": { "const": "NayadeProcessorObservation" },
+    "model": { "type": ["string", "null"] },
+    "firmware": { "type": ["string", "null"] },
+    "transport": { "enum": ["unknown", "usb", "serial", "ethernet", "hdmi", "manual"] },
+    "confidence": { "enum": ["unknown", "low", "medium", "high"] },
+    "evidence": { "type": "array", "items": { "type": "string" } },
+    "input_signal": { "type": "object" },
+    "output_signal": { "type": "object" },
+    "module_profile": { "type": "object" },
+    "read_only": { "const": true },
+    "commands_sent": { "const": false },
+    "unknowns": { "type": "array", "items": { "type": "string" } }
+  }
+}

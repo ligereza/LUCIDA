@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:asset-manifest.schema.json",
+  "title": "RESOLUME_ADAPTER AssetManifest",
+  "description": "Manifiesto de un catálogo o paquete de show.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "manifest_type", "generated_at", "root", "assets"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "manifest_type": { "const": "AssetManifest" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "root": { "type": "string" },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "profile_id", "status"],
+        "properties": {
+          "path": { "type": "string" },
+          "profile_id": { "type": "string" },
+          "status": { "enum": ["PASS", "WARN", "FAIL", "UNKNOWN"] },
+          "profile_path": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

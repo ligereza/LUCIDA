@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:imago-show-session.schema.json",
+  "title": "RESOLUME_ADAPTER ImagoShowSession",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "session_type", "session_id", "name", "created_at", "updated_at", "read_only", "commands_sent", "profile", "status", "sequence", "last_event_id", "last_timestamp", "checkpoint_id", "open_incidents", "proposals", "pending_proposal_ids", "results", "events", "unknowns"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "session_type": { "const": "ImagoShowSession" },
+    "session_id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "read_only": { "const": true },
+    "commands_sent": { "const": false },
+    "profile": { "type": "object" },
+    "status": { "enum": ["prepared", "showing", "incident", "recovering", "closed"] },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "last_event_id": { "type": ["string", "null"] },
+    "last_timestamp": { "type": ["string", "null"], "format": "date-time" },
+    "checkpoint_id": { "type": "string", "minLength": 1 },
+    "open_incidents": { "type": "array", "items": { "type": "string" } },
+    "pending_proposal_ids": { "type": "array", "items": { "type": "string" } },
+    "proposals": { "type": "array", "items": { "$ref": "#/$defs/proposal" } },
+    "results": { "type": "array", "items": { "$ref": "#/$defs/result" } },
+    "events": { "type": "array", "items": { "$ref": "#/$defs/event" } },
+    "unknowns": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposal_id", "event_id", "operation", "reason", "requires_explicit_approval", "reversible", "execution_mode"],
+      "properties": {
+        "proposal_id": { "type": "string" },
+        "event_id": { "type": "string" },
+        "operation": { "type": "string" },
+        "reason": { "type": "string" },
+        "requires_explicit_approval": { "const": true },
+        "reversible": { "const": true },
+        "execution_mode": { "const": "proposal_only" }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result_id", "proposal_id", "created_at", "result", "notes"],
+      "properties": {
+        "result_id": { "type": "string" },
+        "proposal_id": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "result": { "enum": ["accepted", "rejected", "review"] },
+        "notes": { "type": "string" }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "created_at", "event_type", "payload", "status_after", "checkpoint_id"],
+      "properties": {
+        "event_id": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "event_type": { "enum": ["show_started", "cue_fired", "guard_window_requested", "incident_detected", "recovery_started", "recovery_verified", "show_closed"] },
+        "payload": { "type": "object" },
+        "status_after": { "enum": ["prepared", "showing", "incident", "recovering", "closed"] },
+        "checkpoint_id": { "type": "string" }
+      }
+    }
+  }
+}

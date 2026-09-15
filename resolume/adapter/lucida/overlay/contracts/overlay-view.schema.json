@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:resolume_adapter:lucida:overlay-view",
+  "title": "LUCIDA Overlay View",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_type",
+    "schema_version",
+    "surface",
+    "mode",
+    "session_id",
+    "phase",
+    "status",
+    "overlay_status",
+    "capabilities",
+    "pending_proposals",
+    "unknowns",
+    "next_attention",
+    "safety"
+  ],
+  "properties": {
+    "contract_type": { "const": "LucidaOverlayView" },
+    "schema_version": { "const": "0.1" },
+    "surface": { "const": "LUCIDA" },
+    "mode": { "const": "read_only" },
+    "session_id": { "type": "string", "minLength": 1 },
+    "phase": {
+      "type": "string",
+      "enum": ["preflight", "preparation", "show", "incident", "recovery", "closure"]
+    },
+    "status": { "type": "string", "minLength": 1 },
+    "overlay_status": { "type": "string", "minLength": 1 },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "capability",
+          "state",
+          "observed_count",
+          "expected_result_count",
+          "unknowns"
+        ],
+        "properties": {
+          "capability": { "type": "string", "minLength": 1 },
+          "state": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "status": { "type": ["string", "number", "boolean", "null"] },
+              "media_status": { "type": ["string", "number", "boolean", "null"] },
+              "signal_status": { "type": ["string", "number", "boolean", "null"] },
+              "show_status": { "type": ["string", "number", "boolean", "null"] },
+              "recovery_status": { "type": ["string", "number", "boolean", "null"] },
+              "profile_status": { "type": ["string", "null"] },
+              "profile_stage": { "type": ["string", "null"] },
+              "profile_unknown_count": { "type": ["integer", "null"], "minimum": 0 },
+              "profile_inferred_count": { "type": ["integer", "null"], "minimum": 0 },
+              "profile_min_confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+              "processor_read_only": { "type": ["boolean", "null"] },
+              "profile_comparison_status": { "type": ["string", "null"] },
+              "profile_changed_count": { "type": ["integer", "null"], "minimum": 0 },
+              "profile_confidence_drop_count": { "type": ["integer", "null"], "minimum": 0 },
+              "profile_unknown_delta": { "type": ["integer", "null"] },
+              "profile_recommendation_changed": { "type": ["boolean", "null"] },
+              "profile_read_only_changed": { "type": ["boolean", "null"] },
+              "profile_stage_changed": { "type": ["boolean", "null"] },
+              "profile_context_status": { "type": ["string", "null"] }
+            }
+          },
+          "observed_count": { "type": "integer", "minimum": 0 },
+          "expected_result_count": { "type": "integer", "minimum": 0 },
+          "unknowns": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "pending_proposals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proposal_id",
+          "event_id",
+          "phase",
+          "operation",
+          "reason",
+          "risk",
+          "requires_explicit_approval",
+          "reversible",
+          "execution_mode"
+        ],
+        "properties": {
+          "proposal_id": { "type": "string", "minLength": 1 },
+          "event_id": { "type": "string", "minLength": 1 },
+          "phase": { "type": "string", "minLength": 1 },
+          "operation": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 },
+          "risk": { "type": "string", "minLength": 1 },
+          "requires_explicit_approval": { "const": true },
+          "reversible": { "const": true },
+          "execution_mode": { "const": "proposal_only" }
+        }
+      }
+    },
+    "unknowns": { "type": "array", "items": { "type": "string" } },
+    "next_attention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id", "reason"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "id": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposal_only", "automatic_actions", "external_side_effects"],
+      "properties": {
+        "proposal_only": { "const": true },
+        "automatic_actions": { "const": false },
+        "external_side_effects": { "const": false }
+      }
+    }
+  }
+}

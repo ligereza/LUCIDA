@@ -1,0 +1,81 @@
+{
+  "session_id": "show-input-fictional-001",
+  "events": [
+    {
+      "event_id": "show-input-event-001",
+      "timestamp": "2026-09-02T20:00:00Z",
+      "phase": "preflight",
+      "event_type": "phase.completed",
+      "payload": {
+        "transport": "osc",
+        "sequence": 1,
+        "show_state": "ready",
+        "provenance": {"producer": "fixture", "protocol": "osc"}
+      },
+      "source": "fixture-osc"
+    },
+    {
+      "event_id": "show-input-event-002",
+      "timestamp": "2026-09-02T20:15:00Z",
+      "phase": "preparation",
+      "event_type": "phase.completed",
+      "payload": {
+        "transport": "artnet",
+        "sequence": 2,
+        "show_state": "ready",
+        "provenance": {"producer": "fixture", "device": "node-1"}
+      },
+      "source": "fixture-artnet"
+    },
+    {
+      "event_id": "show-input-event-003",
+      "timestamp": "2026-09-02T22:00:00Z",
+      "phase": "show",
+      "event_type": "show.started",
+      "payload": {
+        "transport": "timecode",
+        "sequence": 3,
+        "preview_candidate": "candidate-main-01",
+        "provenance": {"producer": "fixture", "clock_id": "clock-1"}
+      },
+      "source": "fixture-timecode"
+    },
+    {
+      "event_id": "show-input-event-004",
+      "timestamp": "2026-09-02T22:37:20Z",
+      "phase": "incident",
+      "event_type": "incident.detected",
+      "payload": {
+        "transport": "osc",
+        "sequence": 4,
+        "provenance": {"producer": "fixture", "raw_hash": "sha256:004"}
+      },
+      "source": "fixture-osc"
+    },
+    {
+      "event_id": "show-input-event-005",
+      "timestamp": "2026-09-02T22:39:10Z",
+      "phase": "recovery",
+      "event_type": "recovery.started",
+      "payload": {
+        "transport": "sacn",
+        "sequence": 5,
+        "provenance": {"producer": "fixture", "protocol": "e1.31"}
+      },
+      "source": "fixture-sacn"
+    },
+    {
+      "event_id": "show-input-event-006",
+      "timestamp": "2026-09-03T00:00:00Z",
+      "phase": "closure",
+      "event_type": "show.closed",
+      "payload": {
+        "transport": "osc",
+        "sequence": 6,
+        "show_state": "closed",
+        "provenance": {"producer": "fixture"}
+      },
+      "source": "fixture-osc"
+    }
+  ]
+}

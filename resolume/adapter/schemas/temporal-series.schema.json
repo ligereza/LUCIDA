@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:temporal-series.schema.json",
+  "title": "RESOLUME_ADAPTER TemporalSeries",
+  "description": "Señales temporales muestreadas de una visual.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["timestamps_s", "sample_count", "resolution"],
+  "properties": {
+    "timestamps_s": { "type": "array", "items": { "type": ["number", "null"] } },
+    "luminance": { "type": "array", "items": { "type": "number" } },
+    "motion": { "type": "array", "items": { "type": "number", "minimum": 0 } },
+    "saturation": { "type": "array", "items": { "type": "number", "minimum": 0 } },
+    "sample_count": { "type": "integer", "minimum": 0 },
+    "sample_rate_hz": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+    "resolution": { "type": "string" }
+  }
+}

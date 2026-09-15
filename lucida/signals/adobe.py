@@ -20,10 +20,10 @@ DEFAULT_ADOBE_FIXTURE = (
 )
 ADOBE_SOURCE_FIXTURES = {
     "xio": Path(__file__).resolve().parent / "fixtures" / "adobe-signal-xio-fictional.json",
-    "vizz": DEFAULT_ADOBE_FIXTURE,
+    "visual": DEFAULT_ADOBE_FIXTURE,
     "pupila": Path(__file__).resolve().parent / "fixtures" / "adobe-signal-pupila-fictional.json",
 }
-ADOBE_SOURCES = frozenset({"xio", "vizz", "pupila"})
+ADOBE_SOURCES = frozenset({"xio", "visual", "pupila"})
 ADOBE_PHASES = frozenset(
     {"preflight", "preparation", "show", "incident", "recovery", "closure"}
 )

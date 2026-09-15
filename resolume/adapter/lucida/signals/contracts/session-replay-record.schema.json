@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lucida:signals:session-replay-record",
+  "title": "Session Replay Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_type",
+    "schema_version",
+    "event",
+    "signal",
+    "proposals",
+    "results",
+    "state_after",
+    "audit"
+  ],
+  "properties": {
+    "contract_type": { "const": "SessionReplayRecord" },
+    "schema_version": { "const": "0.1" },
+    "event": { "$ref": "urn:vj-interface-layer:contracts:vj-event" },
+    "signal": { "$ref": "urn:lucida:signals:signal-envelope" },
+    "proposals": {
+      "type": "array",
+      "items": { "$ref": "urn:vj-interface-layer:contracts:vj-proposal" }
+    },
+    "results": {
+      "type": "array",
+      "items": { "$ref": "urn:vj-interface-layer:contracts:vj-result" }
+    },
+    "state_after": { "$ref": "urn:resolume_adapter:lucida:state" },
+    "audit": { "type": "object" }
+  }
+}

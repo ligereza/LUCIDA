@@ -109,7 +109,7 @@ def build_evidence_bundle(
             "No projector, lighting device, audio device, camera, GPU, or venue network was used.",
             "Venue timing, calibration, photometry, acoustics, and physical routing remain untested.",
             "The ADOBE summary connector was replayed offline; no Adobe host was opened.",
-            "PUPILA and VIZZ host integrations remain untested outside summary signals.",
+            "PUPILA and VISUAL host integrations remain untested outside summary signals.",
         ],
     }
 

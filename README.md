@@ -1,28 +1,41 @@
-# LUCIDA
+# LUCIDA / RESOLUME
 
-Portable adaptation surfaces for visual, creative and multi-device workflows.
+Esta rama contiene la superficie de LUCIDA para flujos VJ y Resolume. LUCIDA
+propone, registra y proyecta; no envía comandos a Resolume ni modifica un
+showfile o un procesador sin una política y autorización explícitas.
 
-## Branches
+## Integración canónica
 
-- `ADOBE`: contextual shelf, companion overlay and Adobe adapters.
-- `RESOLUME`: single-surface VJ boundary and deterministic session replay.
-- `MULTI`: router-agnostic transport, peer sessions and application signals.
+El motor común vive en `X-ANA-X/LUCIDA/lucida/`. Esta copia de trabajo se
+sincronizó desde `ligereza/X-ANA-X`, rama `LUCIDA`, commit
+`44b456d`.
 
-Each branch keeps its host-specific code isolated. Shared contracts must be
-explicit, replayable and independent of a particular application.
+- `lucida/`: contratos, eventos, replay y proyección compartidos.
+- `adapters/vj/`: adaptación de eventos y propuestas del flujo VJ.
+- `resolume/`: replay y evidencia offline de la superficie Resolume.
+- `resolume/adapter/`: herramientas especializadas de preflight, análisis de
+  medios, fixtures, esquemas y runbooks para show/venue, portadas desde
+  `X-ANA-X/LUCIDA/resolume/adapter/`.
 
-Technical identifiers, file names, event keys, fixtures and parseable logs use
-English ASCII. User-facing text may be localized separately.
+El paquete `resolume/adapter/` conserva su protocolo de overlay y pruebas
+específicas del dominio. La lógica nueva compartida pertenece a `lucida/` y a
+la rama canónica de X-ANA-X; no se debe crear otro motor común dentro del
+adaptador.
 
-LUCIDA proposes and records. It does not silently control a host application,
-discover peers, open network sockets or execute an action without an explicit
-host policy and authorization.
+## Validación offline
 
-## MOSAIK project-event bridge
+Desde la raíz de este repositorio:
 
-MOSAIK's `vj-project` command emits one canonical `VJEvent` from an INSTAR,
-NAYADE or IMAGO document. LUCIDA can now consume those events through
-`lucida.signals.mosaik.MosaikEventConsumer`, append them to its deterministic
-proposal-only replay, and retain the source stage in the signal address and
-audit metadata. The bridge accepts no paths, does not open a transport, and
-does not execute Resolume or liveshow actions.
+```powershell
+python -B -m pytest -q -o addopts=
+python -B -m lucida.signals.smoke
+```
+
+Para validar las herramientas específicas de show:
+
+```powershell
+python -B -m pytest -q -o addopts= resolume/adapter/tests resolume/adapter/tools/tests
+```
+
+Estas pruebas no abren Resolume, cámaras, sockets, GPU ni hardware. Un replay
+`REVIEW` y una propuesta pendiente no equivalen a validación en venue.

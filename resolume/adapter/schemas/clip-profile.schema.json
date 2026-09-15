@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:clip-profile.schema.json",
+  "title": "RESOLUME_ADAPTER ClipProfile",
+  "description": "Perfil reutilizable de una visual analizada por INSTAR.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profile_type", "profile_id", "generated_at", "analyzer", "source", "technical", "visual", "events", "compatibility"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "profile_type": { "const": "ClipProfile" },
+    "profile_id": { "type": "string", "minLength": 1 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "analyzer": { "$ref": "#/$defs/analyzer" },
+    "source": { "$ref": "#/$defs/source" },
+    "technical": { "type": "object" },
+    "visual": { "type": "object" },
+    "events": {
+      "type": "object",
+      "properties": {
+        "cue_suggestions": { "$ref": "#/$defs/cueSuggestions" }
+      }
+    },
+    "temporal_series": { "type": ["object", "null"] },
+    "compatibility": { "type": "object" },
+    "limitations": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "analyzer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "mode", "backend"],
+      "properties": {
+        "name": { "const": "INSTAR" },
+        "version": { "type": "string" },
+        "mode": { "type": "string" },
+        "backend": { "type": "string" }
+      }
+    },
+    "fingerprint": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": { "type": "string" },
+        "value": { "type": "string" },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "mtime_ns": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "filename", "extension", "fingerprint"],
+      "properties": {
+        "path": { "type": "string" },
+        "filename": { "type": "string" },
+        "extension": { "type": "string" },
+        "fingerprint": { "$ref": "#/$defs/fingerprint" }
+      }
+    },
+    "cueSuggestions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "status", "basis", "cues", "limitations"],
+      "properties": {
+        "version": { "type": "string" },
+        "status": { "enum": ["REVIEW", "NO_CANDIDATES", "NOT_AVAILABLE"] },
+        "basis": { "type": "string" },
+        "sample_count": { "type": "integer", "minimum": 0 },
+        "duration_seconds": { "type": "number", "minimum": 0 },
+        "cues": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/cueSuggestion" }
+        },
+        "limitations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "cueSuggestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role", "confidence", "requires_review"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "role": { "enum": ["change", "strobe_window", "loop"] },
+        "style": { "enum": ["clean", "impact"] },
+        "position_ms": { "type": "number", "minimum": 0 },
+        "position_s": { "type": "number", "minimum": 0 },
+        "end_position_ms": { "type": "number", "minimum": 0 },
+        "end_position_s": { "type": "number", "minimum": 0 },
+        "in_position_ms": { "type": "number", "minimum": 0 },
+        "in_position_s": { "type": "number", "minimum": 0 },
+        "out_position_ms": { "type": "number", "minimum": 0 },
+        "out_position_s": { "type": "number", "minimum": 0 },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "evidence": { "type": "object" },
+        "strobe_candidate": { "type": "boolean" },
+        "requires_review": { "type": "boolean" },
+        "safety_note": { "type": "string" }
+      }
+    }
+  }
+}

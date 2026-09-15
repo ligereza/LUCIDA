@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:resolume_adapter:vj:show-input",
+  "title": "RESOLUME_ADAPTER VJ Show Input Projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_type",
+    "schema_version",
+    "show_state",
+    "show_phase",
+    "preview_candidate",
+    "source_timestamp",
+    "sequence",
+    "provenance"
+  ],
+  "properties": {
+    "contract_type": { "const": "ResolumeAdapterShowInput" },
+    "schema_version": { "const": "0.1" },
+    "show_state": {
+      "enum": ["idle", "ready", "showing", "incident", "recovering", "closed", "unknown"]
+    },
+    "show_phase": {
+      "enum": ["preflight", "preparation", "show", "incident", "recovery", "closure"]
+    },
+    "preview_candidate": { "type": ["string", "null"], "minLength": 1 },
+    "source_timestamp": { "type": "string", "format": "date-time" },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "transport"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "transport": {
+          "enum": ["artnet", "osc", "sacn", "timecode", "unknown", "xio"]
+        },
+        "clock_id": { "type": "string", "minLength": 1 },
+        "device": { "type": "string", "minLength": 1 },
+        "producer": { "type": "string", "minLength": 1 },
+        "protocol": { "type": "string", "minLength": 1 },
+        "raw_hash": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

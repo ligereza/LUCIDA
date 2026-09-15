@@ -26,7 +26,7 @@ def run_connector_conformance() -> dict[str, Any]:
         source: run_adobe_summary_preview(path)
         for source, path in ADOBE_SOURCE_FIXTURES.items()
     }
-    adobe = adobe_sources["vizz"]
+    adobe = adobe_sources["visual"]
     xio = replay_path(XIO_FIXTURE)
     smoke = run_envelope_backed_smoke()
     surfaces = run_fixture_conformance()

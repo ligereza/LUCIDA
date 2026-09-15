@@ -1,0 +1,158 @@
+{
+  "contract_type": "LucidaOverlayReplay",
+  "schema_version": "0.1",
+  "records": [
+    {
+      "kind": "snapshot",
+      "recovery": false,
+      "view": {
+        "contract_type": "LucidaOverlayView",
+        "schema_version": "0.1",
+        "surface": "LUCIDA",
+        "mode": "read_only",
+        "session_id": "overlay-fictional",
+        "phase": "preflight",
+        "status": "created",
+        "overlay_status": "ready",
+        "capabilities": [],
+        "pending_proposals": [],
+        "unknowns": [],
+        "next_attention": {
+          "kind": "phase",
+          "id": "phase-preflight",
+          "reason": "Awaiting the next event."
+        },
+        "safety": {
+          "proposal_only": true,
+          "automatic_actions": false,
+          "external_side_effects": false
+        }
+      },
+      "cursor": {
+        "contract_type": "LucidaOverlayCursor",
+        "schema_version": "0.1",
+        "surface": "LUCIDA",
+        "mode": "read_only",
+        "session_id": "overlay-fictional",
+        "sequence": 0,
+        "last_event_id": null,
+        "last_timestamp": null,
+        "checkpoint_id": null,
+        "safety": {
+          "proposal_only": true,
+          "automatic_actions": false,
+          "external_side_effects": false
+        }
+      }
+    },
+    {
+      "kind": "delta",
+      "changes": [
+        { "field": "status", "before": "created", "after": "ready" }
+      ],
+      "cursor": {
+        "contract_type": "LucidaOverlayCursor",
+        "schema_version": "0.1",
+        "surface": "LUCIDA",
+        "mode": "read_only",
+        "session_id": "overlay-fictional",
+        "sequence": 1,
+        "last_event_id": "evt-preflight",
+        "last_timestamp": "2026-01-10T20:00:00Z",
+        "checkpoint_id": "checkpoint-preflight",
+        "safety": {
+          "proposal_only": true,
+          "automatic_actions": false,
+          "external_side_effects": false
+        }
+      }
+    },
+    {
+      "kind": "delta",
+      "changes": [
+        { "field": "overlay_status", "before": "ready", "after": "observing" }
+      ],
+      "cursor": {
+        "contract_type": "LucidaOverlayCursor",
+        "schema_version": "0.1",
+        "surface": "LUCIDA",
+        "mode": "read_only",
+        "session_id": "overlay-fictional",
+        "sequence": 1,
+        "last_event_id": "evt-preflight",
+        "last_timestamp": "2026-01-10T20:00:00Z",
+        "checkpoint_id": "checkpoint-preflight",
+        "safety": {
+          "proposal_only": true,
+          "automatic_actions": false,
+          "external_side_effects": false
+        }
+      }
+    },
+    {
+      "kind": "snapshot",
+      "recovery": true,
+      "view": {
+        "contract_type": "LucidaOverlayView",
+        "schema_version": "0.1",
+        "surface": "LUCIDA",
+        "mode": "read_only",
+        "session_id": "overlay-fictional",
+        "phase": "preflight",
+        "status": "ready",
+        "overlay_status": "recovered",
+        "capabilities": [],
+        "pending_proposals": [],
+        "unknowns": [],
+        "next_attention": {
+          "kind": "phase",
+          "id": "phase-preflight",
+          "reason": "Awaiting the next event."
+        },
+        "safety": {
+          "proposal_only": true,
+          "automatic_actions": false,
+          "external_side_effects": false
+        }
+      },
+      "cursor": {
+        "contract_type": "LucidaOverlayCursor",
+        "schema_version": "0.1",
+        "surface": "LUCIDA",
+        "mode": "read_only",
+        "session_id": "overlay-fictional",
+        "sequence": 1,
+        "last_event_id": "evt-preflight",
+        "last_timestamp": "2026-01-10T20:00:00Z",
+        "checkpoint_id": "checkpoint-preflight",
+        "safety": {
+          "proposal_only": true,
+          "automatic_actions": false,
+          "external_side_effects": false
+        }
+      }
+    },
+    {
+      "kind": "delta",
+      "changes": [
+        { "field": "status", "before": "ready", "after": "showing" }
+      ],
+      "cursor": {
+        "contract_type": "LucidaOverlayCursor",
+        "schema_version": "0.1",
+        "surface": "LUCIDA",
+        "mode": "read_only",
+        "session_id": "overlay-fictional",
+        "sequence": 2,
+        "last_event_id": "evt-show",
+        "last_timestamp": "2026-01-10T20:01:00Z",
+        "checkpoint_id": "checkpoint-show",
+        "safety": {
+          "proposal_only": true,
+          "automatic_actions": false,
+          "external_side_effects": false
+        }
+      }
+    }
+  ]
+}

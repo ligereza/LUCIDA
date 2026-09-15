@@ -297,7 +297,7 @@ class OscResolumeBoundary:
         report: Mapping[str, Any],
         state: OscBridgeState | Mapping[str, Any],
     ) -> tuple[OscBridgeState, dict[str, Any]]:
-        """Project a MOSAIK proposal report into the RESOLUME surface state."""
+        """Project a RESOLUME_ADAPTER proposal report into the RESOLUME surface state."""
         current = state if isinstance(state, OscBridgeState) else OscBridgeState.from_dict(state)
         from .semantic_light_field import project_semantic_light_field_report
 

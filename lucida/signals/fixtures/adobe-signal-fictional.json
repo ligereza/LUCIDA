@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "signalId": "adobe-signal-001",
-  "source": "vizz",
+  "source": "visual",
   "sessionId": "fictional-adobe-session",
   "sequence": 0,
   "eventType": "attention.sample",

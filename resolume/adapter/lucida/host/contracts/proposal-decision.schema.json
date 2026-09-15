@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lucida:host:proposal-decision",
+  "title": "ProposalDecision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["decision_id", "proposal_id", "status", "reason", "sequence", "timestamp", "source", "explicit_confirmation"],
+  "properties": {
+    "contract_type": { "const": "ProposalDecision" },
+    "schema_version": { "const": "0.1" },
+    "decision_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]+$" },
+    "proposal_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]+$" },
+    "status": { "enum": ["accepted", "rejected", "unknown"] },
+    "reason": { "type": "string", "minLength": 1 },
+    "sequence": { "type": "integer", "exclusiveMinimum": 0 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]+$" },
+    "explicit_confirmation": { "type": "boolean" },
+    "provenance": { "type": "object" }
+  }
+}

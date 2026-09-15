@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:nayade-output-probe.schema.json",
+  "title": "RESOLUME_ADAPTER NayadeOutputProbe",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "probe_type", "captured_at", "platform", "backend", "status", "adapters", "displays", "output_signal", "limitations", "safety"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "probe_type": { "const": "NayadeOutputProbe" },
+    "captured_at": { "type": "string", "format": "date-time" },
+    "platform": { "const": "windows" },
+    "backend": { "const": "powershell_wmi" },
+    "status": { "enum": ["PASS", "REVIEW"] },
+    "adapters": { "type": "array", "items": { "$ref": "#/$defs/adapter" } },
+    "displays": { "type": "array", "items": { "$ref": "#/$defs/display" } },
+    "output_signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resolution", "refresh_hz", "color_range", "color_space"],
+      "properties": {
+        "resolution": { "type": ["string", "null"] },
+        "refresh_hz": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "color_range": { "type": "string" },
+        "color_space": { "type": "string" }
+      }
+    },
+    "limitations": { "type": "array", "items": { "type": "string" } },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_only", "commands_sent", "writes_attempted", "external_side_effects"],
+      "properties": {
+        "read_only": { "const": true },
+        "commands_sent": { "const": false },
+        "writes_attempted": { "const": false },
+        "external_side_effects": { "const": false }
+      }
+    }
+  },
+  "$defs": {
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adapter_id"],
+      "properties": {
+        "adapter_id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "driver_version": { "type": "string" },
+        "video_mode_description": { "type": "string" },
+        "current_resolution": { "type": "string" },
+        "current_refresh_hz": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "display": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["display_id"],
+      "properties": {
+        "display_id": { "type": "string", "minLength": 1 },
+        "manufacturer": { "type": "string" },
+        "name": { "type": "string" },
+        "product_code": { "type": "string" },
+        "active": { "type": "boolean" }
+      }
+    }
+  }
+}

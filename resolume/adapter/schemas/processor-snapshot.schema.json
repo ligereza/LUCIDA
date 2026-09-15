@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:processor-snapshot.schema.json",
+  "title": "RESOLUME_ADAPTER Processor Snapshot",
+  "description": "Read-only discovery record captured before any processor change.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "snapshot_type", "captured_at", "read_only", "connection", "identification", "safety"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "snapshot_type": { "const": "NayadeProcessorSnapshot" },
+    "captured_at": { "type": "string", "format": "date-time" },
+    "read_only": { "const": true },
+    "connection": { "type": "object" },
+    "identification": { "type": "object" },
+    "catalog_profile": { "type": ["object", "null"] },
+    "screen": { "type": "object" },
+    "observations": { "type": "array", "items": { "type": "object" } },
+    "module_profile_id": { "type": ["string", "null"] },
+    "diagnostics": { "type": "array", "items": { "type": "object" } },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commands_sent", "writes_attempted", "unknown_device_write_blocked"],
+      "properties": {
+        "commands_sent": { "const": false },
+        "writes_attempted": { "const": false },
+        "unknown_device_write_blocked": { "const": true }
+      }
+    }
+  }
+}

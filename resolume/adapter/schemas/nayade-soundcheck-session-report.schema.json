@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:nayade-soundcheck-session-report.schema.json",
+  "title": "RESOLUME_ADAPTER NayadeSoundcheckSessionReport",
+  "description": "Resumen seguro del estado de una sesión NAYADE.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_type", "status", "session_id", "session_name", "updated_at", "summary", "next_step", "risks", "safety"],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "report_type": {"const": "NayadeSoundcheckSessionReport"},
+    "status": {"enum": ["READY", "INCOMPLETE", "REVIEW", "BLOCKED"]},
+    "session_id": {"type": "string"},
+    "session_name": {"type": "string"},
+    "updated_at": {"type": "string", "format": "date-time"},
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_count", "event_count", "step_results", "pending_count", "pending_required_count", "risk_count"],
+      "properties": {
+        "step_count": {"type": "integer", "minimum": 0},
+        "event_count": {"type": "integer", "minimum": 0},
+        "step_results": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}},
+        "pending_count": {"type": "integer", "minimum": 0},
+        "pending_required_count": {"type": "integer", "minimum": 0},
+        "risk_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "next_step": {"anyOf": [{"$ref": "#/$defs/next_step"}, {"type": "null"}]},
+    "risks": {"type": "array", "items": {"$ref": "#/$defs/risk"}},
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_only", "commands_sent", "writes_attempted", "external_side_effects", "source_paths_exposed"],
+      "properties": {
+        "read_only": {"const": true},
+        "commands_sent": {"const": false},
+        "writes_attempted": {"const": false},
+        "external_side_effects": {"const": false},
+        "source_paths_exposed": {"const": false}
+      }
+    }
+  },
+  "$defs": {
+    "next_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_id", "operation", "scope", "targets", "pattern", "title", "priority", "expected_checks"],
+      "properties": {
+        "step_id": {"type": "string"},
+        "operation": {"type": "string"},
+        "scope": {"type": "string"},
+        "targets": {"type": "array", "items": {"type": "string"}},
+        "pattern": {"type": ["string", "null"]},
+        "title": {"type": ["string", "null"]},
+        "priority": {"type": "string"},
+        "expected_checks": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["risk_id", "severity", "step_id", "operation", "status", "detail"],
+      "properties": {
+        "risk_id": {"type": "string"},
+        "severity": {"enum": ["high", "review"]},
+        "step_id": {"type": "string"},
+        "operation": {"type": "string"},
+        "status": {"enum": ["running", "rejected", "review"]},
+        "detail": {"type": "string"}
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:resolume_adapter:lucida:overlay-replay-report",
+  "title": "LUCIDA Overlay Replay Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_type",
+    "schema_version",
+    "status",
+    "record_count",
+    "snapshot_count",
+    "delta_count",
+    "update_count",
+    "applied_delta_count",
+    "operations",
+    "final_view",
+    "final_cursor",
+    "checkpoint",
+    "safety"
+  ],
+  "properties": {
+    "contract_type": { "const": "LucidaOverlayReplayReport" },
+    "schema_version": { "const": "0.1" },
+    "status": { "const": "PASS" },
+    "record_count": { "type": "integer", "minimum": 1 },
+    "snapshot_count": { "type": "integer", "minimum": 1 },
+    "delta_count": { "type": "integer", "minimum": 0 },
+    "update_count": { "type": "integer", "minimum": 0 },
+    "applied_delta_count": { "type": "integer", "minimum": 0 },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["index", "kind", "sequence", "change_count", "last_operation"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 0 },
+          "kind": { "enum": ["snapshot", "delta", "update"] },
+          "sequence": { "type": "integer", "minimum": 0 },
+          "change_count": { "type": "integer", "minimum": 0, "maximum": 7 },
+          "last_operation": {
+            "enum": ["initial_snapshot", "recovery_snapshot", "delta"]
+          }
+        }
+      }
+    },
+    "final_view": { "$ref": "urn:resolume_adapter:lucida:overlay-view" },
+    "final_cursor": { "$ref": "urn:resolume_adapter:lucida:overlay-cursor" },
+    "checkpoint": { "$ref": "urn:resolume_adapter:lucida:overlay-consumer-checkpoint" },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "replay_only",
+        "proposal_only",
+        "automatic_actions",
+        "external_side_effects"
+      ],
+      "properties": {
+        "replay_only": { "const": true },
+        "proposal_only": { "const": true },
+        "automatic_actions": { "const": false },
+        "external_side_effects": { "const": false }
+      }
+    }
+  }
+}

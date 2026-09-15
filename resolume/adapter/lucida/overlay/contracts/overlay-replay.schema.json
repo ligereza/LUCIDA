@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:resolume_adapter:lucida:overlay-replay",
+  "title": "LUCIDA Overlay Replay",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_type", "schema_version", "records"],
+  "properties": {
+    "contract_type": { "const": "LucidaOverlayReplay" },
+    "schema_version": { "const": "0.1" },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "view", "cursor", "recovery"],
+            "properties": {
+              "kind": { "const": "snapshot" },
+              "view": { "$ref": "urn:resolume_adapter:lucida:overlay-view" },
+              "cursor": { "$ref": "urn:resolume_adapter:lucida:overlay-cursor" },
+              "recovery": { "type": "boolean" }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "changes", "cursor"],
+            "properties": {
+              "kind": { "const": "delta" },
+              "changes": {
+                "type": "array",
+                "maxItems": 7,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["field", "before", "after"],
+                  "properties": {
+                    "field": {
+                      "type": "string",
+                      "enum": [
+                        "status",
+                        "overlay_status",
+                        "capabilities",
+                        "pending_proposals",
+                        "unknowns",
+                        "next_attention",
+                        "safety"
+                      ]
+                    },
+                    "before": {},
+                    "after": {}
+                  }
+                }
+              },
+              "cursor": { "$ref": "urn:resolume_adapter:lucida:overlay-cursor" }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "update"],
+            "properties": {
+              "kind": { "const": "update" },
+              "update": { "$ref": "urn:resolume_adapter:lucida:overlay-update" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

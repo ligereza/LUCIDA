@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:event.schema.json",
+  "title": "RESOLUME_ADAPTER Event",
+  "description": "Evento temporal detectado o inferido por RESOLUME_ADAPTER.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "timestamp_s", "score", "confidence"],
+  "properties": {
+    "type": { "type": "string", "minLength": 1 },
+    "timestamp_s": { "type": ["number", "null"] },
+    "duration_s": { "type": ["number", "null"], "minimum": 0 },
+    "score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "area": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "evidence": { "type": "array", "items": { "type": "string" } }
+  }
+}

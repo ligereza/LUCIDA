@@ -1,0 +1,16 @@
+# RESOLUME_ADAPTER INSTAR
+# Dependencias del catálogo, perfiles y análisis reproducible.
+numpy>=2.1,<3
+Pillow>=10,<13
+av>=14,<17
+scenedetect[opencv]>=0.6.6,<0.7
+jsonschema>=4.23,<5
+pyserial>=3.5,<4
+
+# Esta dependencia se utiliza para ejecutar la suite de pruebas.
+pytest==9.1.1
+
+# Dependencias externas, no instalables con pip:
+# - FFmpeg y FFprobe accesibles desde PATH.
+# - Resolume Arena/Avenue 7.26+ para la integración MCP.
+# - El MCP de Resolume viene con la instalación de Resolume.

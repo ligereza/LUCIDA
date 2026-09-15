@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:nayade-signal-chain-reconciliation.schema.json",
+  "title": "RESOLUME_ADAPTER NayadeSignalChainReconciliation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_type", "status", "source_documents", "facts", "calculations", "conflicts", "recommendations", "summary", "safety"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "report_type": { "const": "NayadeSignalChainReconciliation" },
+    "status": { "enum": ["PASS", "REVIEW", "FAIL"] },
+    "source_documents": { "type": "array", "items": { "type": "string" } },
+    "facts": { "type": "array", "items": { "$ref": "#/$defs/fact" } },
+    "calculations": { "type": "array", "items": { "type": "object" } },
+    "conflicts": { "type": "array", "items": { "$ref": "#/$defs/conflict" } },
+    "recommendations": { "type": "array", "items": { "$ref": "#/$defs/recommendation" } },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fact_count", "calculation_count", "conflict_count", "unknown_document_count", "min_confidence"],
+      "properties": {
+        "fact_count": { "type": "integer", "minimum": 0 },
+        "calculation_count": { "type": "integer", "minimum": 0 },
+        "conflict_count": { "type": "integer", "minimum": 0 },
+        "unknown_document_count": { "type": "integer", "minimum": 0 },
+        "min_confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_only", "commands_sent", "writes_attempted", "external_side_effects", "raw_documents_included", "source_paths_exposed"],
+      "properties": {
+        "read_only": { "const": true },
+        "commands_sent": { "const": false },
+        "writes_attempted": { "const": false },
+        "external_side_effects": { "const": false },
+        "raw_documents_included": { "const": false },
+        "source_paths_exposed": { "const": false }
+      }
+    }
+  },
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "property", "value", "origin", "confidence", "source"],
+      "properties": {
+        "subject": { "type": "string", "minLength": 1 },
+        "property": { "type": "string", "minLength": 1 },
+        "value": {},
+        "origin": { "enum": ["declared", "observed", "inferred", "unknown"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "source": { "type": "string", "minLength": 1 }
+      }
+    },
+    "conflict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "severity", "fields", "detail", "action"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "severity": { "enum": ["review", "high"] },
+        "fields": { "type": "array", "items": { "type": "string" } },
+        "detail": { "type": "string", "minLength": 1 },
+        "action": { "type": "string", "minLength": 1 }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "reason", "risk", "evidence", "requires_explicit_approval", "reversible", "execution_mode"],
+      "properties": {
+        "operation": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "risk": { "enum": ["low", "medium", "high"] },
+        "evidence": { "type": "array", "items": { "type": "string" } },
+        "requires_explicit_approval": { "const": true },
+        "reversible": { "const": true },
+        "execution_mode": { "const": "proposal_only" }
+      }
+    }
+  }
+}

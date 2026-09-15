@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:resolume_adapter:lucida:overlay-diff",
+  "title": "LUCIDA Overlay Diff",
+  "type": "array",
+  "maxItems": 7,
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["field", "before", "after"],
+    "properties": {
+      "field": {
+        "type": "string",
+        "enum": [
+          "status",
+          "overlay_status",
+          "capabilities",
+          "pending_proposals",
+          "unknowns",
+          "next_attention",
+          "safety"
+        ]
+      },
+      "before": {},
+      "after": {}
+    }
+  }
+}

@@ -88,8 +88,8 @@ class SignalEnvelope:
         envelope_id = _ascii_text(value.get("envelope_id"), "envelope_id")
         event_id = _ascii_text(value.get("event_id"), "event_id")
         transport = value.get("transport", "osc")
-        if transport not in {"osc", "timecode", "xio", "adobe", "mosaik"}:
-            raise SessionReplayError("transport must be osc, timecode, xio, adobe, or mosaik.")
+        if transport not in {"osc", "timecode", "xio", "adobe", "resolume_adapter"}:
+            raise SessionReplayError("transport must be osc, timecode, xio, adobe, or resolume_adapter.")
         return cls(
             envelope_id=envelope_id,
             event_id=event_id,

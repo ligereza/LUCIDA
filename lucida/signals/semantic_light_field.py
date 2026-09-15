@@ -18,14 +18,14 @@ from ..surface_projection import (
 )
 
 
-SEMANTIC_REPLAY_REPORT_TYPE = "MosaikSemanticLightFieldReplayReport"
+SEMANTIC_REPLAY_REPORT_TYPE = "ResolumeAdapterSemanticLightFieldReplayReport"
 SEMANTIC_REPLAY_SCHEMA_VERSION = "0.1"
 SEMANTIC_TAPE_SCHEMA = "farmaxia:semantic-light-field-tape:0.1"
 PENDING_METADATA_KEY = "resolume_semantic_light_field_pending"
 
 
 class SemanticLightFieldSurfaceError(ValueError):
-    """Raised when a MOSAIK semantic proposal cannot be projected safely."""
+    """Raised when a RESOLUME_ADAPTER semantic proposal cannot be projected safely."""
 
 
 @dataclass(frozen=True)
@@ -81,7 +81,7 @@ def project_semantic_light_field_report(
     state: LucidaState | Mapping[str, Any],
     report: Mapping[str, Any],
 ) -> tuple[LucidaState, dict[str, Any]]:
-    """Project one validated MOSAIK report into the existing LUCIDA state surface."""
+    """Project one validated RESOLUME_ADAPTER report into the existing LUCIDA state surface."""
     current = state if isinstance(state, LucidaState) else LucidaState.from_dict(state)
     preview = _validate_report(report)
     if preview.proposal.proposal_id in current.vj_state.pending_proposal_ids:
@@ -264,7 +264,7 @@ def _proposal_evidence(proposal: VJProposal) -> dict[str, str]:
     required = {"consumer", "tape_schema", "tape_sha256", "frame_count"}
     if not required <= values.keys():
         raise SemanticLightFieldSurfaceError("semantic light-field evidence is incomplete.")
-    if values["consumer"] != "mosaik-vj":
+    if values["consumer"] != "resolume_adapter-vj":
         raise SemanticLightFieldSurfaceError("semantic light-field consumer is unsupported.")
     if values["tape_schema"] != SEMANTIC_TAPE_SCHEMA:
         raise SemanticLightFieldSurfaceError("semantic light-field tape schema is unsupported.")

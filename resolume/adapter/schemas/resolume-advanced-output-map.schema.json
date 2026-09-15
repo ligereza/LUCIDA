@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:resolume-advanced-output-map.schema.json",
+  "title": "RESOLUME_ADAPTER ResolumeAdvancedOutputMap",
+  "description": "Modelo de solo lectura de un preset Advanced Output de Resolume.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "map_type",
+    "generated_at",
+    "read_only",
+    "source",
+    "composition",
+    "screens",
+    "slices",
+    "statistics",
+    "validation",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "map_type": { "const": "ResolumeAdvancedOutputMap" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "read_only": { "const": true },
+    "source": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string" },
+        "preset_name": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "resolume": { "type": "object" },
+    "composition": {
+      "type": "object",
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": ["integer", "null"], "minimum": 1 },
+        "height": { "type": ["integer", "null"], "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "screens": { "type": "array", "items": { "$ref": "#/$defs/screen" } },
+    "slices": { "type": "array", "items": { "$ref": "#/$defs/slice" } },
+    "statistics": { "type": "object" },
+    "validation": {
+      "type": "object",
+      "required": ["status", "errors", "warnings"],
+      "properties": {
+        "status": { "enum": ["PASS", "WARN", "FAIL"] },
+        "errors": { "type": "array", "items": { "type": "object" } },
+        "warnings": { "type": "array", "items": { "type": "object" } }
+      },
+      "additionalProperties": false
+    },
+    "limitations": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "screen": {
+      "type": "object",
+      "required": ["id", "name", "enabled", "hidden", "devices", "slices"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "hidden": { "type": "boolean" },
+        "devices": { "type": "array", "items": { "type": "object" } },
+        "slices": { "type": "array", "items": { "type": "object" } }
+      },
+      "additionalProperties": false
+    },
+    "slice": {
+      "type": "object",
+      "required": [
+        "id",
+        "screen_id",
+        "screen_name",
+        "name",
+        "enabled",
+        "input_source",
+        "input",
+        "output",
+        "warper",
+        "output_controls",
+        "hints"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "screen_id": { "type": "string" },
+        "screen_name": { "type": "string" },
+        "name": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "input_source": { "type": ["string", "null"] },
+        "input": { "type": ["object", "null"] },
+        "output": { "type": ["object", "null"] },
+        "input_group_id": { "type": "string" },
+        "warper": { "type": "object" },
+        "output_controls": { "type": "object" },
+        "hints": { "type": "array", "items": { "type": "string" } },
+        "input_dimensions": { "type": "object" },
+        "output_dimensions": { "type": "object" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

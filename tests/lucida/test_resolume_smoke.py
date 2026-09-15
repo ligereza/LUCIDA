@@ -167,5 +167,5 @@ def test_committed_manifest_matches_current_smoke_evidence():
         "Offline preview only; live Resolume was not tested.",
         "Live Resolume and hardware were not tested.",
         "No network, GPU, camera, or subprocess execution was performed.",
-        "ADOBE, PUPILA, and VIZZ host applications were not opened; only bounded summary signals were replayed.",
+        "ADOBE, PUPILA, and VISUAL host applications were not opened; only bounded summary signals were replayed.",
     ]

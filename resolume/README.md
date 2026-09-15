@@ -1,6 +1,6 @@
 # LUCIDA Resolume surface
 
-This branch contains the portable VJ integration extracted from MOSAIK. The
+This branch contains the portable VJ integration extracted from RESOLUME_ADAPTER. The
 source package remains in `lucida/`; the integration is proposal-only and does
 not open Resolume, sockets or external processes during replay.
 
@@ -13,10 +13,11 @@ Included capabilities:
 
 Source provenance:
 
-- source repository: MOSAIK (`C:\IA\VJ`);
-- source branch: `LUCIDA`;
-- source commits: `e43422d`, `7daa9fb`, `206b844`, `f4e9f21`, `9b3c2b3`, `6ff293d`, `1ee6d1b`;
-- copied files exclude media, presets, models, caches and private runtime data.
+- canonical repository: `ligereza/X-ANA-X`, branch `LUCIDA`;
+- canonical adapter path: `LUCIDA/resolume/adapter/`;
+- integrated source snapshot: `44b456d`;
+- standalone mirror path: `resolume/adapter/`;
+- private media, presets, caches and runtime data are not part of this mirror.
 
 Run from this repository root:
 
@@ -64,7 +65,7 @@ external_side_effects=false
 
 The smoke entry point validates the existing recorded signal-envelope-v1
 fixture, feeds its normalized signals into the existing replay dispatcher with
-the MOSAIK semantic report fixture, and reads the existing RESOLUME overlay
+the RESOLUME_ADAPTER semantic report fixture, and reads the existing RESOLUME overlay
 contract. The `REVIEW` status is expected because the proposal remains pending
 approval. Repeating the command with the same fixtures produces the same
 evidence.
@@ -131,8 +132,8 @@ future host adapter.
 
 The concrete RESOLUME surface entrypoint is
 `lucida.signals.boundary.OscResolumeBoundary`. Its
-`ingest_semantic_light_field_report()` method consumes the existing MOSAIK
-`MosaikSemanticLightFieldReplayReport`, validates the existing `VJProposal`
+`ingest_semantic_light_field_report()` method consumes the existing RESOLUME_ADAPTER
+`ResolumeAdapterSemanticLightFieldReplayReport`, validates the existing `VJProposal`
 contract and the tape SHA-256/schema evidence, and projects a bounded
 `resolume_preview` with `pending_approval` status.
 
@@ -140,7 +141,7 @@ The projection keeps `proposal_only=true`, `reversible=true`, and
 `resolume_opened=false`. It carries tape schema, hash, frame count, and
 calibration status only; tape frames stay in the upstream replay report and
 are never copied into `VJProposal` or the LUCIDA surface state. Approval still
-uses the existing explicit result boundary. No XIO/MOSAIK rendering engine,
+uses the existing explicit result boundary. No XIO/RESOLUME_ADAPTER rendering engine,
 ledger, replay engine, socket, GPU, camera, or hardware implementation is
 duplicated here.
 
@@ -167,7 +168,7 @@ RESOLUME adapter emits this object as `resolume_preview.projection` and keeps
 RESOLUME-specific tape metadata beside it; tape frames are not part of the
 shared projection.
 
-ADOBE, PUPILA, and VIZZ can consume the serialized `projection` object by
+ADOBE, PUPILA, and VISUAL can consume the serialized `projection` object by
 validating the shared schema or calling `SurfaceProjectionV1.from_dict()`.
 Their adapters should map `surface_id` to their own surface and preserve the
 proposal-only and explicit-approval guarantees. They do not need to import
@@ -187,7 +188,7 @@ fictional consumer projection using only `SurfaceProjectionV1` fields. It
 reports host/surface identity, proposal status, approval, reversibility, and
 side-effect guarantees. RESOLUME tape metadata remains outside the projection
 object. The conformance check is offline schema compatibility evidence only;
-it does not connect ADOBE, PUPILA, VIZZ, RESOLUME, hardware, or any live host.
+it does not connect ADOBE, PUPILA, VISUAL, RESOLUME, hardware, or any live host.
 
 ## Offline postulation evidence bundle
 

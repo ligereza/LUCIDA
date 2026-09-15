@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lucida:signals:xio-consume-result",
+  "title": "XIO Consume Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_type",
+    "schema_version",
+    "application_event",
+    "vj_event",
+    "signal",
+    "record",
+    "overlay_update"
+  ],
+  "properties": {
+    "contract_type": { "const": "XioConsumeResult" },
+    "schema_version": { "const": "0.1" },
+    "application_event": { "$ref": "urn:lucida:signals:application-event" },
+    "vj_event": { "$ref": "urn:vj-interface-layer:contracts:vj-event" },
+    "signal": { "$ref": "urn:lucida:signals:signal-envelope" },
+    "record": { "$ref": "urn:lucida:signals:session-replay-record" },
+    "overlay_update": { "$ref": "urn:resolume_adapter:lucida:overlay-update" }
+  }
+}

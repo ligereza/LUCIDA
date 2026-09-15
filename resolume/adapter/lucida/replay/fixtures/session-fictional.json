@@ -1,0 +1,79 @@
+{
+  "fixture_type": "LucidaReplayFixture",
+  "schema_version": "0.1",
+  "session_id": "fictional-lucida-session-001",
+  "events": [
+    {
+      "event_id": "evt-001",
+      "timestamp": "2026-01-10T20:00:00Z",
+      "phase": "preflight",
+      "event_type": "phase.completed",
+      "payload": {"status": "pass", "media_status": "ready", "mapping_status": "unknown"},
+      "source": "fictional-operator"
+    },
+    {
+      "event_id": "evt-002",
+      "timestamp": "2026-01-10T20:20:00Z",
+      "phase": "preparation",
+      "event_type": "phase.completed",
+      "payload": {"status": "pass", "signal_status": "stable", "processor_status": "observed"},
+      "source": "fictional-operator"
+    },
+    {
+      "event_id": "evt-003",
+      "timestamp": "2026-01-10T22:00:00Z",
+      "phase": "show",
+      "event_type": "show.started",
+      "payload": {"mode": "improvised", "timecode": false},
+      "source": "fictional-operator"
+    },
+    {
+      "event_id": "evt-004",
+      "timestamp": "2026-01-10T22:37:14Z",
+      "phase": "incident",
+      "event_type": "incident.detected",
+      "payload": {"category": "signal_color_mismatch", "symptoms": ["near-black appears gray"]},
+      "source": "fictional-operator"
+    },
+    {
+      "event_id": "evt-005",
+      "timestamp": "2026-01-10T22:39:00Z",
+      "phase": "recovery",
+      "event_type": "recovery.started",
+      "payload": {"checkpoint_id": "checkpoint-evt-002", "approval": "operator"},
+      "source": "fictional-operator"
+    },
+    {
+      "event_id": "evt-006",
+      "timestamp": "2026-01-10T22:43:30Z",
+      "phase": "recovery",
+      "event_type": "recovery.verified",
+      "payload": {"status": "pass", "checks": ["black", "white", "geometry"]},
+      "source": "fictional-operator"
+    },
+    {
+      "event_id": "evt-007",
+      "timestamp": "2026-01-11T00:00:00Z",
+      "phase": "closure",
+      "event_type": "show.closed",
+      "payload": {"status": "complete"},
+      "source": "fictional-operator"
+    }
+  ],
+  "results": [
+    {"after_event_id": "evt-001", "result_id": "res-001a", "proposal_id": "proposal-evt-001-checkpoint-preflight", "recorded_at": "2026-01-10T20:01:00Z", "status": "observed", "notes": "Common checkpoint observed."},
+    {"after_event_id": "evt-001", "result_id": "res-001b", "proposal_id": "lucida-instar-evt-001", "recorded_at": "2026-01-10T20:02:00Z", "status": "accepted", "notes": "Preflight de medios revisado."},
+    {"after_event_id": "evt-002", "result_id": "res-002a", "proposal_id": "proposal-evt-002-checkpoint-preparation", "recorded_at": "2026-01-10T20:21:00Z", "status": "accepted", "notes": "Preparation checkpoint accepted."},
+    {"after_event_id": "evt-002", "result_id": "res-002b", "proposal_id": "lucida-nayade-evt-002", "recorded_at": "2026-01-10T20:22:00Z", "status": "accepted", "notes": "Soundcheck offline observado."},
+    {"after_event_id": "evt-003", "result_id": "res-003a", "proposal_id": "proposal-evt-003-observe-show", "recorded_at": "2026-01-10T22:00:01Z", "status": "observed", "notes": "Show iniciado."},
+    {"after_event_id": "evt-003", "result_id": "res-003b", "proposal_id": "lucida-imago-evt-003", "recorded_at": "2026-01-10T22:00:02Z", "status": "accepted", "notes": "Estado vivo registrado."},
+    {"after_event_id": "evt-004", "result_id": "res-004a", "proposal_id": "proposal-evt-004-capture-incident", "recorded_at": "2026-01-10T22:37:20Z", "status": "accepted", "notes": "Incident observed without intervention."},
+    {"after_event_id": "evt-004", "result_id": "res-004b", "proposal_id": "lucida-imago-evt-004", "recorded_at": "2026-01-10T22:37:21Z", "status": "accepted", "notes": "Incidente disponible en la superficie."},
+    {"after_event_id": "evt-005", "result_id": "res-005a", "proposal_id": "proposal-evt-005-prepare-recovery", "recorded_at": "2026-01-10T22:39:10Z", "status": "accepted", "notes": "Recovery approved outside the system."},
+    {"after_event_id": "evt-005", "result_id": "res-005b", "proposal_id": "lucida-imago-evt-005", "recorded_at": "2026-01-10T22:39:11Z", "status": "accepted", "notes": "Recovery state observed."},
+    {"after_event_id": "evt-006", "result_id": "res-006a", "proposal_id": "proposal-evt-006-verify-recovery", "recorded_at": "2026-01-10T22:44:00Z", "status": "accepted", "notes": "Verification recorded."},
+    {"after_event_id": "evt-006", "result_id": "res-006b", "proposal_id": "lucida-imago-evt-006", "recorded_at": "2026-01-10T22:44:01Z", "status": "accepted", "notes": "Pruebas posteriores observadas."},
+    {"after_event_id": "evt-007", "result_id": "res-007a", "proposal_id": "proposal-evt-007-close-session", "recorded_at": "2026-01-11T00:00:01Z", "status": "observed", "notes": "Common closure recorded."},
+    {"after_event_id": "evt-007", "result_id": "res-007b", "proposal_id": "lucida-imago-evt-007", "recorded_at": "2026-01-11T00:00:02Z", "status": "accepted", "notes": "Resumen del show disponible."}
+  ]
+}

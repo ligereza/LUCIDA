@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:instar-target-specific-adaptation-plan.schema.json",
+  "title": "RESOLUME_ADAPTER InstarTargetSpecificAdaptationPlan",
+  "description": "Recetas y resultados de previews derivados para superficies extremas.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "plan_type",
+    "generated_at",
+    "read_only_source",
+    "source_mapping_plan",
+    "output_dir",
+    "dxv_output_dir",
+    "dxv_export_requested",
+    "strategy_filter",
+    "duration_seconds",
+    "speed_pixels",
+    "tasks",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "plan_type": { "const": "InstarTargetSpecificAdaptationPlan" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "read_only_source": { "const": true },
+    "source_mapping_plan": { "type": "object" },
+    "mapping_plan_path": { "type": "string" },
+    "output_dir": { "type": "string" },
+    "dxv_output_dir": { "type": ["string", "null"] },
+    "dxv_export_requested": { "type": "boolean" },
+    "strategy_filter": { "enum": ["auto", "crop", "fit_background", "pattern", "marquee"] },
+    "duration_seconds": { "type": "number", "exclusiveMinimum": 0 },
+    "speed_pixels": { "type": "number", "exclusiveMinimum": 0 },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "source", "target", "strategy", "axis", "requires_preview", "output", "status"],
+        "properties": {
+          "task_id": { "type": "string" },
+          "source": { "type": "string" },
+          "source_asset_id": { "type": "string" },
+          "source_filename": { "type": "string" },
+          "target": { "type": "object" },
+          "strategy": { "enum": ["crop", "fit_background", "pattern", "marquee"] },
+          "axis": { "enum": ["horizontal", "vertical"] },
+          "score": { "type": ["number", "null"] },
+          "evidence_status": { "type": "string" },
+          "requires_preview": { "const": true },
+          "output": { "type": "string" },
+          "status": { "enum": ["planned", "PASS", "EXISTS"] },
+          "encoder": { "type": "string" },
+          "encoder_backend": { "type": "string" },
+          "filter_graph": { "type": "string" },
+          "source_video": { "type": "object" },
+          "output_video": { "type": "object" },
+          "dxv": {
+            "type": "object",
+            "required": ["status", "output", "video"],
+            "properties": {
+              "input": { "type": "string" },
+              "status": { "enum": ["PASS", "EXISTS"] },
+              "output": { "type": "string" },
+              "dry_run": { "type": "boolean" },
+              "video": { "type": "object" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": { "type": "object" },
+    "limitations": { "type": "array", "items": { "type": "string" } }
+  }
+}

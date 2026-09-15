@@ -1,4 +1,4 @@
-# Mapa de extracción MOSAIK -> VJ
+# Mapa de extracción RESOLUME_ADAPTER -> VJ
 
 Este documento registra qué ideas se extraen de `CAPACIDADES.md` y qué queda
 fuera del adaptador reusable. VJ no copia obras, clips, presets personales,
@@ -24,7 +24,7 @@ Esta rama conserva la identidad VJ y no implementa un core nuevo.
 ## Adaptador VJ que entra en la capa de interfaz
 
 Estos conceptos pertenecen al dominio VJ, pero el adaptador solo define el contrato y
-el ciclo de vida; no incorpora los motores especializados de MOSAIK.
+el ciclo de vida; no incorpora los motores especializados de RESOLUME_ADAPTER.
 
 | Dominio | Cómo se representa ahora | Implementación especializada pendiente |
 | --- | --- | --- |
@@ -57,7 +57,7 @@ Quedan explícitamente fuera de esta primera extracción:
 - FFGL y plugins nativos;
 - despliegue web, MCP, servidor remoto o GPU alquilada.
 
-## Capacidades que permanecen exclusivas de MOSAIK
+## Capacidades que permanecen exclusivas de RESOLUME_ADAPTER
 
 La rama VJ no copia ni extrae la implementación concreta de estas
 capacidades:

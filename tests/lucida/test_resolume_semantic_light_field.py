@@ -14,14 +14,14 @@ from lucida.signals import (
 )
 
 
-FIXTURE = Path(__file__).resolve().parent / "fixtures" / "mosaik-semantic-light-field-report.json"
+FIXTURE = Path(__file__).resolve().parent / "fixtures" / "resolume_adapter-semantic-light-field-report.json"
 
 
 def _report():
     return json.loads(FIXTURE.read_text(encoding="utf-8"))
 
 
-def test_mosaik_report_projects_to_resolume_pending_surface_without_frames():
+def test_resolume_adapter_report_projects_to_resolume_pending_surface_without_frames():
     boundary = OscResolumeBoundary()
     state = boundary.initial_state("semantic-light-field-cli-001")
 
@@ -43,7 +43,7 @@ def test_mosaik_report_projects_to_resolume_pending_surface_without_frames():
             "proposal_id": "proposal-cli-light-field-001",
             "reason": "Review deterministic semantic light-field tape",
             "evidence": [
-                "consumer:mosaik-vj",
+                "consumer:resolume_adapter-vj",
                 "tape_schema:farmaxia:semantic-light-field-tape:0.1",
                 "tape_sha256:f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec",
                 "frame_count:1",

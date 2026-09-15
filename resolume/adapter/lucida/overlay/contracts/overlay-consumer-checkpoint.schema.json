@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:resolume_adapter:lucida:overlay-consumer-checkpoint",
+  "title": "LUCIDA Overlay Consumer Checkpoint",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_type",
+    "schema_version",
+    "status",
+    "applied_delta_count",
+    "last_operation",
+    "view",
+    "view_digest",
+    "cursor",
+    "safety"
+  ],
+  "properties": {
+    "contract_type": { "const": "LucidaOverlayConsumerCheckpoint" },
+    "schema_version": { "const": "0.1" },
+    "status": { "enum": ["empty", "ready"] },
+    "applied_delta_count": { "type": "integer", "minimum": 0 },
+    "last_operation": {
+      "enum": ["empty", "initial_snapshot", "recovery_snapshot", "delta"]
+    },
+    "view": {
+      "anyOf": [
+        { "$ref": "urn:resolume_adapter:lucida:overlay-view" },
+        { "type": "null" }
+      ]
+    },
+    "view_digest": {
+      "anyOf": [
+        { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        { "type": "null" }
+      ]
+    },
+    "cursor": {
+      "anyOf": [
+        { "$ref": "urn:resolume_adapter:lucida:overlay-cursor" },
+        { "type": "null" }
+      ]
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposal_only", "automatic_actions", "external_side_effects"],
+      "properties": {
+        "proposal_only": { "const": true },
+        "automatic_actions": { "const": false },
+        "external_side_effects": { "const": false }
+      }
+    }
+  }
+}

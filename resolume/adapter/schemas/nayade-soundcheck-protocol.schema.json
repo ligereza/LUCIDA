@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:nayade-soundcheck-protocol.schema.json",
+  "title": "RESOLUME_ADAPTER NayadeSoundcheckProtocol",
+  "description": "Protocolo ordenado y de solo lectura para verificar una cadena VJ durante soundcheck.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "protocol_type", "status", "source_documents", "evidence_ids", "steps", "summary", "safety", "limitations"],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "protocol_type": {"const": "NayadeSoundcheckProtocol"},
+    "status": {"enum": ["READY", "REVIEW"]},
+    "source_documents": {"type": "array", "items": {"enum": ["case", "reconciliation", "mapping"]}},
+    "evidence_ids": {"type": "array", "items": {"type": "string"}},
+    "steps": {"type": "array", "items": {"$ref": "#/$defs/step"}},
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_count", "required_count", "optional_count", "trigger_count"],
+      "properties": {
+        "step_count": {"type": "integer", "minimum": 0},
+        "required_count": {"type": "integer", "minimum": 0},
+        "optional_count": {"type": "integer", "minimum": 0},
+        "trigger_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_only", "commands_sent", "writes_attempted", "external_side_effects", "patterns_emitted", "hardware_changed", "source_paths_exposed"],
+      "properties": {
+        "read_only": {"const": true},
+        "commands_sent": {"const": false},
+        "writes_attempted": {"const": false},
+        "external_side_effects": {"const": false},
+        "patterns_emitted": {"const": false},
+        "hardware_changed": {"const": false},
+        "source_paths_exposed": {"const": false}
+      }
+    },
+    "limitations": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_id", "order", "pattern", "title", "priority", "scope", "triggered_by", "why", "operator_action", "expected_observation", "record_fields", "status", "execution_mode", "requires_operator_confirmation", "reversible"],
+      "properties": {
+        "step_id": {"type": "string"},
+        "order": {"type": "integer", "minimum": 1},
+        "pattern": {"type": "string"},
+        "title": {"type": "string"},
+        "priority": {"enum": ["required", "optional"]},
+        "scope": {"type": "string"},
+        "triggered_by": {"type": "array", "items": {"type": "string"}},
+        "why": {"type": "string"},
+        "operator_action": {"type": "string"},
+        "expected_observation": {"type": "string"},
+        "record_fields": {"type": "array", "items": {"type": "string"}},
+        "status": {"const": "planned"},
+        "execution_mode": {"const": "plan_only"},
+        "requires_operator_confirmation": {"const": true},
+        "reversible": {"const": true}
+      }
+    }
+  }
+}

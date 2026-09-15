@@ -1,0 +1,45 @@
+{
+  "case_id": "soundcheck-2026-08-29-vc2",
+  "case_type": "NayadeProcessorRegressionCase",
+  "date_local": "2026-08-29",
+  "stage": "NAYADE",
+  "system": {
+    "processor_reported": "VC2",
+    "processor_vendor": "NovaStar-compatible / unconfirmed",
+    "input": "HDMI",
+    "source_software": "Resolume",
+    "gpu": "NVIDIA",
+    "screen_environment": "unknown",
+    "module_condition": "unknown"
+  },
+  "observations": [
+    { "key": "black_level", "before": "gray_above_blackout", "after": "near_blackout", "confidence": 0.9 },
+    { "key": "gpu_mode", "before": "1920x1080 PC/native", "after": "1920x1080 HD", "confidence": 1.0 },
+    { "key": "gpu_range", "before": "unknown_or_mismatched", "after": "RGB Full", "confidence": 1.0 },
+    { "key": "processor_limited_to_full", "value": "unknown", "confidence": 0.0 },
+    { "key": "processor_gamma", "value": 4.0, "confidence": 1.0 },
+    { "key": "processor_brightness", "value": 5, "unit": "percent", "confidence": 1.0 },
+    { "key": "resolume_levels", "value": "brightness_and_contrast_modified", "confidence": 1.0 },
+    { "key": "colour_integrity", "value": "some_colours_degraded_after_range_change", "confidence": 0.8 }
+  ],
+  "diagnostic_hypotheses": [
+    { "id": "range_mismatch", "status": "strong", "reason": "RGB Full reduced the gray black level." },
+    { "id": "double_range_conversion", "status": "possible", "reason": "The processor may still be converting Limited to Full." },
+    { "id": "gamma_extreme", "status": "possible_for_midtones", "reason": "Gamma 4.0 changes midtones and channel relationships, but does not explain a raised RGB(0,0,0) by itself." },
+    { "id": "multi_stage_compensation", "status": "strong", "reason": "Processor brightness, gamma and Resolume levels were all altered." }
+  ],
+  "expected_nayade_behavior": [
+    "Capture the processor snapshot before any modification.",
+    "Separate black-level/range diagnosis from gamma diagnosis.",
+    "Warn when GPU Full and processor Limited-to-Full are both active.",
+    "Warn when gamma is extreme and brightness is very low.",
+    "Never write to an unconfirmed processor or without a backup.",
+    "Record the result after the actual screen test."
+  ],
+  "event_sequence": [
+    { "local_time": "21:00", "event": "soundcheck", "scope": "colour_and_signal" },
+    { "local_time": "00:00", "event": "show", "scope": "visuals", "result": "colour_still_not_correct" },
+    { "local_time": "02:00", "event": "show", "scope": "DMX_lights_only", "result": "no_video_observation" },
+    { "local_time": "04:00", "event": "show_in_other_city", "scope": "visuals", "result": "colour_acceptable_brightness_possibly_high" }
+  ]
+}

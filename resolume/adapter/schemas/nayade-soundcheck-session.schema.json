@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:nayade-soundcheck-session.schema.json",
+  "title": "RESOLUME_ADAPTER NayadeSoundcheckSession",
+  "description": "Registro reproducible de pruebas realizadas durante el soundcheck.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "session_type",
+    "session_id",
+    "name",
+    "created_at",
+    "updated_at",
+    "read_only_source",
+    "source",
+    "composition",
+    "seed",
+    "targets",
+    "planned_steps",
+    "events",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "session_type": { "const": "NayadeSoundcheckSession" },
+    "session_id": { "type": "string" },
+    "name": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "read_only_source": { "const": true },
+    "source": { "type": "object" },
+    "composition": { "type": ["object", "null"] },
+    "seed": { "type": "integer" },
+    "catalog": { "type": ["object", "null"] },
+    "adaptation": { "type": ["object", "null"] },
+    "protocol": { "type": ["object", "null"] },
+    "assets": { "type": "array" },
+    "targets": {
+      "type": "object",
+      "required": ["slices", "input_groups"],
+      "properties": {
+        "slices": { "type": "array" },
+        "input_groups": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "planned_steps": { "type": "array", "items": { "$ref": "#/$defs/step" } },
+    "events": { "type": "array", "items": { "$ref": "#/$defs/event" } },
+    "limitations": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "step": {
+      "type": "object",
+      "required": ["step_id", "operation", "scope", "targets", "parameters", "expected_checks", "result"],
+      "properties": {
+        "step_id": { "type": "string" },
+        "operation": { "type": "string" },
+        "scope": { "type": "string" },
+        "targets": { "type": "array", "items": { "type": "string" } },
+        "parameters": { "type": "object" },
+        "expected_checks": { "type": "array", "items": { "type": "string" } },
+        "result": { "enum": ["planned", "running", "approved", "rejected", "review"] }
+      },
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "required": ["event_id", "created_at", "operation", "scope", "targets", "parameters", "result", "notes"],
+      "properties": {
+        "event_id": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "operation": { "type": "string" },
+        "scope": { "type": "string" },
+        "targets": { "type": "array", "items": { "type": "string" } },
+        "parameters": { "type": "object" },
+        "result": { "enum": ["planned", "running", "approved", "rejected", "review"] },
+        "notes": { "type": "string" },
+        "planned_step_id": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}

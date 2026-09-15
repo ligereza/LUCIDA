@@ -1,6 +1,6 @@
 # LUCIDA
 
-LUCIDA es la capa integradora de MOSAIK/VJ: una única superficie estructurada
+LUCIDA es la capa integradora de RESOLUME_ADAPTER/VJ: una única superficie estructurada
 que coordina tres capacidades internas —`INSTAR`, `NAYADE` e `IMAGO`— sin
 convertirlas en tres interfaces separadas.
 
@@ -77,7 +77,7 @@ reporte.
 - Las propuestas requieren que un operador o un host autorizado decida qué
   hacer y registre el resultado; no existe un método de ejecución automática.
 - Los detalles de medios, cues, mapping, GPU, protocolos y hardware siguen
-  siendo implementaciones exclusivas o pendientes de MOSAIK.
+  siendo implementaciones exclusivas o pendientes de RESOLUME_ADAPTER.
 
 La convención de ASCII técnico y la verificación offline están documentadas en
 [`CONTRIBUTING.md`](CONTRIBUTING.md).

@@ -1,0 +1,4 @@
+# Backend GPU opcional de INSTAR para Windows + NVIDIA CUDA.
+# Requiere un driver NVIDIA compatible y una instalación funcional de CUDA.
+PyNvVideoCodec==2.2.2
+cupy-cuda12x==14.2.0

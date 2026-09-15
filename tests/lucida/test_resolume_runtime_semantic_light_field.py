@@ -17,7 +17,7 @@ OSC_FIXTURE = (
     / "fixtures"
     / "osc-session-fictional.json"
 )
-REPORT_FIXTURE = Path(__file__).resolve().parent / "fixtures/mosaik-semantic-light-field-report.json"
+REPORT_FIXTURE = Path(__file__).resolve().parent / "fixtures/resolume_adapter-semantic-light-field-report.json"
 
 
 def _runtime_fixture():

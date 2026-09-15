@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "profile_id": "show-ejemplo-1080p60",
+  "name": "Show ejemplo 1080p60",
+  "description": "Perfil de destino para preparar material antes de abrir Resolume.",
+  "target": {
+    "resolution": "1920x1080",
+    "fps": 60,
+    "allowed_codecs": ["dxv"],
+    "requires_alpha": false,
+    "color_range": "full",
+    "refresh_hz": 60,
+    "notes": "Modificar según la composición y la información confirmada por el operador de video."
+  },
+  "notes": [
+    "Este archivo solo describe un objetivo; no cambia Resolume ni el procesador LED.",
+    "Si el venue no confirma un dato, dejarlo fuera en vez de inventarlo."
+  ]
+}

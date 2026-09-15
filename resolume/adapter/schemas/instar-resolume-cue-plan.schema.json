@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:instar-resolume-cue-plan.schema.json",
+  "title": "RESOLUME_ADAPTER InstarResolumeCuePlan",
+  "description": "Plan de seis slots de CUE para revisión humana, sin modificar un showfile Resolume.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "plan_type", "read_only_source", "slot_count", "review_required", "profiles", "statistics", "policy", "safety", "limitations"],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "plan_type": {"const": "InstarResolumeCuePlan"},
+    "read_only_source": {"const": true},
+    "slot_count": {"const": 6},
+    "review_required": {"const": true},
+    "profiles": {"type": "array", "items": {"$ref": "#/$defs/profile"}},
+    "statistics": {
+      "type": "object", "additionalProperties": false,
+      "required": ["profiles", "candidates", "assigned_slots", "unassigned_candidates"],
+      "properties": {
+        "profiles": {"type": "integer", "minimum": 1},
+        "candidates": {"type": "integer", "minimum": 0},
+        "assigned_slots": {"type": "integer", "minimum": 0},
+        "unassigned_candidates": {"type": "integer", "minimum": 0}
+      }
+    },
+    "policy": {"type": "object", "additionalProperties": {"type": "string"}},
+    "safety": {
+      "type": "object", "additionalProperties": false,
+      "required": ["read_only", "composition_written", "transport_changed", "effects_triggered", "source_paths_exposed"],
+      "properties": {
+        "read_only": {"const": true},
+        "composition_written": {"const": false},
+        "transport_changed": {"const": false},
+        "effects_triggered": {"const": false},
+        "source_paths_exposed": {"const": false}
+      }
+    },
+    "limitations": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "profile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["profile_id", "filename", "duration_seconds", "slots", "unassigned_candidates", "candidate_count", "assigned_slot_count"],
+      "properties": {
+        "profile_id": {"type": "string"},
+        "filename": {"type": "string"},
+        "duration_seconds": {"type": ["number", "null"], "minimum": 0},
+        "slots": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"$ref": "#/$defs/slot"}},
+        "unassigned_candidates": {"type": "array", "items": {"type": "string"}},
+        "candidate_count": {"type": "integer", "minimum": 0},
+        "assigned_slot_count": {"type": "integer", "minimum": 0, "maximum": 6}
+      }
+    },
+    "slot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["slot", "status", "cue_kind", "candidate_id", "role", "position_s", "position_ms", "confidence", "requires_review", "endpoint"],
+      "properties": {
+        "slot": {"type": "integer", "minimum": 1, "maximum": 6},
+        "status": {"enum": ["assigned", "empty"]},
+        "cue_kind": {"type": "string"},
+        "candidate_id": {"type": ["string", "null"]},
+        "role": {"enum": ["change", "strobe_window", "loop", null]},
+        "position_s": {"type": ["number", "null"], "minimum": 0},
+        "position_ms": {"type": ["number", "null"], "minimum": 0},
+        "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "requires_review": {"const": true},
+        "endpoint": {"enum": ["position", "end", null]}
+      }
+    }
+  }
+}

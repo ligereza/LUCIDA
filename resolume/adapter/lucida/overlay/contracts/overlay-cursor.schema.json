@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:resolume_adapter:lucida:overlay-cursor",
+  "title": "LUCIDA Overlay Cursor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_type",
+    "schema_version",
+    "surface",
+    "mode",
+    "session_id",
+    "sequence",
+    "last_event_id",
+    "last_timestamp",
+    "checkpoint_id",
+    "safety"
+  ],
+  "properties": {
+    "contract_type": { "const": "LucidaOverlayCursor" },
+    "schema_version": { "const": "0.1" },
+    "surface": { "const": "LUCIDA" },
+    "mode": { "const": "read_only" },
+    "session_id": { "type": "string", "minLength": 1 },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "last_event_id": { "type": ["string", "null"] },
+    "last_timestamp": { "type": ["string", "null"], "format": "date-time" },
+    "checkpoint_id": { "type": ["string", "null"] },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposal_only", "automatic_actions", "external_side_effects"],
+      "properties": {
+        "proposal_only": { "const": true },
+        "automatic_actions": { "const": false },
+        "external_side_effects": { "const": false }
+      }
+    }
+  }
+}

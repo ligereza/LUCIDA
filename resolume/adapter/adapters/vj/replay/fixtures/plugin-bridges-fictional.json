@@ -1,0 +1,241 @@
+{
+  "replay_type": "ResolumeAdapterPluginBridgeReplay",
+  "schema_version": "0.1",
+  "session_id": "bridge-session-001",
+  "records": [
+    {
+      "stage": "instar",
+      "event_id": "instar-001",
+      "sequence": 1,
+      "data": {
+        "schema_version": "0.1",
+        "generated_at": "2026-09-02T20:00:00Z",
+        "overall_status": "PASS",
+        "files_found": 2,
+        "cache_hits": 0,
+        "items": [
+          {
+            "status": "PASS",
+            "report": {
+              "video": {
+                "codec": "dxv",
+                "average_fps": 60,
+                "width": 1920,
+                "height": 1080
+              },
+              "alpha": {"status": "NONE"},
+              "clip_profile": {
+                "profile_id": "clip-001",
+                "visual": {"status": "ANALYZED", "loop": {"status": "CANDIDATE"}},
+                "events": {"cue_suggestions": {"cues": [{"role": "change"}]}}
+              }
+            }
+          },
+          {
+            "status": "PASS",
+            "report": {
+              "video": {
+                "codec": "dxv",
+                "average_fps": 60,
+                "width": 1920,
+                "height": 1080
+              },
+              "alpha": {"status": "NONE"},
+              "clip_profile": {
+                "profile_id": "clip-002",
+                "visual": {"status": "ANALYZED", "loop": {"status": "PASS"}},
+                "events": {"cue_suggestions": {"cues": []}}
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "stage": "nayade",
+      "event_id": "nayade-001",
+      "sequence": 2,
+      "data": {
+        "schema_version": "0.1",
+        "session_type": "NayadeSoundcheckSession",
+        "session_id": "soundcheck-001",
+        "updated_at": "2026-09-02T20:05:00Z",
+        "read_only_source": true,
+        "source": {"source_type": "mapping_summary"},
+        "composition": {"width": 1920, "height": 1080},
+        "seed": 7,
+        "targets": {
+          "slices": [{"slice_id": "slice-001", "input_group_id": "group-a"}],
+          "input_groups": ["group-a"]
+        },
+        "planned_steps": [
+          {"step_id": "step-001", "result": "approved"},
+          {"step_id": "step-002", "result": "planned"}
+        ],
+        "events": [
+          {
+            "operation": "baseline",
+            "scope": "input_group",
+            "targets": ["group-a"],
+            "result": "approved"
+          }
+        ]
+      },
+      "processor_observation": {
+        "model": "VX600",
+        "firmware": "1.3.0",
+        "transport": "manual",
+        "confidence": "medium",
+        "evidence": ["operator_label"],
+        "read_only": true,
+        "commands_sent": false,
+        "input_signal": {"resolution": "1920x1080", "range": "full"},
+        "output_signal": {"resolution": "1920x1080", "fps": 60},
+        "module_profile": {"indoor_outdoor": "indoor", "pixel_pitch_mm": 2.6}
+      }
+    },
+    {
+      "stage": "imago",
+      "event_id": "imago-001",
+      "sequence": 3,
+      "data": {
+        "schema_version": "0.1",
+        "session_type": "ImagoShowSession",
+        "session_id": "show-001",
+        "updated_at": "2026-09-02T20:11:00Z",
+        "read_only": true,
+        "commands_sent": false,
+        "profile": {"profile_id": "profile-001"},
+        "status": "showing",
+        "sequence": 2,
+        "last_event_id": "event-guard",
+        "checkpoint_id": "checkpoint-event-001",
+        "open_incidents": [],
+        "pending_proposal_ids": [],
+        "proposals": [],
+        "results": [],
+        "events": [
+          {
+            "event_type": "show_started",
+            "status_after": "showing",
+            "payload": {},
+            "checkpoint_id": "checkpoint-event-001"
+          },
+          {
+            "event_type": "guard_window_requested",
+            "status_after": "showing",
+            "payload": {"duration_ms": 5000, "base_clip_id": "clip-base-01", "test_scope": "effect"},
+            "checkpoint_id": "checkpoint-event-001"
+          }
+        ],
+        "unknowns": []
+      }
+    },
+    {
+      "stage": "imago",
+      "event_id": "imago-002",
+      "sequence": 4,
+      "data": {
+        "schema_version": "0.1",
+        "session_type": "ImagoShowSession",
+        "session_id": "show-001",
+        "updated_at": "2026-09-02T20:12:00Z",
+        "read_only": true,
+        "commands_sent": false,
+        "profile": {"profile_id": "profile-001"},
+        "status": "incident",
+        "sequence": 2,
+        "last_event_id": "event-002",
+        "checkpoint_id": "checkpoint-event-002",
+        "open_incidents": ["event-002"],
+        "pending_proposal_ids": ["proposal-event-002-capture_incident"],
+        "proposals": [
+          {
+            "operation": "capture_incident",
+            "requires_explicit_approval": true,
+            "reversible": true,
+            "execution_mode": "proposal_only"
+          }
+        ],
+        "results": [],
+        "events": [
+          {
+            "event_type": "show_started",
+            "status_after": "showing",
+            "payload": {},
+            "checkpoint_id": "checkpoint-event-001"
+          },
+          {
+            "event_type": "incident_detected",
+            "status_after": "incident",
+            "payload": {"category": "signal_review"},
+            "checkpoint_id": "checkpoint-event-002"
+          }
+        ],
+        "unknowns": ["physical screen state"]
+      }
+    },
+    {
+      "stage": "imago",
+      "event_id": "imago-003",
+      "sequence": 5,
+      "data": {
+        "schema_version": "0.1",
+        "session_type": "ImagoShowSession",
+        "session_id": "show-001",
+        "updated_at": "2026-09-02T20:14:00Z",
+        "read_only": true,
+        "commands_sent": false,
+        "profile": {"profile_id": "profile-001"},
+        "status": "recovering",
+        "sequence": 3,
+        "last_event_id": "event-003",
+        "checkpoint_id": "checkpoint-event-003",
+        "open_incidents": ["event-002"],
+        "pending_proposal_ids": [],
+        "proposals": [],
+        "results": [],
+        "events": [
+          {
+            "event_type": "recovery_started",
+            "status_after": "recovering",
+            "payload": {},
+            "checkpoint_id": "checkpoint-event-003"
+          }
+        ],
+        "unknowns": []
+      }
+    },
+    {
+      "stage": "imago",
+      "event_id": "imago-004",
+      "sequence": 6,
+      "data": {
+        "schema_version": "0.1",
+        "session_type": "ImagoShowSession",
+        "session_id": "show-001",
+        "updated_at": "2026-09-02T20:16:00Z",
+        "read_only": true,
+        "commands_sent": false,
+        "profile": {"profile_id": "profile-001"},
+        "status": "closed",
+        "sequence": 4,
+        "last_event_id": "event-004",
+        "checkpoint_id": "checkpoint-event-004",
+        "open_incidents": [],
+        "pending_proposal_ids": [],
+        "proposals": [],
+        "results": [],
+        "events": [
+          {
+            "event_type": "show_closed",
+            "status_after": "closed",
+            "payload": {},
+            "checkpoint_id": "checkpoint-event-004"
+          }
+        ],
+        "unknowns": []
+      }
+    }
+  ]
+}

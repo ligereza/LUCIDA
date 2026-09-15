@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:resolume_adapter:lucida:capability-report",
+  "title": "LUCIDA Capability Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["capability", "observed", "state", "proposals", "expected_results", "unknowns"],
+  "properties": {
+    "capability": { "enum": ["INSTAR", "NAYADE", "IMAGO"] },
+    "observed": { "type": "array", "items": { "type": "string" } },
+    "state": { "type": "object" },
+    "proposals": {
+      "type": "array",
+      "items": { "$ref": "urn:vj-interface-layer:contracts:vj-proposal" }
+    },
+    "expected_results": { "type": "array", "items": { "type": "string" } },
+    "unknowns": { "type": "array", "items": { "type": "string" } }
+  }
+}

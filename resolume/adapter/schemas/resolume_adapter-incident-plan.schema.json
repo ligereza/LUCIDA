@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:resolume_adapter-incident-plan.schema.json",
+  "title": "RESOLUME_ADAPTER Incident Plan",
+  "description": "Plan de evidencia y recuperación proposal-only para incidentes VJ.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "plan_type", "generated_at", "category", "stage", "title", "severity", "evidence_questions", "hypotheses", "proposals", "recovery_checklist", "safety", "limitations"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "plan_type": { "const": "ResolumeAdapterIncidentPlan" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "category": { "enum": ["flicker", "tearing", "frames_dropped", "lost_media", "gray_black_levels", "geometry_scaling", "signal_loss"] },
+    "stage": { "enum": ["preflight", "soundcheck", "show"] },
+    "title": { "type": "string", "minLength": 1 },
+    "severity": { "enum": ["low", "medium", "high"] },
+    "evidence_questions": {
+      "type": "array", "minItems": 1,
+      "items": { "type": "object", "additionalProperties": false, "required": ["question_id", "question"], "properties": { "question_id": { "type": "string", "minLength": 1 }, "question": { "type": "string", "minLength": 1 } } }
+    },
+    "hypotheses": {
+      "type": "array", "minItems": 1,
+      "items": { "type": "object", "additionalProperties": false, "required": ["id", "statement", "status"], "properties": { "id": { "type": "string", "minLength": 1 }, "statement": { "type": "string", "minLength": 1 }, "status": { "const": "possible" } } }
+    },
+    "proposals": {
+      "type": "array", "minItems": 1,
+      "items": { "type": "object", "additionalProperties": false, "required": ["action_id", "operation", "reason", "requires_confirmation", "reversible", "execution_mode"], "properties": { "action_id": { "type": "string", "minLength": 1 }, "operation": { "type": "string", "minLength": 1 }, "reason": { "type": "string", "minLength": 1 }, "requires_confirmation": { "const": true }, "reversible": { "const": true }, "execution_mode": { "const": "proposal_only" } } }
+    },
+    "recovery_checklist": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "safety": {
+      "type": "object", "additionalProperties": false, "required": ["read_only", "hardware_changed", "showfile_changed", "automatic_execution"],
+      "properties": { "read_only": { "const": true }, "hardware_changed": { "const": false }, "showfile_changed": { "const": false }, "automatic_execution": { "const": false } }
+    },
+    "limitations": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+  }
+}

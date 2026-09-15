@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:resolume_adapter:lucida:state",
+  "title": "LUCIDA State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_type",
+    "schema_version",
+    "session_id",
+    "overlay_status",
+    "vj_state",
+    "pending_proposal_ids",
+    "capabilities",
+    "proposals",
+    "metadata"
+  ],
+  "properties": {
+    "contract_type": { "const": "LucidaState" },
+    "schema_version": { "const": "0.1" },
+    "session_id": { "type": "string", "minLength": 1 },
+    "overlay_status": { "type": "string", "minLength": 1 },
+    "vj_state": { "$ref": "urn:vj-interface-layer:contracts:vj-state" },
+    "pending_proposal_ids": { "type": "array", "items": { "type": "string" } },
+    "capabilities": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "$ref": "urn:resolume_adapter:lucida:capability-report" }
+    },
+    "proposals": {
+      "type": "array",
+      "items": { "$ref": "urn:vj-interface-layer:contracts:vj-proposal" }
+    },
+    "metadata": { "type": "object" }
+  }
+}

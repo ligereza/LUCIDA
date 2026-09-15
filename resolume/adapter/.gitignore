@@ -1,0 +1,29 @@
+# Salidas locales de diagnóstico; pueden contener nombres de equipo o procesos.
+artifacts/
+.venv/
+__pycache__/
+*.py[cod]
+*.snapshot.json
+*.log
+*.sqlite3
+
+# Cachés y archivos temporales de aplicaciones.
+.cache/
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Referencias externas descargadas para estudiar protocolos; se regeneran desde el README.
+docs/references/opensource/novastar/
+docs/references/opensource/colorlight/
+docs/references/processors/*.pdf
+
+# Proyectos y medios pesados: se documentan las rutas, no se versionan por defecto.
+media/
+renders/
+exports/
+*.dxv
+*.mov
+*.mp4
+*.mxf
+*.avi

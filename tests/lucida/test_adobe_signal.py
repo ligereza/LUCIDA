@@ -23,7 +23,7 @@ def test_adobe_summary_enters_lucida_replay_without_host_execution():
     result = consumer.consume(_signal())
 
     assert result.event.phase == "preflight"
-    assert result.event.source == "adobe:vizz"
+    assert result.event.source == "adobe:visual"
     assert result.envelope.transport == "adobe"
     assert result.record.audit["mode"] == "proposal_only"
     assert result.record.audit["external_side_effects"] is False

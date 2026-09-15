@@ -40,7 +40,7 @@ def test_bundle_is_deterministic_and_separates_evidence_layers():
     assert first["replay_evidence"]["preview"]["projection"]["surface_id"] == "RESOLUME"
     assert first["replay_evidence"]["adobe_summary"] == {
         "replay_status": "PASS",
-        "source": "vizz",
+        "source": "visual",
         "transport": "adobe",
         "phase": "preflight",
         "proposal_only": True,

@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:signal-profile.schema.json",
+  "title": "RESOLUME_ADAPTER Signal Profile",
+  "description": "Contrato compartido para describir una señal VJ y sus observaciones.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "stage",
+    "generated_at",
+    "source",
+    "capture",
+    "house",
+    "processor",
+    "recommendation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stage": {
+      "enum": ["INSTAR", "NAYADE", "IMAGO"]
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "capture": {
+      "$ref": "#/$defs/capture"
+    },
+    "house": {
+      "$ref": "#/$defs/house"
+    },
+    "processor": {
+      "$ref": "#/$defs/processor"
+    },
+    "recommendation": {
+      "$ref": "#/$defs/recommendation"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    }
+  },
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "origin", "confidence"],
+      "properties": {
+        "value": {},
+        "origin": {
+          "enum": ["declared", "observed", "inferred", "unknown"]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "origin": { "const": "unknown" }
+            },
+            "required": ["origin"]
+          },
+          "then": {
+            "properties": {
+              "value": { "const": "unknown" },
+              "confidence": { "const": 0 }
+            }
+          }
+        }
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resolution",
+        "fps",
+        "color_model",
+        "range",
+        "transfer",
+        "primaries",
+        "bit_depth"
+      ],
+      "properties": {
+        "resolution": { "$ref": "#/$defs/fact" },
+        "fps": { "$ref": "#/$defs/fact" },
+        "color_model": { "$ref": "#/$defs/fact" },
+        "range": { "$ref": "#/$defs/fact" },
+        "transfer": { "$ref": "#/$defs/fact" },
+        "primaries": { "$ref": "#/$defs/fact" },
+        "bit_depth": { "$ref": "#/$defs/fact" }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resolution", "refresh_hz", "format", "lock"],
+      "properties": {
+        "resolution": { "$ref": "#/$defs/fact" },
+        "refresh_hz": { "$ref": "#/$defs/fact" },
+        "format": { "$ref": "#/$defs/fact" },
+        "lock": { "$ref": "#/$defs/fact" }
+      }
+    },
+    "house": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input", "bus", "destinations", "outputs"],
+      "properties": {
+        "input": { "$ref": "#/$defs/fact" },
+        "bus": { "$ref": "#/$defs/fact" },
+        "destinations": { "$ref": "#/$defs/fact" },
+        "outputs": { "$ref": "#/$defs/fact" }
+      }
+    },
+    "processor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vendor", "model", "read_only"],
+      "properties": {
+        "vendor": { "$ref": "#/$defs/fact" },
+        "model": { "$ref": "#/$defs/fact" },
+        "read_only": {
+          "type": "boolean"
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": ["yes", "no", "unknown"]
+          }
+        }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["range_transform", "gamma_transform", "deband", "deflicker"],
+      "properties": {
+        "range_transform": { "type": "string" },
+        "gamma_transform": { "type": "string" },
+        "deband": { "type": "boolean" },
+        "deflicker": { "type": "boolean" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "status", "detail"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["PASS", "WARN", "FAIL", "UNKNOWN"] },
+        "detail": { "type": "string" },
+        "source": { "type": "string" }
+      }
+    }
+  }
+}

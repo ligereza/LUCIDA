@@ -10,7 +10,7 @@ def test_all_three_connector_boundaries_pass_offline_conformance():
     assert report["status"] == "PASS"
     assert set(report["connectors"]) == {"adobe", "multi_xio", "resolume"}
     assert report["connectors"]["adobe"]["transport"] == "adobe"
-    assert set(report["connectors"]["adobe"]["sources"]) == {"xio", "vizz", "pupila"}
+    assert set(report["connectors"]["adobe"]["sources"]) == {"xio", "visual", "pupila"}
     assert all(
         source_report["replay_status"] == "PASS"
         for source_report in report["connectors"]["adobe"]["sources"].values()

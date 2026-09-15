@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligereza:lucida:resolume-adapter:resolume-cue-map.schema.json",
+  "title": "RESOLUME_ADAPTER ResolumeCueMap",
+  "description": "Mapa de CUES y transporte extraído de una composición Resolume, en modo lectura.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "map_type", "generated_at", "input", "read_only", "composition", "statistics", "clips"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "map_type": { "const": "ResolumeCueMap" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "input": { "type": "string", "minLength": 1 },
+    "read_only": { "const": true },
+    "composition": { "type": "object" },
+    "statistics": {
+      "type": "object",
+      "required": ["clips", "clips_with_cues", "cue_points", "layers_with_transition"],
+      "properties": {
+        "clips": { "type": "integer", "minimum": 0 },
+        "clips_with_cues": { "type": "integer", "minimum": 0 },
+        "cue_points": { "type": "integer", "minimum": 0 },
+        "layers_with_transition": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "clips": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["clip_index", "name", "layer", "column", "media", "transport", "cues", "empty_cue_slots"],
+        "properties": {
+          "clip_index": { "type": "integer", "minimum": 1 },
+          "unique_id": { "type": ["string", "null"] },
+          "name": { "type": "string" },
+          "layer": { "type": ["integer", "null"] },
+          "column": { "type": ["integer", "null"] },
+          "media": { "type": "array" },
+          "transport": { "type": "object" },
+          "cues": { "type": "array" },
+          "empty_cue_slots": { "type": "array", "items": { "type": "integer", "minimum": 1 } },
+          "selected_cue_position_ms": { "type": ["number", "null"] },
+          "layer_transition_ms": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "limitations": { "type": "array", "items": { "type": "string" } }
+  }
+}
