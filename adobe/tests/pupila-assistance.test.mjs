@@ -33,6 +33,15 @@ test("explicit blocked evidence creates a confirmation-only assistance proposal"
   assert.equal(result.proposal.requiresConfirmation, true)
 })
 
+test("an expired PUPILA proposal cannot keep the companion in assist state", () => {
+  const result = derivePupilaAssistance(signal({
+    eventType: "learning.progress",
+    proposal: { title: "Expired help", reason: "stale", expiresAt: "2026-09-14T11:59:00.000Z" },
+  }), Date.parse("2026-09-14T12:00:10.000Z"))
+  assert.equal(result.state, "observing")
+  assert.equal(result.proposal, undefined)
+})
+
 test("surface exposes stable PUPILA assistance without turning age into hash churn", () => {
   const first = publishSignal({
     source: "pupila",

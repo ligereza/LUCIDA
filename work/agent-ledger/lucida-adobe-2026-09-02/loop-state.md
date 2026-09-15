@@ -7,6 +7,8 @@ core_acceptance_criteria:
   - Make host integration portable, contract-driven and testable without inventing live Adobe validation.
 status: active
 completed:
+  - item: Kept expired PUPILA proposals out of the assistance card.
+    evidence: `derivePupilaAssistance` now checks proposal expiry independently from signal TTL; a focused regression confirms an expired proposal returns `observing`, while the full runtime suite remains green.
   - item: Smoke-tested the Windows Electron companion lifecycle.
     evidence: `npm run companion:start` launched Electron, started the ADOBE bridge on `127.0.0.1:47921`, exposed a proposal-only surface with PUPILA missing, and shut down without leaving the companion process, bridge listener or worker behind.
   - item: Prevented absent MobileCLIP from spawning a needless Python worker.
@@ -91,6 +93,7 @@ files_or_resources:
   - adobe/adobe-context-shelf/photoshop-uxp/index.js
   - adobe/contracts/stable.mjs
 tests_and_checks:
+  - focused PUPILA expiry regression: passed
   - companion lifecycle smoke: bridge health valid, loopback-only listener, clean shutdown
   - MobileCLIP status probe: model absent, worker skipped, no lingering worker process
   - end-to-end local recommendation probe: 8 local results, remote disabled, placement bottom-center, no lingering test process

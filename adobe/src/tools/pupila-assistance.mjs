@@ -43,10 +43,16 @@ function baseState(state, signal, ageMs, reason, title) {
   }
 }
 
-function hasExplicitHelpEvidence(signal) {
+function activeProposal(signal, nowMs) {
+  if (!signal?.proposal) return null
+  const expiresAt = Date.parse(signal.proposal.expiresAt || "")
+  return Number.isFinite(expiresAt) && expiresAt <= nowMs ? null : signal.proposal
+}
+
+function hasExplicitHelpEvidence(signal, nowMs) {
   const eventType = String(signal?.eventType || "").toLowerCase()
   const state = String(signal?.metadata?.state || "").toLowerCase()
-  return Boolean(signal?.proposal) || HELP_EVENTS.has(eventType) || HELP_STATES.has(state)
+  return Boolean(activeProposal(signal, nowMs)) || HELP_EVENTS.has(eventType) || HELP_STATES.has(state)
 }
 
 export function derivePupilaAssistance(signal = null, nowMs = Date.now()) {
@@ -58,11 +64,11 @@ export function derivePupilaAssistance(signal = null, nowMs = Date.now()) {
     return baseState("stale", signal, ageMs, "La observación de PUPILA expiró; no se reutiliza como ayuda actual.", "Observación PUPILA vencida")
   }
 
-  if (!hasExplicitHelpEvidence(signal)) {
+  if (!hasExplicitHelpEvidence(signal, nowMs)) {
     return baseState("observing", signal, ageMs, "PUPILA observa el flujo; una señal aislada no se interpreta como necesidad de ayuda.", "PUPILA observando")
   }
 
-  const proposal = signal.proposal
+  const proposal = activeProposal(signal, nowMs)
     ? {
         proposalId: signal.proposal.proposalId,
         kind: signal.proposal.kind,
@@ -85,7 +91,7 @@ export function derivePupilaAssistance(signal = null, nowMs = Date.now()) {
         reversible: true,
         requiresConfirmation: true,
         proposalOnly: true,
-        expiresAt: new Date(receivedAt + SIGNAL_TTL_MS).toISOString(),
+        expiresAt: new Date((Number.isFinite(receivedAt) ? receivedAt : nowMs) + SIGNAL_TTL_MS).toISOString(),
       }
 
   return {
