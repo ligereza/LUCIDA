@@ -86,6 +86,38 @@ function rectOverlap(a, b) {
   return width * height
 }
 
+function unionArea(rectangles) {
+  const xs = [...new Set(rectangles.flatMap((rect) => [rect.left, rect.right]))].sort((left, right) => left - right)
+  let area = 0
+  for (let index = 0; index < xs.length - 1; index += 1) {
+    const left = xs[index]
+    const right = xs[index + 1]
+    if (right <= left) continue
+    const intervals = rectangles
+      .filter((rect) => rect.left < right && rect.right > left)
+      .map((rect) => ({ top: rect.top, bottom: rect.bottom }))
+      .sort((first, second) => first.top - second.top || first.bottom - second.bottom)
+    let coveredHeight = 0
+    let start = null
+    let end = null
+    for (const interval of intervals) {
+      if (start === null) {
+        start = interval.top
+        end = interval.bottom
+      } else if (interval.top <= end) {
+        end = Math.max(end, interval.bottom)
+      } else {
+        coveredHeight += Math.max(0, end - start)
+        start = interval.top
+        end = interval.bottom
+      }
+    }
+    if (start !== null) coveredHeight += Math.max(0, end - start)
+    area += (right - left) * coveredHeight
+  }
+  return area
+}
+
 function deriveCanvas(context) {
   const width = numeric(context.document?.width, 1080)
   const height = numeric(context.document?.height, 1080)
@@ -189,7 +221,7 @@ export function analyzeLayout(context = {}) {
   const placementCandidates = (hostSafeRegions.length ? hostSafeRegions.map((bounds, index) => ({ bounds, source: "host", rank: index + 1, area: rectArea(bounds), areaRatio: rectArea(bounds) / (canvas.width * canvas.height) })) : blankAreas.slice(0, 5).map((area) => ({ ...area, source: "detected" })))
     .sort((left, right) => right.area - left.area)
     .map((candidate, index) => ({ ...candidate, rank: index + 1, position: positionFor(candidate.bounds, canvas) }))
-  const occupiedArea = occupied.reduce((total, region) => total + rectArea(region), 0)
+  const occupiedArea = unionArea(occupied)
   const canvasArea = canvas.width * canvas.height
   return {
     canvas,

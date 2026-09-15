@@ -46,3 +46,17 @@ test("an explicitly named full-canvas background remains available for overlay p
   assert.equal(result.layout.occupiedRatio, 0)
   assert.equal(result.layout.placementCandidates[0].source, "detected")
 })
+
+test("overlapping occupied regions use their union area for ratios", () => {
+  const result = analyzeContext({
+    document: { width: 1000, height: 1000 },
+    occupiedRegions: [
+      { left: 0, top: 0, right: 600, bottom: 600 },
+      { left: 400, top: 400, right: 1000, bottom: 1000 },
+    ],
+  })
+  assert.equal(result.layout.occupiedArea, 680000)
+  assert.equal(result.layout.occupiedRatio, 0.68)
+  assert.equal(result.layout.blankRatio, 0.32)
+  assert.ok(result.layout.blankAreas.length > 0)
+})
