@@ -5,7 +5,7 @@ import {
   estimateDisplayPx,
   measureTextBlock,
   proposeAdaptiveComposition,
-} from "./adaptive-composition.mjs"
+} from "../src/tools/adaptive-composition.mjs"
 
 test("display scale converts canvas pixels to phone viewport pixels", () => {
   assert.equal(estimateDisplayPx(48, 1080, 360), 16)
