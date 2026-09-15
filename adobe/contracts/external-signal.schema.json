@@ -8,7 +8,7 @@
     "schemaVersion": { "const": 1 },
     "signalId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$" },
     "eventId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$" },
-    "source": { "enum": ["xio", "vizz", "pupila"] },
+    "source": { "enum": ["xio", "visual", "pupila"] },
     "sessionId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,120}$" },
     "sequence": { "type": "integer", "minimum": 0 },
     "eventType": { "type": "string", "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)+$", "maxLength": 80 },

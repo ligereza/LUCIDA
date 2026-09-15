@@ -53,7 +53,7 @@ class SignalPublisherTest(unittest.TestCase):
         publisher = MODULE.SignalPublisher()
         with patch.object(MODULE.urllib.request, "urlopen", return_value=FakeResponse()) as urlopen:
             publisher.publish_event(
-                "vizz",
+                "visual",
                 "session-002",
                 "attention.shift",
                 proposal={

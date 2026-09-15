@@ -59,11 +59,11 @@ test("signal bridge redacts raw content and deduplicates source events", () => {
   assert.equal(currentSignals({ sessionId: id }).count, 2)
 })
 
-test("vizz and pupila proposals remain explicit and confirmation-only", () => {
+test("visual and pupila proposals remain explicit and confirmation-only", () => {
   const id = sessionId("proposal")
   const result = publishSignal({
-    signalId: "vizz-001",
-    source: "vizz",
+    signalId: "visual-001",
+    source: "visual",
     sessionId: id,
     eventType: "attention.shift",
     metadata: { focusScore: 0.72, region: "canvas" },
@@ -80,12 +80,12 @@ test("vizz and pupila proposals remain explicit and confirmation-only", () => {
   assert.equal(result.signal.proposal.reversible, false)
   assert.equal(result.signal.proposal.command, undefined)
   assert.equal(result.surface.safety.hostActions, false)
-  assert.equal(result.surface.proposals[0].source, "vizz")
+  assert.equal(result.surface.proposals[0].source, "visual")
   assert.equal(result.surface.status.proposalCount, 1)
 
   assert.throws(() => publishSignal({
-    signalId: "vizz-002",
-    source: "vizz",
+    signalId: "visual-002",
+    source: "visual",
     sessionId: id,
     sequence: 0,
     eventType: "attention.shift",
@@ -104,7 +104,7 @@ test("vizz and pupila proposals remain explicit and confirmation-only", () => {
 test("proposal expiry is bounded and expired proposals leave the derived surface", () => {
   const now = new Date("2026-09-02T12:00:00.000Z")
   const normalized = normalizeSignal({
-    source: "vizz",
+    source: "visual",
     sessionId: "signal-expiry-fixed",
     eventType: "attention.shift",
     proposal: { title: "Short lived", reason: "test", expiresAt: "2030-01-01T00:00:00Z" },
@@ -113,7 +113,7 @@ test("proposal expiry is bounded and expired proposals leave the derived surface
 
   const id = sessionId("expired")
   const result = publishSignal({
-    source: "vizz",
+    source: "visual",
     sessionId: id,
     eventType: "attention.shift",
     proposal: { title: "Expired", reason: "test", expiresAt: "2000-01-01T00:00:00Z" },

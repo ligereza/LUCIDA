@@ -19,10 +19,10 @@
       "mode": "signal-only",
       "signalFamilies": ["network", "application", "workflow"]
     },
-    "vizz": {
+    "visual": {
       "direction": "input",
       "mode": "proposal-signal-only",
-      "signalFamilies": ["attention", "gaze", "display"]
+      "signalFamilies": ["focus", "geometry", "display"]
     },
     "pupila": {
       "direction": "input",

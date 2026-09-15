@@ -71,7 +71,7 @@ const agentCard = {
   },
   signalBridge: {
     schemaVersion: 1,
-    sources: ["xio", "vizz", "pupila"],
+    sources: ["xio", "visual", "pupila"],
     endpoints: ["POST /signals", "GET /signals/current", "GET /surface/current"],
     diagnostics: signalDiagnostics(),
   },
@@ -116,7 +116,7 @@ const openApi = {
     "/insert": { post: { operationId: "queueInsert", description: "Queue an allowlisted asset insertion for an Adobe host session.", responses: { "201": { description: "Insert request" } } } },
     "/insert/next": { get: { operationId: "claimInsert", description: "Claim the next insertion for an Adobe host session.", responses: { "200": { description: "Insert request or empty" } } } },
     "/insert/result": { post: { operationId: "recordInsertResult", description: "Record the result of an Adobe host insertion.", responses: { "200": { description: "Insert result" } } } },
-    "/signals": { post: { operationId: "publishSignal", description: "Publish a redacted XIO, VIZZ or PUPILA signal without host-side effects.", responses: { "200": { description: "Accepted signal and derived surface" } } } },
+    "/signals": { post: { operationId: "publishSignal", description: "Publish a redacted XIO, PUPILA Visual or PUPILA Assistance signal without host-side effects.", responses: { "200": { description: "Accepted signal and derived surface" } } } },
     "/signals/current": { get: { operationId: "currentSignals", description: "Read bounded signals for a local session.", responses: { "200": { description: "Signal history" } } } },
     "/surface/current": { get: { operationId: "currentSurface", description: "Read the proposal-only Adobe surface derived from context and external signals.", responses: { "200": { description: "Derived surface" } } } },
     "/jobs/{id}": { get: { operationId: "getJob", parameters: [{ name: "id", in: "path", required: true }], responses: { "200": { description: "Job status" } } } },

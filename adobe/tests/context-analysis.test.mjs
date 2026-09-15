@@ -13,6 +13,8 @@ test("context analysis detects content and ranks a free region", () => {
   assert.ok(result.content.visualTerms.includes("health"))
   assert.ok(result.layout.blankAreas[0].areaRatio > 0.5)
   assert.equal(result.layout.placementCandidates[0].source, "detected")
+  assert.equal(result.layout.basis, "explicit-regions")
+  assert.match(result.layout.note, /no analiza transparencia/)
   assert.equal(result.palette.available, true)
   assert.equal(result.suggestions.some((item) => item.type === "placement"), true)
 })
@@ -24,6 +26,7 @@ test("explicit host safe regions take priority over detected blank regions", () 
     safeRegions: [{ left: 50, top: 50, right: 200, bottom: 200 }],
   })
   assert.equal(result.layout.placementCandidates[0].source, "host")
+  assert.equal(result.layout.basis, "host-safe-regions")
   assert.deepEqual(result.layout.placementCandidates[0].bounds, { left: 50, top: 50, right: 200, bottom: 200 })
 })
 
@@ -36,6 +39,44 @@ test("a full-canvas foreground layer is occupied, not an invented blank area", (
   assert.equal(result.layout.blankRatio, 0)
   assert.deepEqual(result.layout.blankAreas, [])
   assert.deepEqual(result.layout.placementCandidates, [])
+})
+
+test("missing spatial evidence is unknown, not a whole-canvas blank region", () => {
+  const result = analyzeContext({ document: { width: 1000, height: 1000 }, selection: { text: "flyer" } })
+  assert.equal(result.layout.basis, "unavailable")
+  assert.equal(result.layout.blankRatio, null)
+  assert.equal(result.layout.occupiedRatio, null)
+  assert.deepEqual(result.layout.blankAreas, [])
+  assert.deepEqual(result.layout.placementCandidates, [])
+  assert.match(result.layout.note, /bounds espaciales suficientes/)
+})
+
+test("low-detail pixel samples suggest quietness without claiming blank space", () => {
+  const detail = Array(24 * 24).fill(0.9)
+  for (let y = 0; y < 24; y += 1) {
+    for (let x = 0; x < 12; x += 1) detail[y * 24 + x] = 0.01
+  }
+  const result = analyzeContext({
+    document: { width: 1080, height: 1440 },
+    selection: { text: "Cuidado y salud sexual" },
+    visualGrid: {
+      columns: 24,
+      rows: 24,
+      detail,
+      alphaCoverage: Array(24 * 24).fill(1),
+      sampleWidth: 144,
+      sampleHeight: 192,
+      historyStateId: 7,
+      method: "edge-alpha-grid-v1",
+    },
+  })
+
+  assert.equal(result.layout.basis, "visual-sample")
+  assert.equal(result.layout.visualSampleAvailable, true)
+  assert.equal(result.layout.blankRatio, null)
+  assert.deepEqual(result.layout.blankAreas, [])
+  assert.equal(result.layout.placementCandidates[0].source, "visual-quietness")
+  assert.match(result.suggestions.find((item) => item.type === "placement").reason, /no implica área vacía/)
 })
 
 test("an explicitly named full-canvas background remains available for overlay placement", () => {

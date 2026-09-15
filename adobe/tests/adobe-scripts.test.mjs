@@ -2,6 +2,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import { spawn } from "node:child_process"
+import vm from "node:vm"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -134,6 +135,67 @@ test("Companion keeps bridge health, renderer routes and error handlers aligned"
   assert.doesNotMatch(bridgeStatus, /response\.on\("error", reject\)/)
   assert.match(main, /"\/analysis\/layer"/)
   assert.match(renderer, /request\("\/analysis\/layer"/)
+})
+
+test("Companion labels textual matches, related concepts and geometric-space limits", async () => {
+  const renderer = await readFile(path.join(root, "companion/renderer.js"), "utf8")
+  assert.match(renderer, /appendMatchEvidence\(results\)/)
+  assert.match(renderer, /matchedTokenCount/)
+  assert.match(renderer, /relatedTokenCount/)
+  assert.match(renderer, /Coincidencia textual en metadatos/)
+  assert.match(renderer, /relacionados, no equivalentes/)
+  assert.match(renderer, /bounds; sin análisis de transparencia\/píxeles/)
+  assert.match(renderer, /hueco geométrico/)
+  assert.match(renderer, /Búsqueda visual MobileCLIP no activa/)
+})
+
+test("Companion renders weak semantic relations as related, not exact", async () => {
+  const source = await readFile(path.join(root, "companion/renderer.js"), "utf8")
+  const start = source.indexOf("function appendMatchEvidence(results) {")
+  const end = source.indexOf("\nasync function loadPreview", start)
+  assert.ok(start >= 0 && end > start)
+  const functionSource = source.slice(start, end)
+  const appended = []
+  const meta = { title: "", append(...nodes) { appended.push(...nodes) } }
+  const card = { dataset: { assetId: "protection-symbol" }, querySelector: () => meta }
+  const results = [{
+    assetId: "protection-symbol", matchCoverage: 0, matchedTokenCount: 0,
+    relatedTokenCount: 1, queryTokenCount: 1,
+    reasons: ["coincide con: condon ~ protection (relacionado)"],
+  }]
+  const rootElement = { querySelectorAll: () => [card] }
+  const context = {
+    $: (selector) => selector === "#results" ? rootElement : null,
+    document: { createElement: (tagName) => ({ tagName, textContent: "" }) },
+    results,
+  }
+  vm.runInNewContext(`${functionSource}\nappendMatchEvidence(results);`, context)
+  assert.match(meta.title, /Coincidencia textual en metadatos/)
+  assert.match(meta.title, /0\/1 términos/)
+  assert.equal(appended[1].textContent, "Texto 0/1 + 1 relacionado, no equivalente · condon ~ protection (relacionado)")
+})
+
+test("Companion distinguishes unknown geometry from no geometric gap", async () => {
+  const source = await readFile(path.join(root, "companion/renderer.js"), "utf8")
+  const start = source.indexOf("function showContext(context) {")
+  const end = source.indexOf("\nfunction renderSignalSurface", start)
+  assert.ok(start >= 0 && end > start)
+  const functionSource = source.slice(start, end)
+  const makeView = (input) => {
+    const nodes = new Map(["#document", "#selection", "#copy", "#analysis"].map((selector) => [selector, { textContent: "" }]))
+    vm.runInNewContext(`${functionSource}\nshowContext(input);`, {
+      $: (selector) => nodes.get(selector),
+      renderSelectionScope() {},
+      input,
+    })
+    return nodes.get("#analysis").textContent
+  }
+  const base = { document: { name: "FLYERS.psb" }, selection: { name: "MAGNESIO" }, analysis: { content: { primaryTopic: { label: "suplementos" } }, layers: { score: 80 } } }
+  const bounded = makeView({ ...base, analysis: { ...base.analysis, layout: { basis: "visible-layer-bounds", placementCandidates: [] } } })
+  assert.match(bounded, /no se encontró un hueco en los bounds/)
+  assert.match(bounded, /sin análisis de transparencia\/píxeles/)
+  const unavailable = makeView({ ...base, analysis: { ...base.analysis, layout: { basis: "unavailable", placementCandidates: [] } } })
+  assert.match(unavailable, /sin bounds espaciales suficientes/)
 })
 
 test("Project companion keeps slide text visible without visual groups", async () => {

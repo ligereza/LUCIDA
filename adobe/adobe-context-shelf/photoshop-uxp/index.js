@@ -1,4 +1,4 @@
-const { app, action, core } = require("photoshop")
+const { app, action, core, imaging } = require("photoshop")
 const { entrypoints } = require("uxp")
 const { storage } = require("uxp")
 
@@ -7,6 +7,10 @@ const SESSION_ID = `photoshop-${Date.now()}-${Math.random().toString(36).slice(2
 const MAX_LAYERS = 200
 const MAX_LAYER_DEPTH = 64
 const MAX_LAYER_TEXT = 1000
+const VISUAL_SAMPLE_SIZE = 192
+const VISUAL_SAMPLE_INTERVAL_MS = 5000
+const VISUAL_SAMPLE_COLUMNS = 24
+const VISUAL_SAMPLE_ROWS = 24
 const CONTEXT_POLL_MS = 1200
 const INSERT_POLL_MS = 700
 const BRIDGE_RETRY_MS = 5000
@@ -22,6 +26,10 @@ let nextContextAttemptAt = 0
 let nextInsertAttemptAt = 0
 let lastBridgeError = null
 let lastBridgeErrorAt = 0
+let visualSampleCacheKey = null
+let visualSampleCache = null
+let visualSampleAttemptAt = 0
+let visualSampleInFlight = false
 
 entrypoints.setup({
   panels: {
@@ -151,7 +159,107 @@ function slideIndexFrom(...values) {
   return null
 }
 
-function currentContext() {
+function pixelLuminance(data, offset) {
+  return (0.2126 * data[offset] + 0.7152 * data[offset + 1] + 0.0722 * data[offset + 2]) / 255
+}
+
+function visualGridFromPixels(imageData, data, historyStateId) {
+  const width = Number(imageData?.width)
+  const height = Number(imageData?.height)
+  const components = Number(imageData?.components)
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) return null
+  if (components !== 3 && components !== 4) return null
+  if (Number(imageData.componentSize) !== 8 || data?.length !== width * height * components) return null
+  const hasAlpha = imageData.hasAlpha === true && components === 4
+  const columns = width >= height ? VISUAL_SAMPLE_COLUMNS : Math.max(8, Math.round(VISUAL_SAMPLE_COLUMNS * width / height))
+  const rows = height >= width ? VISUAL_SAMPLE_ROWS : Math.max(8, Math.round(VISUAL_SAMPLE_ROWS * height / width))
+  const detail = []
+  const alphaCoverage = []
+  const pixelAt = (x, y) => {
+    const offset = (y * width + x) * components
+    return { luminance: pixelLuminance(data, offset), alpha: hasAlpha ? data[offset + 3] / 255 : 1 }
+  }
+  for (let gridY = 0; gridY < rows; gridY += 1) {
+    const top = Math.floor(gridY * height / rows)
+    const bottom = Math.max(top + 1, Math.floor((gridY + 1) * height / rows))
+    for (let gridX = 0; gridX < columns; gridX += 1) {
+      const left = Math.floor(gridX * width / columns)
+      const right = Math.max(left + 1, Math.floor((gridX + 1) * width / columns))
+      let edgeTotal = 0
+      let edgeCount = 0
+      let alphaTotal = 0
+      let pixelCount = 0
+      for (let y = top; y < Math.min(height, bottom); y += 1) {
+        for (let x = left; x < Math.min(width, right); x += 1) {
+          const pixel = pixelAt(x, y)
+          alphaTotal += pixel.alpha
+          pixelCount += 1
+          for (const [nextX, nextY] of [[x + 1, y], [x, y + 1]]) {
+            if (nextX >= width || nextY >= height) continue
+            const next = pixelAt(nextX, nextY)
+            edgeTotal += Math.max(Math.abs(pixel.luminance - next.luminance), Math.abs(pixel.alpha - next.alpha))
+            edgeCount += 1
+          }
+        }
+      }
+      detail.push(edgeCount ? Number((edgeTotal / edgeCount).toFixed(4)) : 0)
+      alphaCoverage.push(pixelCount ? Number((alphaTotal / pixelCount).toFixed(4)) : 0)
+    }
+  }
+  return {
+    schemaVersion: 1,
+    columns,
+    rows,
+    detail,
+    alphaCoverage,
+    sampleWidth: width,
+    sampleHeight: height,
+    historyStateId,
+    method: "edge-alpha-grid-v1",
+  }
+}
+
+async function visualGridForDocument(documentValue) {
+  if (typeof imaging?.getPixels !== "function") return null
+  const documentId = number(documentValue?.id)
+  const historyStateId = number(documentValue?.activeHistoryState?.id)
+  if (documentId === null || historyStateId === null) return null
+  const cacheKey = String(documentId) + ":" + String(historyStateId)
+  if (cacheKey === visualSampleCacheKey) return visualSampleCache
+  if (visualSampleInFlight || Date.now() - visualSampleAttemptAt < VISUAL_SAMPLE_INTERVAL_MS) return null
+  visualSampleAttemptAt = Date.now()
+  visualSampleInFlight = true
+  let imageData = null
+  try {
+    const targetSize = Number(documentValue.width) >= Number(documentValue.height)
+      ? { width: VISUAL_SAMPLE_SIZE }
+      : { height: VISUAL_SAMPLE_SIZE }
+    const result = await imaging.getPixels({
+      documentID: documentId,
+      historyStateID: historyStateId,
+      targetSize,
+      componentSize: 8,
+      colorSpace: "RGB",
+    })
+    imageData = result?.imageData || null
+    if (!imageData) return null
+    const pixels = await imageData.getData({ chunky: true })
+    const summary = visualGridFromPixels(imageData, pixels, historyStateId)
+    visualSampleCacheKey = cacheKey
+    visualSampleCache = summary
+    return summary
+  } catch (error) {
+    visualSampleCacheKey = null
+    visualSampleCache = null
+    logBridgeError("Muestra visual no disponible", error)
+    return null
+  } finally {
+    try { imageData?.dispose?.() } catch (_) {}
+    visualSampleInFlight = false
+  }
+}
+
+async function currentContext() {
   const documentValue = app.activeDocument
   if (!documentValue) {
     return {
@@ -160,7 +268,7 @@ function currentContext() {
       document: { id: null, name: null, path: null, width: null, height: null, unit: "px" },
       location: { kind: "document", index: null, label: null },
       selection: { kind: null, id: null, name: null, text: null, bounds: null },
-      layers: [], palette: [], occupiedRegions: [], safeRegions: [], time: null,
+      layers: [], palette: [], occupiedRegions: [], safeRegions: [], visualGrid: null, time: null,
     }
   }
   const flattenedLayers = flattenLayers(documentValue.layers)
@@ -168,6 +276,7 @@ function currentContext() {
   const activeLayers = layersOf(app.activeLayers, 4)
   const selected = activeLayers[0] || allLayers[0] || null
   const serialised = flattenedLayers.map((entry, order) => serialiseLayer(entry.layer, { ...entry, order }))
+  const visualGrid = await visualGridForDocument(documentValue)
   return {
     schemaVersion: 1, sessionId: SESSION_ID, host: "photoshop", hostVersion: null,
     project: { id: null, name: null, root: null },
@@ -183,6 +292,7 @@ function currentContext() {
     palette: paletteOf(allLayers),
     occupiedRegions: serialised.map((layer) => layer.bounds).filter(Boolean),
     safeRegions: [],
+    visualGrid,
     time: null,
   }
 }
@@ -217,7 +327,7 @@ async function syncContext({ force = false } = {}) {
   if (!force && Date.now() < nextContextAttemptAt) return
   syncing = true
   try {
-    const context = currentContext()
+    const context = await currentContext()
     const signature = JSON.stringify(context)
     if (!force && bridgeOnline && signature === lastContextSignature) return
     const result = await request("/context", { method: "POST", body: JSON.stringify(context) })

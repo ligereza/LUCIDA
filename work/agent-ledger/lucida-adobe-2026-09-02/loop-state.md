@@ -1,6 +1,6 @@
 run_id: lucida-adobe-2026-09-02
-objective: Continue autonomous development of LUCIDA ADOBE as a portable transparent Adobe companion connected through explicit local contracts to XIO, VIZZ and PUPILA.
-scope: ADOBE branch only; preserve MOSAIK/RESOLUME, XIO/MULTI and original SVG sources.
+objective: Improve and verify the LUCIDA ADOBE companion's semantic local-asset recommendations and layer-bounds free-space analysis; preserve the existing proposal-only PUPILA boundary without importing libraries from the source SVG repository.
+scope: LUCIDA ADOBE branch only; do not alter X-ANA-X, PUPILA, XIO or the original SVG source repository.
 core_acceptance_criteria:
   - Preserve branch separation and ASCII technical identifiers.
   - Keep local signals bounded and proposal-only.
@@ -28,7 +28,7 @@ completed:
   - item: Bounded external signal session state without changing proposal-only semantics.
     evidence: signal regression test passes with 40 sessions; signal history remains capped at 96 events per session.
   - item: Audited insertion boundary against external proposals.
-    evidence: The new regression confirms a VIZZ proposal produces no queued insertion; host actions remain false and proposal-only remains true.
+    evidence: The new regression confirms a PUPILA Visual proposal produces no queued insertion; host actions remain false and proposal-only remains true.
   - item: Published the structural audit and insertion-boundary fixes.
     evidence: Commits 2985f1f, 76c459d and 22808d2 are pushed to origin/ADOBE; branch is clean and synchronized.
   - item: Audited the repository package boundary.
@@ -52,7 +52,7 @@ completed:
   - item: Added contract-to-adapter parity verification and reduced companion polling overlap.
     evidence: verify now checks every declared operation against each JSX/PSJS dispatch; current Adobe adapters pass, and renderer syntax checks pass with a single poll in flight.
   - item: Bounded cross-project signal state and proposal lifetime.
-    evidence: VIZZ/PUPILA proposals are clamped to 45 seconds and filtered from the derived surface after expiry; signal history and deduplication memory stay at 96 events per session.
+    evidence: PUPILA Visual/Assistance proposals are clamped to 45 seconds and filtered from the derived surface after expiry; signal history and deduplication memory stay at 96 events per session.
   - item: Added a deterministic bridge-facing status boundary.
     evidence: The companion accepts only an ADOBE bridge identity, avoids overlapping refresh requests, and the shared signal surface now exposes only active proposals with bounded state.
   - item: Added an aggregate status to the shared signal surface.
@@ -79,9 +79,18 @@ completed:
     evidence: A runtime fixture demonstrates that the generic layer preserves `document.path` and `unknown`, while the Adobe normalizer drops the path and enforces Adobe-specific fields; the distinction is now executable evidence rather than only documentation.
   - item: Added hostless execution coverage for the Photoshop UXP producer.
     evidence: A VM harness runs the UXP source with mocked Photoshop collections and fetch, confirming bounded serialization, null document path, AbortSignal propagation, timeout-to-offline behavior and start/stop polling without misrepresenting it as host validation.
+  - item: Exposed textual match coverage in local recommendations and companion cards.
+    evidence: Each local result carries matched/query-token counts and coverage; the card displays the count and reason. A regression for a Chemsex-only asset queried with Chemsex + supplements + magnesium reports 1/3. The active PSB context yielded 1/5 for top local results with remote disabled. No PSD edit or output file was created.
+  - item: Separated exact translations from related icon concepts and made visual readiness truthful.
+    evidence: Related matches carry lower rank and a separate count/reason; visual prompt translations omit broader associations. MobileCLIP is reported active only with a matching index and valid vectors; the companion identifies its local-text fallback.
+  - item: Runtime-checked the card evidence renderer without launching Electron.
+    evidence: The actual `appendMatchEvidence` function rendered `Texto 0/1 + 1 relacionado, no equivalente`; `showContext` separately displayed bounds-only versus unavailable geometry. Both are exercised without launching Electron.
+  - item: Made blank-area output honest about its geometry-only evidence.
+    evidence: `layout.basis` and a limitation note distinguish bounds/host regions; missing spatial evidence yields unknown ratios and no candidates. The active PSB returned zero geometric gaps without claiming pixel-level whitespace detection.
 in_progress:
-  - item: Validate the improved companion against a user-operated Adobe host where the UXP panel can actually load.
-    acceptance: The local checks remain green and a host run, if available, confirms Context Shelf loading and context publication without claiming that source-level tests prove Photoshop behavior.
+  - item: Validate the live UXP panel and visual search path without disturbing the active artwork.
+    evidence: Photoshop COM read the current PSB, but the UXP panel did not publish context; MobileCLIP model, repository and vector index are absent.
+    acceptance: Verify the panel only if already loaded by the user; do not download/install MobileCLIP, close/save the PSB, or launch an extra Adobe instance.
 files_or_resources:
   - adobe/src/tools/pupila-assistance.mjs
   - adobe/tests/pupila-assistance.test.mjs
@@ -92,14 +101,20 @@ files_or_resources:
   - adobe/src/tools/context.mjs
   - adobe/adobe-context-shelf/photoshop-uxp/index.js
   - adobe/contracts/stable.mjs
+  - adobe/src/tools/local-catalog.mjs
+  - adobe/tests/local-catalog.test.mjs
+  - adobe/src/tools/context-analysis.mjs
+  - adobe/tests/context-analysis.test.mjs
+  - adobe/src/tools/mobileclip.mjs
+  - adobe/tests/mobileclip-contract.test.mjs
+  - adobe/tests/adobe-scripts.test.mjs
 tests_and_checks:
   - focused PUPILA expiry regression: passed
   - companion lifecycle smoke: bridge health valid, loopback-only listener, clean shutdown
   - MobileCLIP status probe: model absent, worker skipped, no lingering worker process
   - end-to-end local recommendation probe: 8 local results, remote disabled, placement bottom-center, no lingering test process
   - local catalog probe with `semantic: true`: honest lexical fallback when no MobileCLIP index exists; no worker remained
-  - npm run test:runtime: 63 passed
-  - npm run test: 11 core tests and 63 runtime tests passed
+  - npm run test: 11 core tests and 79 runtime tests passed
   - npm run smoke: passed
   - npm run companion:check: passed
   - npm run verify: passed
@@ -108,10 +123,14 @@ assumptions:
 blockers: []
 research_refs: []
 delegation_refs: []
-last_critique: critique-16.md
-estimated_remaining_effort: one focused implementation and verification pass
+last_critique: critique.md
+estimated_remaining_effort: one user-operated UXP validation pass; visual model remains optional and uninstalled
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.
-  - Whether a real Adobe context publisher will remain stable across host versions.
+  - Whether true visual embeddings add enough value to justify a separately authorized model/index setup; current behavior is lexical and honestly labelled.
 next_action: Validate the companion against a user-operated Photoshop or Illustrator host if a loadable UXP development path is available; otherwise keep host execution explicitly pending and do not claim source tests prove Adobe behavior.
-next_checkpoint_trigger: A coherent code change with passing suites and a pushed commit.
+next_checkpoint_trigger: A coherent code change with passing suites; transfer Windows changes to MAK only at session end, without pushing unless requested.
+current_checkpoint_override:
+  supersedes: The historical `next_action` above predates the active user PSB and must not be followed.
+  safety: Photoshop is open on an unsaved user document; do not edit, save, close, or launch another Photoshop instance.
+  next_action: Keep ADOBE local-first. Preserve the PSB; do not install MobileCLIP or start a new host. Validate UXP only when the user-operated panel is available.

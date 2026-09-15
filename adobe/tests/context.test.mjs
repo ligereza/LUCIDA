@@ -34,6 +34,33 @@ test("context store normalizes snapshots and computes a stable hash", () => {
   assert.equal(currentContext({ sessionId }).contextHash, stored.contextHash)
 })
 
+test("pixel grid context is bounded, clamped and optional", () => {
+  const sessionId = `visual-grid-${Date.now()}`
+  const cells = [0, 0.25, 0.5, 1]
+  const stored = publishContext({
+    ...context(sessionId),
+    visualGrid: {
+      columns: 2,
+      rows: 2,
+      detail: [-1, 0.25, 2, "invalid"],
+      alphaCoverage: cells,
+      sampleWidth: 192,
+      sampleHeight: 144,
+      historyStateId: 7,
+      method: "edge-alpha-grid-v1",
+    },
+  })
+  assert.deepEqual(stored.visualGrid.detail, [0, 0.25, 1, 1])
+  assert.deepEqual(stored.visualGrid.alphaCoverage, cells)
+  assert.equal(stored.visualGrid.historyStateId, 7)
+
+  const invalid = publishContext({
+    ...context(`visual-grid-invalid-${Date.now()}`),
+    visualGrid: { columns: 25, rows: 1, detail: Array(25).fill(0) },
+  })
+  assert.equal(invalid.visualGrid, null)
+})
+
 test("Adobe and generic context boundaries preserve different semantics", () => {
   const input = {
     sessionId: `boundary-${Date.now()}`,
@@ -114,7 +141,10 @@ test("recommendations are local-first and do not call remote providers by defaul
     const result = await recommendContext({ sessionId, limit: 8 })
     assert.equal(calls, 0)
     assert.equal(result.remoteEnabled, false)
+    assert.ok(result.results.length > 0)
     assert.ok(result.results.every((item) => item.local === true))
+    assert.ok(result.results.every((item) => Number.isInteger(item.matchedTokenCount) && Number.isInteger(item.relatedTokenCount) && Number.isInteger(item.queryTokenCount)))
+    assert.ok(result.results.every((item) => item.reasons[0].startsWith("coincide con:")))
   } finally {
     globalThis.fetch = originalFetch
   }
@@ -134,7 +164,7 @@ test("external proposals cannot create an Adobe insertion", () => {
   const sessionId = `proposal-boundary-${Date.now()}`
   publishContext(context(sessionId))
   publishSignal({
-    source: "vizz",
+    source: "visual",
     sessionId,
     sequence: 0,
     eventType: "attention.shift",

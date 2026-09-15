@@ -98,6 +98,30 @@ function normalizePalette(value) {
     .slice(0, 24)
 }
 
+function normalizeVisualGrid(value) {
+  if (!value || typeof value !== "object") return null
+  const columns = Number(value.columns)
+  const rows = Number(value.rows)
+  if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns < 1 || rows < 1 || columns > 24 || rows > 24) return null
+  const cells = columns * rows
+  if (!Array.isArray(value.detail) || value.detail.length !== cells) return null
+  const detail = value.detail.map((item) => numberOrNull(item)).map((item) => item === null ? 1 : Math.max(0, Math.min(1, item)))
+  const alphaCoverage = Array.isArray(value.alphaCoverage) && value.alphaCoverage.length === cells
+    ? value.alphaCoverage.map((item) => numberOrNull(item)).map((item) => item === null ? 1 : Math.max(0, Math.min(1, item)))
+    : Array(cells).fill(1)
+  return {
+    schemaVersion: 1,
+    columns,
+    rows,
+    detail,
+    alphaCoverage,
+    sampleWidth: numberOrNull(value.sampleWidth),
+    sampleHeight: numberOrNull(value.sampleHeight),
+    historyStateId: numberOrNull(value.historyStateId),
+    method: value.method === "edge-alpha-grid-v1" ? value.method : "unknown",
+  }
+}
+
 function normalizeContext(input = {}) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Context must be an object")
   const host = String(input.host || "").toLowerCase()
@@ -152,6 +176,7 @@ function normalizeContext(input = {}) {
       text: layer?.text ? String(layer.text).slice(0, 1000) : null,
     })),
     palette: normalizePalette(input.palette),
+    visualGrid: normalizeVisualGrid(input.visualGrid),
     occupiedRegions: boundedArray(input.occupiedRegions).map((region) => bounds(region)).filter(Boolean),
     safeRegions: boundedArray(input.safeRegions).map((region) => bounds(region)).filter(Boolean),
     time: input.time && typeof input.time === "object" ? {
@@ -267,6 +292,10 @@ export async function recommendContext({ context: rawContext = null, sessionId =
     width: item.width,
     height: item.height,
     aspectRatio: item.aspectRatio,
+    matchedTokenCount: item.matchedTokenCount,
+    relatedTokenCount: item.relatedTokenCount,
+    queryTokenCount: item.queryTokenCount,
+    matchCoverage: item.matchCoverage,
     reasons: [
       item.matchReasons?.length ? `coincide con: ${item.matchReasons.slice(0, 4).join(", ")}` : "recurso de la biblioteca local",
       ...(bestArea ? [`candidato para ${bestArea.position}`] : []),

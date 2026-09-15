@@ -14,46 +14,143 @@ const IGNORED_DIRECTORIES = new Set([
 ])
 
 const SEARCH_ALIASES = new Map([
-  ["pulmon", ["pulmones", "lung", "lungs", "respiratory", "pulmonary"]],
-  ["pulmones", ["pulmon", "lung", "lungs", "respiratory", "pulmonary"]],
-  ["lung", ["lungs", "pulmon", "pulmones", "respiratory", "pulmonary"]],
-  ["lungs", ["lung", "pulmon", "pulmones", "respiratory", "pulmonary"]],
-  ["vih", ["hiv", "virus", "viral"]],
-  ["hiv", ["vih", "virus", "viral"]],
-  ["its", ["sti", "std", "sexual", "infection", "infeccion"]],
-  ["sti", ["its", "std", "sexual", "infection", "infeccion"]],
-  ["condon", ["condom", "protection", "proteccion"]],
-  ["condom", ["condon", "protection", "proteccion"]],
-  ["prevencion", ["prevention", "protection", "proteccion", "care", "cuidado"]],
-  ["prevention", ["prevencion", "protection", "proteccion", "care", "cuidado"]],
-  ["proteccion", ["protection", "prevention", "care", "health", "support"]],
-  ["protection", ["proteccion", "prevention", "care", "health", "support"]],
-  ["reduccion", ["reduction", "harm", "risk", "riesgo"]],
-  ["reduction", ["reduccion", "harm", "risk", "riesgo"]],
-  ["sustancia", ["sustancias", "substance", "substances", "drug", "drugs"]],
-  ["sustancias", ["sustancia", "substance", "substances", "drug", "drugs"]],
-  ["droga", ["drogas", "drug", "drugs", "substance", "substances"]],
-  ["drogas", ["droga", "drug", "drugs", "substance", "substances"]],
-  ["pastilla", ["pill", "pills", "tablet", "capsule"]],
-  ["jeringa", ["syringe", "needle"]],
-  ["jeringas", ["syringe", "needles", "needle"]],
-  ["corazon", ["heart", "cardiac"]],
-  ["cerebro", ["brain", "mental", "neural"]],
-  ["boca", ["mouth", "oral", "lips"]],
-  ["labios", ["lips", "mouth", "oral"]],
-  ["persona", ["person", "people", "human"]],
-  ["personas", ["person", "people", "human"]],
-  ["hombre", ["man", "male"]],
-  ["mujer", ["woman", "female"]],
-  ["fiesta", ["party", "event", "community"]],
-  ["comunidad", ["community", "people", "social"]],
-  ["consentimiento", ["consent", "communication", "limits"]],
-  ["cuidado", ["care", "health", "support", "protection"]],
-  ["ayuda", ["help", "support", "care", "assistance"]],
-  ["asistencia", ["help", "support", "care", "assistance"]],
-  ["help", ["ayuda", "support", "care", "assistance"]],
-  ["riesgo", ["risk", "warning", "danger", "emergency"]],
+  ["pulmon", ["pulmones", "lung", "lungs"]],
+  ["pulmones", ["pulmon", "lung", "lungs"]],
+  ["lung", ["lungs", "pulmon", "pulmones"]],
+  ["lungs", ["lung", "pulmon", "pulmones"]],
+  ["vih", ["hiv"]],
+  ["hiv", ["vih"]],
+  ["its", ["sti"]],
+  ["sti", ["its"]],
+  ["condon", ["condom"]],
+  ["condom", ["condon"]],
+  ["prevencion", ["prevention"]],
+  ["prevention", ["prevencion"]],
+  ["proteccion", ["protection"]],
+  ["protection", ["proteccion"]],
+  ["reduccion", ["reduction"]],
+  ["reduction", ["reduccion"]],
+  ["danos", ["harm"]],
+  ["harm", ["danos"]],
+  ["sustancia", ["sustancias", "substance", "substances"]],
+  ["sustancias", ["sustancia", "substance", "substances"]],
+  ["substance", ["sustancia", "sustancias", "substances"]],
+  ["substances", ["sustancia", "sustancias", "substance"]],
+  ["droga", ["drogas", "drug", "drugs"]],
+  ["drogas", ["droga", "drug", "drugs"]],
+  ["drug", ["drugs", "droga", "drogas"]],
+  ["drugs", ["drug", "droga", "drogas"]],
+  ["pastilla", ["pastillas", "pill", "pills"]],
+  ["pastillas", ["pastilla", "pill", "pills"]],
+  ["pill", ["pills", "pastilla", "pastillas"]],
+  ["pills", ["pill", "pastilla", "pastillas"]],
+  ["tableta", ["tabletas", "tablet", "tablets"]],
+  ["tabletas", ["tableta", "tablet", "tablets"]],
+  ["tablet", ["tablets", "tableta", "tabletas"]],
+  ["tablets", ["tablet", "tableta", "tabletas"]],
+  ["capsula", ["capsulas", "capsule", "capsules"]],
+  ["capsulas", ["capsula", "capsule", "capsules"]],
+  ["capsule", ["capsules", "capsula", "capsulas"]],
+  ["capsules", ["capsule", "capsula", "capsulas"]],
+  ["jeringa", ["jeringas", "syringe", "syringes"]],
+  ["jeringas", ["jeringa", "syringe", "syringes"]],
+  ["syringe", ["syringes", "jeringa", "jeringas"]],
+  ["syringes", ["syringe", "jeringa", "jeringas"]],
+  ["corazon", ["heart"]],
+  ["heart", ["corazon"]],
+  ["cerebro", ["brain"]],
+  ["brain", ["cerebro"]],
+  ["boca", ["mouth"]],
+  ["mouth", ["boca"]],
+  ["labio", ["lips"]],
+  ["labios", ["lips"]],
+  ["lips", ["labio", "labios"]],
+  ["persona", ["person", "people", "personas"]],
+  ["personas", ["person", "people", "persona"]],
+  ["person", ["people", "persona", "personas"]],
+  ["people", ["person", "persona", "personas"]],
+  ["hombre", ["man"]],
+  ["man", ["hombre"]],
+  ["mujer", ["woman"]],
+  ["woman", ["mujer"]],
+  ["fiesta", ["party"]],
+  ["party", ["fiesta"]],
+  ["comunidad", ["community"]],
+  ["community", ["comunidad"]],
+  ["consentimiento", ["consent"]],
+  ["consent", ["consentimiento"]],
+  ["cuidado", ["care"]],
+  ["care", ["cuidado"]],
+  ["salud", ["health"]],
+  ["health", ["salud"]],
+  ["ayuda", ["help"]],
+  ["help", ["ayuda"]],
+  ["asistencia", ["assistance"]],
+  ["assistance", ["asistencia"]],
+  ["apoyo", ["support"]],
+  ["support", ["apoyo"]],
+  ["comunicacion", ["communication"]],
+  ["communication", ["comunicacion"]],
+  ["limite", ["limit"]],
+  ["limits", ["limite"]],
+  ["riesgo", ["risk"]],
+  ["risk", ["riesgo"]],
+  ["seguridad", ["safety"]],
+  ["safety", ["seguridad"]],
 ])
+
+const SEARCH_RELATIONS = new Map([
+  ["pulmon", ["respiratory", "pulmonary"]],
+  ["pulmones", ["respiratory", "pulmonary"]],
+  ["lung", ["respiratory", "pulmonary"]],
+  ["lungs", ["respiratory", "pulmonary"]],
+  ["vih", ["virus", "viral"]],
+  ["hiv", ["virus", "viral"]],
+  ["its", ["std", "infection", "sexual"]],
+  ["sti", ["std", "infection", "sexual"]],
+  ["condon", ["protection"]],
+  ["condom", ["protection"]],
+  ["prevencion", ["protection", "safety"]],
+  ["prevention", ["protection", "safety"]],
+  ["proteccion", ["prevention", "safety"]],
+  ["protection", ["prevention", "safety"]],
+  ["reduccion", ["harm", "risk"]],
+  ["reduction", ["harm", "risk"]],
+  ["sustancia", ["drug"]],
+  ["sustancias", ["drugs"]],
+  ["droga", ["substance"]],
+  ["drogas", ["substances"]],
+  ["pastilla", ["tablet", "capsule"]],
+  ["pastillas", ["tablets", "capsules"]],
+  ["pill", ["tablet", "capsule"]],
+  ["pills", ["tablets", "capsules"]],
+  ["jeringa", ["needle"]],
+  ["jeringas", ["needles"]],
+  ["corazon", ["cardiac"]],
+  ["cerebro", ["neural", "mental"]],
+  ["boca", ["oral", "lips"]],
+  ["labios", ["mouth", "oral"]],
+  ["persona", ["human"]],
+  ["personas", ["human"]],
+  ["hombre", ["male"]],
+  ["mujer", ["female"]],
+  ["fiesta", ["event", "community"]],
+  ["comunidad", ["people", "social"]],
+  ["consentimiento", ["communication", "limits"]],
+  ["cuidado", ["health", "support", "protection"]],
+  ["ayuda", ["support", "care", "assistance"]],
+  ["asistencia", ["help", "support", "care"]],
+  ["riesgo", ["warning", "danger", "emergency"]],
+])
+
+const REVERSE_SEARCH_RELATIONS = new Map()
+for (const [source, relatedTerms] of SEARCH_RELATIONS) {
+  for (const relatedTerm of relatedTerms) {
+    const reverseTerms = REVERSE_SEARCH_RELATIONS.get(relatedTerm) || []
+    reverseTerms.push(source)
+    REVERSE_SEARCH_RELATIONS.set(relatedTerm, reverseTerms)
+  }
+}
 
 export const DEFAULT_CATALOG_ROOTS = AUTHORED_CATALOG_ROOTS
 
@@ -346,15 +443,26 @@ function tokenVariants(token) {
   return [...new Set([normalized, ...(SEARCH_ALIASES.get(normalized) || [])])].filter(Boolean)
 }
 
-function tokenMatchScore(token, nameTokenSet, pathTokenSet, allTokenSet) {
+function relationVariants(token) {
   const normalized = normalizeText(token)
-  let best = 0
+  return [...new Set([...(SEARCH_RELATIONS.get(normalized) || []), ...(REVERSE_SEARCH_RELATIONS.get(normalized) || [])])]
+}
+
+function tokenMatch(token, nameTokenSet, pathTokenSet, allTokenSet) {
+  const normalized = normalizeText(token)
+  let best = { score: 0, variant: normalized, related: false }
   for (const variant of tokenVariants(token)) {
-    const exactWeight = variant === normalized ? 1 : 0.72
-    if (nameTokenSet.has(variant)) best = Math.max(best, 5 * exactWeight)
-    else if (pathTokenSet.has(variant)) best = Math.max(best, 2 * exactWeight)
-    else if (allTokenSet.has(variant)) best = Math.max(best, 1.5 * exactWeight)
-    else if (variant.length >= 4 && [...nameTokenSet].some((value) => value.length >= 4 && (value.includes(variant) || variant.includes(value)))) best = Math.max(best, 2 * exactWeight)
+    const alias = variant !== normalized
+    let score = 0
+    if (nameTokenSet.has(variant)) score = alias ? 2.5 : 5
+    else if (pathTokenSet.has(variant)) score = alias ? 1.5 : 3.5
+    else if (allTokenSet.has(variant)) score = alias ? 0.9 : 1.5
+    else if (!alias && variant.length >= 4 && [...nameTokenSet].some((value) => value.length >= 4 && (value.includes(variant) || variant.includes(value)))) score = 1.5
+    if (score > best.score) best = { score, variant, related: false }
+  }
+  for (const variant of relationVariants(token)) {
+    const score = nameTokenSet.has(variant) ? 1.1 : pathTokenSet.has(variant) ? 0.65 : allTokenSet.has(variant) ? 0.3 : 0
+    if (score > best.score) best = { score, variant, related: true }
   }
   return best
 }
@@ -366,11 +474,13 @@ export function scoreEntry(entry, queryTokens, exactQuery, preferredTerms = []) 
   const allTokenSet = new Set(searchTextTokens(entry))
   let score = 0
   let matchedTokens = 0
+  let relatedTokens = 0
   for (const token of queryTokens) {
-    const matchScore = tokenMatchScore(token, nameTokenSet, pathTokenSet, allTokenSet)
-    if (matchScore > 0) {
-      score += matchScore
-      matchedTokens += 1
+    const match = tokenMatch(token, nameTokenSet, pathTokenSet, allTokenSet)
+    if (match.score > 0) {
+      score += match.score
+      if (match.related) relatedTokens += 1
+      else matchedTokens += 1
     }
   }
   const searchable = normalizeText([entry.name, entry.label, entry.relativePath, entry.kind, entry.format, entry.style, entry.aspect, entry.dimension, ...(entry.themes || []), ...(entry.colorBuckets || [])].filter(Boolean).join(" "))
@@ -381,10 +491,40 @@ export function scoreEntry(entry, queryTokens, exactQuery, preferredTerms = []) 
     const preferredTokens = normalizedPreferred.split(/\s+/).filter(Boolean)
     if (searchable.includes(normalizedPreferred) || preferredTokens.length && preferredTokens.every((token) => nameTokenSet.has(token) || pathTokenSet.has(token))) score += 4
   }
-  if (!matchedTokens && !(exactQuery && searchable.includes(exactQuery))) return 0
-  if (matchedTokens === queryTokens.length && queryTokens.length > 1) score += 1.5
+  if (!matchedTokens && !relatedTokens && !(exactQuery && searchable.includes(exactQuery))) return 0
+  if (queryTokens.length > 1) {
+    score *= 0.35 + (0.65 * (matchedTokens + relatedTokens * 0.2) / queryTokens.length)
+    if (matchedTokens === queryTokens.length) score += 1.5
+  }
   if (entry.kind === "icon") score += 0.4
   return score
+}
+
+function matchReasonsFor(entry, queryTokens) {
+  const nameTokens = new Set(tokensFor(entry.name))
+  const pathTokens = new Set(tokensFor(entry.relativePath).filter((token) => !PATH_NOISE.has(token)))
+  const allTokens = new Set(searchTextTokens(entry))
+  return queryTokens.flatMap((token) => {
+    const match = tokenMatch(token, nameTokens, pathTokens, allTokens)
+    if (!match.score) return []
+    if (match.related) return [normalizeText(token) + " ~ " + match.variant + " (relacionado)"]
+    return [match.variant === normalizeText(token) ? normalizeText(token) : `${normalizeText(token)} -> ${match.variant}`]
+  }).slice(0, 6)
+}
+
+function matchCoverageFor(entry, queryTokens) {
+  const nameTokens = new Set(tokensFor(entry.name))
+  const pathTokens = new Set(tokensFor(entry.relativePath).filter((token) => !PATH_NOISE.has(token)))
+  const allTokens = new Set(searchTextTokens(entry))
+  const matches = queryTokens.map((token) => tokenMatch(token, nameTokens, pathTokens, allTokens))
+  const matchedTokenCount = matches.filter((match) => match.score > 0 && !match.related).length
+  const relatedTokenCount = matches.filter((match) => match.score > 0 && match.related).length
+  return {
+    matchedTokenCount,
+    relatedTokenCount,
+    queryTokenCount: queryTokens.length,
+    matchCoverage: queryTokens.length ? Number((matchedTokenCount / queryTokens.length).toFixed(4)) : 0,
+  }
 }
 
 export async function searchLocalAssets({ query = "", terms = [], preferredTerms = [], excludePatterns = [], limit = 8, refresh = false, cachePath, roots, semantic = false, semanticIndexPath } = {}) {
@@ -408,7 +548,8 @@ export async function searchLocalAssets({ query = "", terms = [], preferredTerms
   let results = lexicalResults.map(({ entry, score }) => ({
     ...entry,
     score: Number(score.toFixed(2)),
-    matchReasons: queryTokens.filter((token) => tokenMatchScore(token, new Set(tokensFor(entry.name)), new Set(tokensFor(entry.relativePath).filter((value) => !PATH_NOISE.has(value))), new Set(searchTextTokens(entry))) > 0).slice(0, 6),
+    matchReasons: matchReasonsFor(entry, queryTokens),
+    ...matchCoverageFor(entry, queryTokens),
     local: true,
     searchMode: "lexical",
   }))
@@ -440,7 +581,8 @@ export async function searchLocalAssets({ query = "", terms = [], preferredTerms
           ...entry,
           score: Number(((similarity ?? -1) * 10 + lexical).toFixed(2)),
           semanticScore: similarity === null ? null : Number(similarity.toFixed(5)),
-          matchReasons: queryTokens.filter((token) => tokenMatchScore(token, new Set(tokensFor(entry.name)), new Set(tokensFor(entry.relativePath).filter((value) => !PATH_NOISE.has(value))), new Set(searchTextTokens(entry))) > 0).slice(0, 6),
+          matchReasons: matchReasonsFor(entry, queryTokens),
+          ...matchCoverageFor(entry, queryTokens),
           local: true,
           searchMode: "mobileclip+lexical",
         }))

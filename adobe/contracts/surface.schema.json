@@ -12,10 +12,10 @@
     "context": { "type": "object" },
     "sources": {
       "type": "object",
-      "required": ["xio", "vizz", "pupila"],
+      "required": ["xio", "visual", "pupila"],
       "properties": {
         "xio": { "$ref": "#/$defs/source" },
-        "vizz": { "$ref": "#/$defs/source" },
+        "visual": { "$ref": "#/$defs/source" },
         "pupila": { "$ref": "#/$defs/source" }
       },
       "additionalProperties": false

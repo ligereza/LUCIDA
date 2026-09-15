@@ -4,7 +4,7 @@ import { TOOLKIT_ROOT, readJson } from "../utils.mjs"
 export const HOST_CAPABILITIES_PATH = path.join(TOOLKIT_ROOT, "contracts", "host-capabilities.json")
 
 const REQUIRED_HOSTS = ["photoshop", "illustrator", "after-effects", "premiere"]
-const REQUIRED_CONNECTORS = ["xio", "vizz", "pupila"]
+const REQUIRED_CONNECTORS = ["xio", "visual", "pupila"]
 const REQUIRED_EXCLUSIONS = ["resolume-control", "multi-device-transport", "source-project-migration"]
 const SUPPORTED_ADAPTER_KINDS = ["jsx", "uxp"]
 
@@ -69,8 +69,8 @@ export function validateHostCapabilities(contract) {
       addIssue(issues, `connectors.${connectorName}`, "must be an input with a mode and signalFamilies")
     }
   }
-  if (connectors.vizz?.mode !== "proposal-signal-only" || connectors.pupila?.mode !== "proposal-signal-only") {
-    addIssue(issues, "connectors", "vizz and pupila must remain proposal-signal-only")
+  if (connectors.visual?.mode !== "proposal-signal-only" || connectors.pupila?.mode !== "proposal-signal-only") {
+    addIssue(issues, "connectors", "visual and pupila must remain proposal-signal-only")
   }
 
   if (contract.companion?.actionPolicy !== "explicit-host-authorization") {

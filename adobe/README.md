@@ -11,7 +11,7 @@ Migración local de la capa de exploración contextual y sus integraciones Adobe
 - `src/`: runtime histórico necesario por el servidor/bridge; no contiene proyectos ni assets de trabajo.
 - `ICONOS/CHEMSEX/`: visuales propios/generated-by-Codex, separados entre láminas 1–8 y la colección reutilizable `mini-icons`.
 - La migración combina las salidas de `projects/chemsex` con los archivos visuales directamente contenidos en `projects/recolectados/lamina-*`; deduplica por hash SHA-256 y no incorpora las subcarpetas técnicas.
-- `contracts/` y `src/tools/signal-bridge.mjs`: contrato de señales locales para XIO, VIZZ y PUPILA. Sólo acepta metadatos acotados; descarta contenido crudo y produce una superficie de propuestas, no acciones del host.
+- `contracts/` y `src/tools/signal-bridge.mjs`: contrato local para XIO, PUPILA Visual y PUPILA Asistencia. Sólo acepta metadatos acotados; descarta contenido crudo y produce propuestas, no acciones del host.
 - `contracts/stable.mjs`: primitivas compartidas de hash, orden estable, IDs deterministas y clonado para el runtime activo; el core genérico conserva su copia para seguir siendo separable.
 - `contracts/host-capabilities.json`: matriz única de hosts, adaptadores, operaciones y estados de validación de esta rama.
 - `src/tools/adapter-parity.mjs`: auditoría estática que compara las operaciones del contrato con los dispatches reales de cada `agent.jsx`/`agent.psjs`; `npm run verify` la ejecuta antes de aceptar la rama.
@@ -22,7 +22,7 @@ Migración local de la capa de exploración contextual y sus integraciones Adobe
 
 `ADOBE` contiene la companion transparente, el contexto de Photoshop, el
 catalogo local y los adaptadores de Photoshop, Illustrator, After Effects y
-Premiere. XIO, VIZZ y PUPILA sólo entran como señales acotadas; este bridge no
+Premiere. XIO y las superficies Visual/Asistencia de PUPILA sólo entran como señales acotadas; este bridge no
 controla Resolume, no transporta sesiones entre equipos y no migra proyectos
 de otras fuentes.
 
@@ -58,7 +58,7 @@ dentro de ellas. Los originales de `C:\IA\svg` no se modificaron.
 
 ## Capa conectiva
 
-El bridge local expone `POST /signals`, `GET /signals/current` y `GET /surface/current`. XIO puede publicar estado de red, aplicacion o workflow; VIZZ puede publicar estado de atencion y propuestas visuales; PUPILA puede publicar contexto de colaboracion o aprendizaje. La companion muestra los tres estados y usa sus metadatos para refinar recomendaciones. Las recomendaciones son locales por defecto; el respaldo remoto sólo se activa con `allowRemote: true` y cuando faltan resultados locales.
+El bridge local expone `POST /signals`, `GET /signals/current` y `GET /surface/current`. XIO puede publicar estado de red, aplicacion o workflow; PUPILA Visual puede publicar metadatos visuales acotados; PUPILA Asistencia puede publicar contexto de aprendizaje o colaboración. La companion muestra las señales y usa sus metadatos para refinar recomendaciones. Las recomendaciones son locales por defecto; el respaldo remoto sólo se activa con `allowRemote: true` y cuando faltan resultados locales.
 
 La matriz de capacidades es la fuente de verdad de alcance para el agent-card. Photoshop tiene un proveedor UXP preparado pero aún requiere validación dentro del host; los otros hosts conservan adaptadores explícitos sin inventar un proveedor de contexto. Resolume, transporte entre dispositivos y migración de proyectos permanecen fuera de esta rama.
 
@@ -69,7 +69,7 @@ repetición, solicitud de ayuda o una propuesta de PUPILA genera una asistencia
 `proposalOnly` que exige confirmación. LUCIDA puede mostrar esa asistencia junto
 al contexto del documento sin ejecutar acciones del host.
 
-El bridge externo es deliberadamente pequeno: no reenvia rutas, imagenes, archivos, teclas, comandos, scripts ni URLs, y las señales externas no transportan contenido crudo. El contexto local de Adobe puede incluir texto acotado de la capa seleccionada para producir recomendaciones; nunca conserva la ruta del archivo. Las propuestas de VIZZ/PUPILA son siempre reversibles cuando es posible, requieren confirmacion y permanecen `proposalOnly`; ningun evento externo ejecuta una accion en Photoshop, Illustrator, Premiere o After Effects.
+El bridge externo es deliberadamente pequeno: no reenvia rutas, imagenes, archivos, teclas, comandos, scripts ni URLs, y las señales externas no transportan contenido crudo. El contexto local de Adobe puede incluir texto acotado de la capa seleccionada para producir recomendaciones; nunca conserva la ruta del archivo. Las propuestas de PUPILA son siempre reversibles cuando es posible, requieren confirmacion y permanecen `proposalOnly`; ningun evento externo ejecuta una accion en Photoshop, Illustrator, Premiere o After Effects.
 
 ## Instalacion limpia
 

@@ -1,7 +1,7 @@
 import { clone, deterministicId, sha256, stable } from "../../contracts/stable.mjs"
 import { assistanceForSurface, derivePupilaAssistance } from "./pupila-assistance.mjs"
 
-const SOURCES = new Set(["xio", "vizz", "pupila"])
+const SOURCES = new Set(["xio", "visual", "pupila"])
 const MAX_HISTORY = 96
 const MAX_SESSIONS = 32
 const MAX_METADATA = 20
@@ -36,7 +36,7 @@ const FORBIDDEN_KEYS = new Set([
   "command", "content", "data", "executable", "file", "frame", "html", "image", "key", "keys",
   "path", "payload", "process", "raw", "script", "shell", "text", "url",
 ])
-const SOURCE_NAMES = { xio: "XIO", vizz: "VIZZ", pupila: "PUPILA" }
+const SOURCE_NAMES = { xio: "XIO", visual: "PUPILA Visual", pupila: "PUPILA Asistencia" }
 
 const sessions = new Map()
 let lastSessionId = null
@@ -138,7 +138,7 @@ function collectMetadata(input) {
 }
 
 function normalizeProposal(value, source, now) {
-  if (!value || !["vizz", "pupila"].includes(source)) return null
+  if (!value || !["visual", "pupila"].includes(source)) return null
   const input = objectOrEmpty(value)
   const proposalId = idOf(input.proposalId || input.id) || deterministicId("proposal", { source, value: stable(input) })
   const requestedExpiry = input.expiresAt ? isoTimestamp(input.expiresAt, now) : null

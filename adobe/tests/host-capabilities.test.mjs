@@ -16,7 +16,7 @@ test("host capability contract keeps Adobe scope explicit", async () => {
   assert.deepEqual(contract.primaryHosts, ["photoshop", "illustrator", "after-effects", "premiere"])
   assert.equal(contract.companion.actionPolicy, "explicit-host-authorization")
   assert.equal(contract.connectors.xio.mode, "signal-only")
-  assert.equal(contract.connectors.vizz.mode, "proposal-signal-only")
+  assert.equal(contract.connectors.visual.mode, "proposal-signal-only")
   assert.equal(contract.connectors.pupila.mode, "proposal-signal-only")
   assert.equal(contract.hosts.photoshop.contextProvider, "photoshop-uxp")
   assert.equal(contract.hosts.photoshop.contextStatus, "prepared-unverified")

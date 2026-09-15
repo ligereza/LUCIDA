@@ -90,7 +90,7 @@ async function refreshSemanticStatus(force = false) {
     target.textContent = value.ready ? "●" : "◌"
     target.title = value.ready
       ? `MobileCLIP activo · ${value.runtime?.cudaName || "GPU"}`
-      : "MobileCLIP pendiente: prepara el modelo y genera el índice desde la terminal"
+      : "Búsqueda visual MobileCLIP no activa; la búsqueda textual local y sus relaciones etiquetadas siguen disponibles."
     target.setAttribute("aria-label", target.title)
   } catch (error) {
     semanticStatusCheckedAt = Date.now()
@@ -111,11 +111,18 @@ function showContext(context) {
   $("#copy").textContent = context?.selection?.text || "Sin texto; se usará el nombre de la capa o documento."
   const topic = context?.analysis?.content?.primaryTopic?.label || "sin tema dominante"
   const area = context?.analysis?.layout?.placementCandidates?.[0]
+  const layout = context?.analysis?.layout
+  const visualArea = area?.source === "visual-quietness"
+  const basisNote = visualArea ? " · muestra reducida; bajo detalle no significa vacío" : layout?.basis === "visible-layer-bounds" ? " · bounds; sin análisis de transparencia/píxeles" : layout?.basis === "host-safe-regions" ? " · región segura del host" : layout?.basis === "explicit-regions" ? " · bounds explícitos" : ""
   const compositionScore = context?.analysis?.layers?.score
   const composition = Number.isFinite(Number(compositionScore)) ? ` · composición ${compositionScore}/100` : ""
   $("#analysis").textContent = area
-    ? `Detectado: ${topic} · zona libre: ${area.position} (${Math.round((area.areaRatio || 0) * 100)}%)${composition}`
-    : `Detectado: ${topic} · no se encontró una zona libre clara${composition}`
+    ? `Detectado: ${topic} · ${visualArea ? "zona visualmente tranquila" : "hueco geométrico"}: ${area.position} (${Math.round((area.areaRatio || 0) * 100)}%)${basisNote}${composition}`
+    : layout?.visualSampleAvailable
+      ? `Detectado: ${topic} · la muestra visual no encontró una zona de bajo detalle${composition}`
+      : layout?.basis === "unavailable"
+        ? `Detectado: ${topic} · sin bounds espaciales suficientes para estimar huecos${composition}`
+        : `Detectado: ${topic} · no se encontró un hueco en los bounds${basisNote}${composition}`
 }
 
 function renderSignalSurface(surface, unavailable = false) {
@@ -124,11 +131,11 @@ function renderSignalSurface(surface, unavailable = false) {
   if (!stateTarget || !sourcesTarget) return
   if (unavailable) {
     stateTarget.textContent = "bridge no disponible"
-    sourcesTarget.textContent = "XIO · VIZZ · PUPILA"
+    sourcesTarget.textContent = "XIO · PUPILA Visual · PUPILA Asistencia"
     renderPupilaAssistance(null, true)
     return
   }
-  const labels = { xio: "XIO", vizz: "VIZZ", pupila: "PUPILA" }
+  const labels = { xio: "XIO", visual: "PUPILA · Visual", pupila: "PUPILA · Asistencia" }
   const states = { active: "activo", stale: "stale", missing: "sin señal" }
   const values = Object.entries(surface?.sources || {})
   const status = surface?.status || {}
@@ -138,7 +145,7 @@ function renderSignalSurface(surface, unavailable = false) {
   sourcesTarget.innerHTML = values.map(([source, value]) => {
     const event = value.eventType ? ` · ${escapeHtml(value.eventType)}` : ""
     return `<span class="signal-source ${escapeHtml(value.state || "missing")}"><b>${labels[source] || escapeHtml(source)}</b> ${states[value.state] || "sin estado"}${event}</span>`
-  }).join("") || "XIO · VIZZ · PUPILA"
+  }).join("") || "XIO · PUPILA Visual · PUPILA Asistencia"
   const proposals = Array.isArray(surface?.proposals) ? surface.proposals.slice(0, 2) : []
   if (proposals.length) {
     const proposalMarkup = proposals.map((proposal) => {
@@ -847,7 +854,25 @@ function renderResults(value) {
     const label = escapeHtml(items[0].label || items[0].name || "Familia visual")
     return `<section class="asset-family" title="${label}"><div class="family-badge"><span aria-hidden="true">✦</span>${items.length} variantes</div><div class="family-grid">${items.map((item) => assetCard(item)).join("")}</div></section>`
   }).join("")
+  appendMatchEvidence(results)
   bindAssetCards()
+}
+
+function appendMatchEvidence(results) {
+  const items = new Map(results.map((item) => [item.assetId, item]))
+  for (const card of $("#results").querySelectorAll(".asset")) {
+    const item = items.get(card.dataset.assetId)
+    if (!item || !Number.isFinite(item.matchCoverage) || !Number.isFinite(item.queryTokenCount)) continue
+    const meta = card.querySelector(".asset-meta")
+    if (!meta) continue
+    const reason = item.reasons?.[0] || "coincidencia local"
+    const relatedCount = Number.isFinite(item.relatedTokenCount) ? item.relatedTokenCount : 0
+    const relatedLabel = relatedCount ? ` + ${relatedCount} ${relatedCount === 1 ? "relacionado, no equivalente" : "relacionados, no equivalentes"}` : ""
+    meta.title = `Coincidencia textual en metadatos: ${reason}; ${item.matchedTokenCount}/${item.queryTokenCount} términos${relatedLabel}.`
+    const evidence = document.createElement("span")
+    evidence.textContent = `Texto ${item.matchedTokenCount}/${item.queryTokenCount}${relatedLabel} · ${reason.replace(/^coincide con:\s*/, "")}`
+    meta.append(document.createElement("br"), evidence)
+  }
 }
 
 async function loadPreview(item, target) {

@@ -213,12 +213,59 @@ function positionFor(bounds, canvas) {
   return `${vertical}-${horizontal}`
 }
 
+const VISUAL_QUIET_DETAIL_THRESHOLD = 0.035
+const VISUAL_QUIET_ALPHA_THRESHOLD = 0.12
+
+function analyzeVisualQuietAreas(visualGrid, canvas) {
+  const columns = Number(visualGrid?.columns)
+  const rows = Number(visualGrid?.rows)
+  const detail = visualGrid?.detail
+  const alphaCoverage = visualGrid?.alphaCoverage
+  if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns < 1 || rows < 1 || !Array.isArray(detail) || detail.length !== columns * rows) return []
+  const busyRegions = []
+  for (let y = 0; y < 24; y += 1) {
+    for (let x = 0; x < 24; x += 1) {
+      const sourceX = Math.min(columns - 1, Math.floor((x + 0.5) * columns / 24))
+      const sourceY = Math.min(rows - 1, Math.floor((y + 0.5) * rows / 24))
+      const sourceIndex = sourceY * columns + sourceX
+      const edgeDetail = Number(detail[sourceIndex])
+      const alpha = Number(alphaCoverage?.[sourceIndex] ?? 1)
+      const quiet = Number.isFinite(edgeDetail) && Number.isFinite(alpha) &&
+        (edgeDetail <= VISUAL_QUIET_DETAIL_THRESHOLD || alpha <= VISUAL_QUIET_ALPHA_THRESHOLD)
+      if (quiet) continue
+      busyRegions.push({
+        left: (x / 24) * canvas.width,
+        top: (y / 24) * canvas.height,
+        right: ((x + 1) / 24) * canvas.width,
+        bottom: ((y + 1) / 24) * canvas.height,
+      })
+    }
+  }
+  return analyzeBlankAreas(busyRegions, canvas, 24, 24).map((area) => ({
+    ...area,
+    source: "visual-quietness",
+    method: "edge-alpha-grid-v1",
+    sampleWidth: Number(visualGrid.sampleWidth) || null,
+    sampleHeight: Number(visualGrid.sampleHeight) || null,
+    heuristic: true,
+  }))
+}
+
 export function analyzeLayout(context = {}) {
   const canvas = deriveCanvas(context)
   const occupied = deriveOccupied(context, canvas)
-  const blankAreas = analyzeBlankAreas(occupied, canvas)
   const hostSafeRegions = (context.safeRegions || []).map((region) => normalizeBounds(region, canvas.width, canvas.height)).filter(Boolean)
-  const placementCandidates = (hostSafeRegions.length ? hostSafeRegions.map((bounds, index) => ({ bounds, source: "host", rank: index + 1, area: rectArea(bounds), areaRatio: rectArea(bounds) / (canvas.width * canvas.height) })) : blankAreas.slice(0, 5).map((area) => ({ ...area, source: "detected" })))
+  const visualQuietAreas = analyzeVisualQuietAreas(context.visualGrid, canvas)
+  const visualSampleAvailable = Boolean(context.visualGrid?.detail?.length)
+  const layerGeometry = (context.layers || []).some((layer) => layer.visible !== false && normalizeBounds(layer?.bounds, canvas.width, canvas.height))
+  const explicitGeometry = [...(context.occupiedRegions || []), context.selection?.bounds].some((region) => normalizeBounds(region, canvas.width, canvas.height))
+  const hasOccupancyEvidence = layerGeometry || explicitGeometry
+  const basis = hostSafeRegions.length ? "host-safe-regions" : layerGeometry ? "visible-layer-bounds" : explicitGeometry ? "explicit-regions" : visualSampleAvailable ? "visual-sample" : "unavailable"
+  const blankAreas = hasOccupancyEvidence ? analyzeBlankAreas(occupied, canvas) : []
+  const detectedCandidates = blankAreas.length
+    ? blankAreas.slice(0, 5).map((area) => ({ ...area, source: "detected" }))
+    : visualQuietAreas.slice(0, 5)
+  const placementCandidates = (hostSafeRegions.length ? hostSafeRegions.map((bounds, index) => ({ bounds, source: "host", rank: index + 1, area: rectArea(bounds), areaRatio: rectArea(bounds) / (canvas.width * canvas.height) })) : detectedCandidates)
     .sort((left, right) => right.area - left.area)
     .map((candidate, index) => ({ ...candidate, rank: index + 1, position: positionFor(candidate.bounds, canvas) }))
   const occupiedArea = unionArea(occupied)
@@ -226,13 +273,21 @@ export function analyzeLayout(context = {}) {
   return {
     canvas,
     occupied,
-    occupiedArea: Number(occupiedArea.toFixed(2)),
-    occupiedRatio: Number(Math.min(1, occupiedArea / canvasArea).toFixed(4)),
-    blankRatio: Number(Math.max(0, 1 - Math.min(1, occupiedArea / canvasArea)).toFixed(4)),
+    occupiedArea: hasOccupancyEvidence ? Number(occupiedArea.toFixed(2)) : null,
+    occupiedRatio: hasOccupancyEvidence ? Number(Math.min(1, occupiedArea / canvasArea).toFixed(4)) : null,
+    blankRatio: hasOccupancyEvidence ? Number(Math.max(0, 1 - Math.min(1, occupiedArea / canvasArea)).toFixed(4)) : null,
     blankAreas,
+    visualQuietAreas,
+    visualSampleAvailable,
     safeRegions: hostSafeRegions,
     placementCandidates,
-    method: "grid-24x24",
+    basis,
+    note: visualSampleAvailable
+      ? "Muestra reducida de bordes/alfa; las zonas tranquilas no equivalen a espacio vacío."
+      : hasOccupancyEvidence || hostSafeRegions.length
+        ? "Estimación geométrica; no analiza transparencia, máscaras ni píxeles."
+        : "No hay bounds espaciales suficientes para estimar huecos.",
+    method: visualSampleAvailable ? "grid-24x24+edge-alpha" : hasOccupancyEvidence ? "grid-24x24" : "unavailable",
   }
 }
 
@@ -389,6 +444,7 @@ export function analyzeContext(context = {}) {
     : { source: "not-provided", colors: [], available: false, note: "El adaptador todavía no envió una muestra de píxeles o paleta." }
   const primary = content.primaryTopic?.label || "el contenido actual"
   const bestArea = layout.placementCandidates[0]
+  const visualQuietPlacement = bestArea?.source === "visual-quietness"
   return {
     version: 1,
     content,
@@ -397,7 +453,7 @@ export function analyzeContext(context = {}) {
     palette,
     suggestions: [
       { type: "content", priority: 1, title: `Buscar recursos para ${primary}`, reason: content.visualTerms.length ? `Términos visuales: ${content.visualTerms.slice(0, 5).join(", ")}.` : "No hay texto semántico suficiente; se usará el nombre de la capa/documento." },
-      ...(bestArea ? [{ type: "placement", priority: 1, title: `Probar en ${bestArea.position}`, reason: `Es la zona libre más grande detectada (${Math.round(bestArea.areaRatio * 100)}% del lienzo).`, bounds: bestArea.bounds }] : []),
+      ...(bestArea ? [{ type: "placement", priority: 1, title: visualQuietPlacement ? `Probar en zona visualmente tranquila (${bestArea.position})` : `Probar en ${bestArea.position}`, reason: visualQuietPlacement ? `Estimación de bajo detalle desde muestra ${bestArea.sampleWidth}×${bestArea.sampleHeight}; no implica área vacía.` : `Hueco geométrico estimado (${Math.round(bestArea.areaRatio * 100)}% del lienzo); no implica espacio vacío entre píxeles.`, bounds: bestArea.bounds }] : []),
       ...(palette.available ? [{ type: "palette", priority: 2, title: "Conservar la paleta del documento", reason: `${palette.colors.length} colores recibidos desde el host.` }] : []),
     ],
   }

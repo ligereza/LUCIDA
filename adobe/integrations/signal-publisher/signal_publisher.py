@@ -11,7 +11,7 @@ import urllib.request
 from typing import Any, Mapping
 
 
-SOURCES = frozenset({"xio", "vizz", "pupila"})
+SOURCES = frozenset({"xio", "visual", "pupila"})
 EVENT_PATTERN = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)+$")
 METADATA_ALIASES = {
     "signal_percent": "signalPercent",

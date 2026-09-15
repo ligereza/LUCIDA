@@ -78,7 +78,7 @@ test("server enforces bearer auth and allowlisted CORS", async (t) => {
   assert.deepEqual(cardBody.scope.primaryHosts, ["photoshop", "illustrator", "after-effects", "premiere"])
   assert.deepEqual(cardBody.scope.connectors, {
     xio: "signal-only",
-    vizz: "proposal-signal-only",
+    visual: "proposal-signal-only",
     pupila: "proposal-signal-only",
   })
   assert.deepEqual(cardBody.scope.excludedResponsibilities, ["resolume-control", "multi-device-transport", "source-project-migration"])

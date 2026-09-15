@@ -8,7 +8,7 @@ machine-specific state.
 ## Branches
 
 - `ADOBE`: contextual shelf, companion overlay and Adobe adapters.
-- `RESOLUME`: Resolume integration consolidated from the MOSAIK workstream.
+- `RESOLUME`: Resolume-specific integration and deterministic show replay.
 - `MULTI`: multi-device transport and session capabilities from XIO.
 
 The branches share contracts only when the contract is explicit, replayable and

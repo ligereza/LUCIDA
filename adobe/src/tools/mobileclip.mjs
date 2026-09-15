@@ -218,12 +218,13 @@ export async function installMobileClipModel({ modelName = "mobileclip_s2", forc
   return { ...(await inspectModel(modelName)), downloaded: true, model: spec.name, source: spec.url }
 }
 
-export async function mobileClipStatus({ modelName = "mobileclip_s2" } = {}) {
+export async function mobileClipStatus({ modelName = "mobileclip_s2", indexPath = DEFAULT_INDEX_PATH } = {}) {
   const spec = modelSpec(modelName)
   const model = await inspectModel(modelName)
+  const semanticIndex = await inspectSemanticIndexStatus(indexPath, modelName)
   const repository = repositoryPath()
-  let runtime = { ok: false, skipped: true, reason: "MobileCLIP model is not installed or failed verification." }
-  if (model.verified) {
+  let runtime = { ok: false, skipped: true, reason: "MobileCLIP model and semantic index are not both ready." }
+  if (model.verified && semanticIndex.ready) {
     try {
       runtime = await workerRequest({ op: "status", modelName: spec.name, modelPath: model.file, repoPath: repository }, 15_000)
     } catch (error) {
@@ -231,11 +232,12 @@ export async function mobileClipStatus({ modelName = "mobileclip_s2" } = {}) {
     }
   }
   return {
-    ready: Boolean(model.verified && runtime?.onnxruntime && runtime?.onnxImage && runtime?.onnxText && runtime?.tokenizer && (runtime?.resvg || runtime?.cairosvg) && runtime?.cuda && runtime?.cupy && runtime?.cupyCuda),
+    ready: Boolean(model.verified && semanticIndex.ready && runtime?.onnxruntime && runtime?.onnxImage && runtime?.onnxText && runtime?.tokenizer && (runtime?.resvg || runtime?.cairosvg) && runtime?.cuda && runtime?.cupy && runtime?.cupyCuda),
     model: spec.name,
     source: spec.url,
     repository: spec.repository,
     modelFile: model,
+    semanticIndex,
     code: { path: repository, present: await fs.stat(repository).then((value) => value.isDirectory()).catch(() => false) },
     runtime,
     setup: {
@@ -251,6 +253,33 @@ async function readJson(file) {
 
 function vectorFileFromIndex(index, indexPath) {
   return path.isAbsolute(index.vectorsFile) ? index.vectorsFile : path.resolve(path.dirname(indexPath), index.vectorsFile || "vectors.f32")
+}
+
+export async function inspectSemanticIndexStatus(indexPath = DEFAULT_INDEX_PATH, modelName = "mobileclip_s2") {
+  const resolved = path.resolve(indexPath)
+  const index = await readJson(resolved)
+  if (!index) return { ready: false, present: false, file: resolved, itemCount: 0, reason: "No existe un índice visual." }
+  const spec = modelSpec(modelName)
+  const dimension = Number(index.dimension)
+  const items = Array.isArray(index.items) ? index.items : []
+  const vectorFile = typeof index.vectorsFile === "string" && index.vectorsFile ? vectorFileFromIndex(index, resolved) : null
+  const relativeVectorFile = vectorFile ? path.relative(path.dirname(resolved), path.resolve(vectorFile)) : ""
+  const vectorPathAllowed = Boolean(relativeVectorFile && relativeVectorFile !== ".." && !relativeVectorFile.startsWith(".." + path.sep) && !path.isAbsolute(relativeVectorFile))
+  const vectorStat = vectorPathAllowed ? await fs.stat(vectorFile).catch(() => null) : null
+  const rowBytes = Number.isInteger(dimension) && dimension > 0 ? dimension * 4 : 0
+  const vectorCount = vectorStat?.isFile() && rowBytes ? vectorStat.size / rowBytes : 0
+  const indexShapeValid = index.schemaVersion === 1 && index.model?.name === spec.name && index.model?.sha256 === spec.sha256 &&
+    rowBytes > 0 && items.length > 0 && index.count === items.length && Boolean(vectorFile)
+  const vectorsValid = Boolean(vectorStat?.isFile() && rowBytes && vectorStat.size % rowBytes === 0 &&
+    items.every((item) => item && typeof item === "object" && Number.isInteger(item.vectorOffset) && item.vectorOffset >= 0 && item.vectorOffset < vectorCount))
+  const ready = indexShapeValid && vectorsValid
+  const reason = ready
+    ? null
+    : !indexShapeValid ? "El índice no coincide con el modelo o su formato está incompleto."
+      : !vectorPathAllowed ? "El archivo de vectores sale de la carpeta del índice."
+        : !vectorStat?.isFile() ? "Falta el archivo de vectores."
+          : "El archivo de vectores no coincide con el índice."
+  return { ready, present: true, file: resolved, vectorFile, itemCount: items.length, reason }
 }
 
 function validVectorRange(buffer, offset, dimension) {
@@ -420,17 +449,25 @@ export async function indexMobileClip({ modelName = "mobileclip_s2", roots, cach
 }
 
 const QUERY_TRANSLATIONS = Object.freeze({
-  pulmon: ["lung", "lungs", "respiratory system"], pulmones: ["lung", "lungs", "respiratory system"],
-  vih: ["hiv", "virus"], hiv: ["vih", "virus"], its: ["sti", "sexual infection"], sti: ["its", "sexual infection"],
-  condon: ["condom", "protection"], condom: ["condon", "protection"], prevencion: ["prevention", "protection", "care"],
-  prevention: ["prevencion", "protection", "care"], riesgo: ["risk", "warning", "danger"], risk: ["riesgo", "warning", "danger"],
-  sustancias: ["substances", "drug", "drugs"], sustancia: ["substance", "drug"], droga: ["drug", "substance"], drogas: ["drugs", "substances"],
-  pastilla: ["pill", "tablet", "capsule"], jeringa: ["syringe", "needle"], corazon: ["heart", "cardiac"], cerebro: ["brain", "mental"],
-  boca: ["mouth", "oral", "lips"], labios: ["lips", "mouth", "oral"], persona: ["person", "people", "human"], personas: ["people", "person", "human"],
-  comunidad: ["community", "people", "social"], cuidado: ["care", "health", "support"], consentimiento: ["consent", "communication", "limits"],
+  pulmon: ["lung", "lungs"], pulmones: ["lung", "lungs"], lung: ["pulmon", "pulmones"], lungs: ["pulmon", "pulmones"],
+  vih: ["hiv"], hiv: ["vih"], its: ["sti"], sti: ["its"],
+  condon: ["condom"], condom: ["condon"], prevencion: ["prevention"], prevention: ["prevencion"],
+  proteccion: ["protection"], protection: ["proteccion"], reduccion: ["reduction"], reduction: ["reduccion"],
+  danos: ["harm"], harm: ["danos"],
+  sustancias: ["substances"], sustancia: ["substance"], droga: ["drug"], drogas: ["drugs"],
+  pastilla: ["pill"], pastillas: ["pills"], pill: ["pastilla"], pills: ["pastillas"],
+  tableta: ["tablet"], tablet: ["tableta"], capsula: ["capsule"], capsule: ["capsula"],
+  jeringa: ["syringe"], syringe: ["jeringa"], corazon: ["heart"], heart: ["corazon"],
+  cerebro: ["brain"], brain: ["cerebro"], boca: ["mouth"], mouth: ["boca"],
+  labios: ["lips"], lips: ["labios"], persona: ["person", "people"], personas: ["person", "people"],
+  hombre: ["man"], man: ["hombre"], mujer: ["woman"], woman: ["mujer"],
+  fiesta: ["party"], party: ["fiesta"], comunidad: ["community"], community: ["comunidad"],
+  cuidado: ["care"], care: ["cuidado"], consentimiento: ["consent"], consent: ["consentimiento"],
+  salud: ["health"], health: ["salud"], ayuda: ["help"], help: ["ayuda"],
+  asistencia: ["assistance"], assistance: ["asistencia"], riesgo: ["risk"], risk: ["riesgo"],
 })
 
-function queryVariants(query, terms = []) {
+export function queryVariants(query, terms = []) {
   const raw = [query, ...terms].map((value) => String(value || "").trim()).filter(Boolean)
   const translated = raw.flatMap((value) => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/[^a-z0-9]+/).filter(Boolean).flatMap((token) => QUERY_TRANSLATIONS[token] || []))
   const base = [...new Set([...raw, ...translated])]
