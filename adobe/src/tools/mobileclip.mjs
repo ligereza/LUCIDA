@@ -222,11 +222,13 @@ export async function mobileClipStatus({ modelName = "mobileclip_s2" } = {}) {
   const spec = modelSpec(modelName)
   const model = await inspectModel(modelName)
   const repository = repositoryPath()
-  let runtime
-  try {
-    runtime = await workerRequest({ op: "status", modelName: spec.name, modelPath: model.file, repoPath: repository }, 15_000)
-  } catch (error) {
-    runtime = { ok: false, error: error.message }
+  let runtime = { ok: false, skipped: true, reason: "MobileCLIP model is not installed or failed verification." }
+  if (model.verified) {
+    try {
+      runtime = await workerRequest({ op: "status", modelName: spec.name, modelPath: model.file, repoPath: repository }, 15_000)
+    } catch (error) {
+      runtime = { ok: false, error: error.message }
+    }
   }
   return {
     ready: Boolean(model.verified && runtime?.onnxruntime && runtime?.onnxImage && runtime?.onnxText && runtime?.tokenizer && (runtime?.resvg || runtime?.cairosvg) && runtime?.cuda && runtime?.cupy && runtime?.cupyCuda),
