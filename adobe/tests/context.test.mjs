@@ -2,7 +2,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import path from "node:path"
 import { TOOLKIT_ROOT } from "../src/utils.mjs"
-import { claimInsert, contextDiagnostics, currentContext, publishContext, queueInsert, recommendationCacheKey, recordInsertResult } from "../src/tools/context.mjs"
+import { claimInsert, contextDiagnostics, currentContext, publishContext, queueInsert, recommendContext, recommendationCacheKey, recordInsertResult } from "../src/tools/context.mjs"
 import { currentSurface, publishSignal } from "../src/tools/signal-bridge.mjs"
 import { normalizeContext as normalizeGenericContext } from "../generic-interface-layer/core/context/normalize.mjs"
 
@@ -98,6 +98,26 @@ test("insert result data stays bounded and path-free", () => {
 test("recommendation cache depends on the derived external surface", () => {
   assert.notEqual(recommendationCacheKey("context-1", 8, "surface-a"), recommendationCacheKey("context-1", 8, "surface-b"))
   assert.equal(recommendationCacheKey("context-1", 8, "surface-a"), recommendationCacheKey("context-1", 8, "surface-a"))
+  assert.notEqual(recommendationCacheKey("context-1", 8, "surface-a", false), recommendationCacheKey("context-1", 8, "surface-a", true))
+})
+
+test("recommendations are local-first and do not call remote providers by default", async () => {
+  const sessionId = `local-first-${Date.now()}`
+  publishContext(context(sessionId, "Cuidado y proteccion"))
+  const originalFetch = globalThis.fetch
+  let calls = 0
+  globalThis.fetch = async () => {
+    calls += 1
+    throw new Error("remote provider should not be called")
+  }
+  try {
+    const result = await recommendContext({ sessionId, limit: 8 })
+    assert.equal(calls, 0)
+    assert.equal(result.remoteEnabled, false)
+    assert.ok(result.results.every((item) => item.local === true))
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
 
 test("context state stays bounded across many sessions", () => {

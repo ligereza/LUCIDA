@@ -41,8 +41,10 @@ recomendación y sólo se vuelve a indexar cuando se solicita una actualización
 
 El análisis que acompaña cada snapshot detecta el tema de la capa, términos
 visuales, paleta enviada por el host, capas que ocupan espacio y rectángulos
-libres reales. El popup prioriza los recursos locales insertables; las fuentes
-remotas se usan como respaldo.
+libres reales. El popup prioriza los recursos locales insertables. La companion
+no llama a proveedores remotos por defecto; una integración externa puede
+solicitar `allowRemote: true` explícitamente y sólo recibe respaldo si faltan
+resultados locales.
 
 La pestaña `Explorar` navega el índice por tema, color dominante, tamaño de
 archivo, dimensiones, proporción, formato, tipo y variante. Cada grupo se

@@ -7,6 +7,10 @@ core_acceptance_criteria:
   - Make host integration portable, contract-driven and testable without inventing live Adobe validation.
 status: active
 completed:
+  - item: Corrected full-canvas and overlapping-region occupancy accounting.
+    evidence: Foreground full-canvas layers no longer become invented free space; overlapping regions use exact rectangle-union area. Focused and full runtime suites pass, including `occupiedRatio=0.68` and `blankRatio=0.32` for a controlled overlap case.
+  - item: Made Adobe recommendations local-first with explicit remote fallback.
+    evidence: `recommendContext` defaults to `remoteEnabled=false`, skips remote providers when local results are sufficient, and separates local/remote cache keys. End-to-end context-to-recommendation probe returned eight `local=true` results without network calls; the previous >30-second remote path no longer occurs by default.
   - item: Added a bounded PUPILA assistance projection to the ADOBE surface.
     evidence: Commit c1a8d26 adds `pupila-assistance.mjs`, exposes `missing`, `stale`, `observing` and `assist` states in the derived surface, renders the state in the companion and keeps every generated proposal confirmation-only; three focused regressions pass.
   - item: Repaired the local ADOBE worktree metadata without changing application files.
@@ -70,8 +74,8 @@ completed:
   - item: Added hostless execution coverage for the Photoshop UXP producer.
     evidence: A VM harness runs the UXP source with mocked Photoshop collections and fetch, confirming bounded serialization, null document path, AbortSignal propagation, timeout-to-offline behavior and start/stop polling without misrepresenting it as host validation.
 in_progress:
-  - item: Verify local SVG semantic matching and blank-region detection with focused runtime evidence.
-    acceptance: A known local SVG query returns semantically related catalog entries without importing the external SVG repository, and controlled contexts distinguish real free regions from occupied/ambiguous regions.
+  - item: Validate the improved companion against a user-operated Adobe host where the UXP panel can actually load.
+    acceptance: The local checks remain green and a host run, if available, confirms Context Shelf loading and context publication without claiming that source-level tests prove Photoshop behavior.
 files_or_resources:
   - adobe/src/tools/pupila-assistance.mjs
   - adobe/tests/pupila-assistance.test.mjs
@@ -83,6 +87,8 @@ files_or_resources:
   - adobe/adobe-context-shelf/photoshop-uxp/index.js
   - adobe/contracts/stable.mjs
 tests_and_checks:
+  - end-to-end local recommendation probe: 8 local results, remote disabled, placement bottom-center, no lingering test process
+  - local catalog probe with `semantic: true`: honest lexical fallback when no MobileCLIP index exists; no worker remained
   - npm run test:runtime: 63 passed
   - npm run test: 11 core tests and 63 runtime tests passed
   - npm run smoke: passed

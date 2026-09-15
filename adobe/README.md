@@ -58,7 +58,7 @@ dentro de ellas. Los originales de `C:\IA\svg` no se modificaron.
 
 ## Capa conectiva
 
-El bridge local expone `POST /signals`, `GET /signals/current` y `GET /surface/current`. XIO puede publicar estado de red, aplicacion o workflow; VIZZ puede publicar estado de atencion y propuestas visuales; PUPILA puede publicar contexto de colaboracion o aprendizaje. La companion muestra los tres estados y usa sus metadatos para refinar recomendaciones.
+El bridge local expone `POST /signals`, `GET /signals/current` y `GET /surface/current`. XIO puede publicar estado de red, aplicacion o workflow; VIZZ puede publicar estado de atencion y propuestas visuales; PUPILA puede publicar contexto de colaboracion o aprendizaje. La companion muestra los tres estados y usa sus metadatos para refinar recomendaciones. Las recomendaciones son locales por defecto; el respaldo remoto sólo se activa con `allowRemote: true` y cuando faltan resultados locales.
 
 La matriz de capacidades es la fuente de verdad de alcance para el agent-card. Photoshop tiene un proveedor UXP preparado pero aún requiere validación dentro del host; los otros hosts conservan adaptadores explícitos sin inventar un proveedor de contexto. Resolume, transporte entre dispositivos y migración de proyectos permanecen fuera de esta rama.
 

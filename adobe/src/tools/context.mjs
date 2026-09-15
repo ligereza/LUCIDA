@@ -214,16 +214,17 @@ function preferredAssetTerms(context) {
   return [`slide ${number}`, `slide ${padded}`, `lamina ${number}`, `lamina ${padded}`, `slide-${number}`, `slide-${padded}`]
 }
 
-export function recommendationCacheKey(contextHash, limit, surfaceHash) {
-  return `${contextHash}:${limit}:${surfaceHash || "surface-empty"}`
+export function recommendationCacheKey(contextHash, limit, surfaceHash, allowRemote = false) {
+  return `${contextHash}:${limit}:${surfaceHash || "surface-empty"}:${allowRemote ? "remote" : "local"}`
 }
 
-export async function recommendContext({ context: rawContext = null, sessionId = null, host = null, limit = 8 } = {}) {
+export async function recommendContext({ context: rawContext = null, sessionId = null, host = null, limit = 8, allowRemote = false } = {}) {
   const context = rawContext ? normalizeContext(rawContext) : findContext({ sessionId, host })
   if (!context) return { context: null, contextHash: null, results: [], errors: ["No current Adobe context"] }
   const safeLimit = Math.min(12, Math.max(1, Number(limit) || 8))
+  const remoteEnabled = allowRemote === true
   const surface = currentSurface({ sessionId: context.sessionId, context })
-  const cacheKey = recommendationCacheKey(context.contextHash, safeLimit, surface.surfaceHash)
+  const cacheKey = recommendationCacheKey(context.contextHash, safeLimit, surface.surfaceHash, remoteEnabled)
   pruneRecommendationCache()
   const cached = recommendationCache.get(cacheKey)
   if (cached) {
@@ -240,15 +241,17 @@ export async function recommendContext({ context: rawContext = null, sessionId =
   ].filter(Boolean)
   const localQuery = queryForContext(context)
   const local = await searchLocalAssets({ query: localQuery || query, terms, preferredTerms: preferredAssetTerms(context), excludePatterns: ["generated/", "_rejected/"], limit: safeLimit, semantic: true }).catch((error) => ({ results: [], errors: [`Local catalog: ${error.message}`] }))
-  const remote = await searchAssets({
-    query,
-    terms,
-    providers: "visual",
-    limit: safeLimit,
-    ancla: context.selection?.text || context.selection?.name || null,
-    role: "illustration",
-    useGdkb: false,
-  })
+  const remote = remoteEnabled && (local.results || []).length < safeLimit
+    ? await searchAssets({
+        query,
+        terms,
+        providers: "visual",
+        limit: safeLimit,
+        ancla: context.selection?.text || context.selection?.name || null,
+        role: "illustration",
+        useGdkb: false,
+      })
+    : { visual: { results: [] }, errors: [] }
   const bestArea = context.analysis?.layout?.placementCandidates?.[0]
   const localResults = (local.results || []).map((item, index) => ({
     rank: index + 1,
@@ -295,8 +298,10 @@ export async function recommendContext({ context: rawContext = null, sessionId =
       status: surface.status,
       sources: Object.fromEntries(Object.entries(surface.sources).map(([source, value]) => [source, { state: value.state, eventType: value.eventType, sequence: value.sequence }])),
       proposalCount: surface.proposals.length,
+      remoteEnabled,
     },
     errors: [...(local.errors || []), ...(remote.errors || [])],
+    remoteEnabled,
     generatedAt: new Date().toISOString(),
   }
   setRecentBounded(recommendationCache, cacheKey, { createdAt: Date.now(), value }, MAX_RECOMMENDATION_ENTRIES)

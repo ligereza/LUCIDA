@@ -111,7 +111,7 @@ const openApi = {
     "/context": { post: { operationId: "publishContext", description: "Publish a normalized context snapshot from an Adobe host adapter.", responses: { "200": { description: "Context snapshot" } } } },
     "/context/current": { get: { operationId: "currentContext", description: "Read the latest context snapshot for a session or host.", responses: { "200": { description: "Current context" } } } },
     "/analysis/current": { get: { operationId: "currentAnalysis", description: "Read semantic content and blank-area analysis for the latest Adobe context.", responses: { "200": { description: "Context analysis" } } } },
-    "/recommendations": { post: { operationId: "recommendContext", description: "Rank visual assets against the latest Adobe context.", responses: { "200": { description: "Asset recommendations" } } } },
+    "/recommendations": { post: { operationId: "recommendContext", description: "Rank local visual assets against the latest Adobe context; remote visual fallback requires allowRemote=true.", responses: { "200": { description: "Asset recommendations" } } } },
     "/analysis/layer": { post: { operationId: "analysisLayer", description: "Generate and queue a separate locked SVG analysis layer for the latest Adobe context.", responses: { "201": { description: "Analysis layer insertion request" } } } },
     "/insert": { post: { operationId: "queueInsert", description: "Queue an allowlisted asset insertion for an Adobe host session.", responses: { "201": { description: "Insert request" } } } },
     "/insert/next": { get: { operationId: "claimInsert", description: "Claim the next insertion for an Adobe host session.", responses: { "200": { description: "Insert request or empty" } } } },
