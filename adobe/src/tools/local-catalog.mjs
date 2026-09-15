@@ -26,6 +26,8 @@ const SEARCH_ALIASES = new Map([
   ["condom", ["condon", "protection", "proteccion"]],
   ["prevencion", ["prevention", "protection", "proteccion", "care", "cuidado"]],
   ["prevention", ["prevencion", "protection", "proteccion", "care", "cuidado"]],
+  ["proteccion", ["protection", "prevention", "care", "health", "support"]],
+  ["protection", ["proteccion", "prevention", "care", "health", "support"]],
   ["reduccion", ["reduction", "harm", "risk", "riesgo"]],
   ["reduction", ["reduccion", "harm", "risk", "riesgo"]],
   ["sustancia", ["sustancias", "substance", "substances", "drug", "drugs"]],
@@ -47,6 +49,9 @@ const SEARCH_ALIASES = new Map([
   ["comunidad", ["community", "people", "social"]],
   ["consentimiento", ["consent", "communication", "limits"]],
   ["cuidado", ["care", "health", "support", "protection"]],
+  ["ayuda", ["help", "support", "care", "assistance"]],
+  ["asistencia", ["help", "support", "care", "assistance"]],
+  ["help", ["ayuda", "support", "care", "assistance"]],
   ["riesgo", ["risk", "warning", "danger", "emergency"]],
 ])
 

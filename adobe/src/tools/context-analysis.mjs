@@ -101,9 +101,10 @@ function deriveOccupied(context, canvas) {
       if (!region) return false
       const ratio = rectArea(region) / (canvas.width * canvas.height)
       const backgroundName = /background|fondo|base|artboard|canvas|color fill|relleno/.test(layer.name)
-      // Full-canvas backgrounds sit underneath the artwork and should not
-      // prevent the shelf from suggesting an overlay placement.
-      return !(ratio >= 0.9 && (backgroundName || layer.kind !== "text"))
+      // Only an explicitly background-like full-canvas layer is ignored.
+      // A foreground image or shape can also cover the whole canvas and must
+      // not be discarded, otherwise the detector invents a 100% free area.
+      return !(ratio >= 0.9 && backgroundName)
     })
   const source = Array.isArray(context.layers) && context.layers.length
     ? [...layerRegions.map((layer) => layer.bounds), ...(context.selection?.bounds ? [context.selection.bounds] : [])]

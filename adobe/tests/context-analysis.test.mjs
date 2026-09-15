@@ -26,3 +26,23 @@ test("explicit host safe regions take priority over detected blank regions", () 
   assert.equal(result.layout.placementCandidates[0].source, "host")
   assert.deepEqual(result.layout.placementCandidates[0].bounds, { left: 50, top: 50, right: 200, bottom: 200 })
 })
+
+test("a full-canvas foreground layer is occupied, not an invented blank area", () => {
+  const result = analyzeContext({
+    document: { width: 1000, height: 1000 },
+    layers: [{ id: "hero", name: "Hero image", kind: "image", visible: true, bounds: { left: 0, top: 0, right: 1000, bottom: 1000 } }],
+  })
+  assert.equal(result.layout.occupiedRatio, 1)
+  assert.equal(result.layout.blankRatio, 0)
+  assert.deepEqual(result.layout.blankAreas, [])
+  assert.deepEqual(result.layout.placementCandidates, [])
+})
+
+test("an explicitly named full-canvas background remains available for overlay placement", () => {
+  const result = analyzeContext({
+    document: { width: 1000, height: 1000 },
+    layers: [{ id: "background", name: "Background", kind: "image", visible: true, bounds: { left: 0, top: 0, right: 1000, bottom: 1000 } }],
+  })
+  assert.equal(result.layout.occupiedRatio, 0)
+  assert.equal(result.layout.placementCandidates[0].source, "detected")
+})

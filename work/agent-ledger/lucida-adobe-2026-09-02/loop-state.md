@@ -7,6 +7,10 @@ core_acceptance_criteria:
   - Make host integration portable, contract-driven and testable without inventing live Adobe validation.
 status: active
 completed:
+  - item: Added a bounded PUPILA assistance projection to the ADOBE surface.
+    evidence: Commit c1a8d26 adds `pupila-assistance.mjs`, exposes `missing`, `stale`, `observing` and `assist` states in the derived surface, renders the state in the companion and keeps every generated proposal confirmation-only; three focused regressions pass.
+  - item: Repaired the local ADOBE worktree metadata without changing application files.
+    evidence: `C:\IA\LUCIDA_ADOBE` now resolves to the archived local Git common directory, reports `ADOBE...origin/ADOBE [ahead 1]`, and retains the prior history and remote.
   - item: Made project collections visible and exposed per-file inventory errors.
     evidence: renderer consumes projectInventory.collections; inventory schema exposes indexErrors; 42 legacy tests pass.
   - item: Bounded context sessions, recommendation cache and insert result retention; unknown session lookups no longer fall back to another session.
@@ -66,17 +70,21 @@ completed:
   - item: Added hostless execution coverage for the Photoshop UXP producer.
     evidence: A VM harness runs the UXP source with mocked Photoshop collections and fetch, confirming bounded serialization, null document path, AbortSignal propagation, timeout-to-offline behavior and start/stop polling without misrepresenting it as host validation.
 in_progress:
-  - item: Prepare the next operator validation pass.
-    acceptance: Repository checks remain green and the remaining uncertainty is isolated to user-operated Adobe host execution, not local bridge structure.
+  - item: Verify local SVG semantic matching and blank-region detection with focused runtime evidence.
+    acceptance: A known local SVG query returns semantically related catalog entries without importing the external SVG repository, and controlled contexts distinguish real free regions from occupied/ambiguous regions.
 files_or_resources:
+  - adobe/src/tools/pupila-assistance.mjs
+  - adobe/tests/pupila-assistance.test.mjs
+  - adobe/contracts/surface.schema.json
+  - adobe/companion/index.html
   - adobe/companion/renderer.js
   - adobe/src/tools/project-inventory.mjs
   - adobe/src/tools/context.mjs
   - adobe/adobe-context-shelf/photoshop-uxp/index.js
   - adobe/contracts/stable.mjs
 tests_and_checks:
-  - npm run test: 11 core tests and 59 runtime tests passed
-  - npm run test:runtime: 59 passed
+  - npm run test:runtime: 63 passed
+  - npm run test: 11 core tests and 63 runtime tests passed
   - npm run smoke: passed
   - npm run companion:check: passed
   - npm run verify: passed
@@ -90,5 +98,5 @@ estimated_remaining_effort: one focused implementation and verification pass
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.
   - Whether a real Adobe context publisher will remain stable across host versions.
-next_action: Keep the package boundary stable and prepare a focused Photoshop UXP validation checklist; do not claim host execution until the user runs the companion inside Photoshop.
+next_action: Run focused local catalog and context-analysis probes, inspect their outputs against known SVG/layout fixtures, then check whether a user-operated Photoshop or Illustrator validation is available; do not claim host execution without an actual host run.
 next_checkpoint_trigger: A coherent code change with passing suites and a pushed commit.

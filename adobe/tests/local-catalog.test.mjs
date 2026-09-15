@@ -47,6 +47,19 @@ test("local catalog indexes editable SVGs and returns direct file paths", async 
   await fs.rm(temporary, { recursive: true, force: true })
 })
 
+test("Spanish protection queries resolve local English icon metadata without external libraries", async () => {
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "context-shelf-semantic-alias-"))
+  const root = path.join(TOOLKIT_ROOT, "ICONOS")
+  const cachePath = path.join(temporary, "catalog.json")
+  await indexLocalCatalog({ roots: [root], cachePath, refresh: true })
+  const result = await searchLocalAssets({ roots: [root], cachePath, query: "proteccion", limit: 30 })
+  assert.ok(result.total > 0)
+  assert.ok(result.results.every((item) => item.local === true))
+  assert.ok(result.results.every((item) => item.searchMode === "lexical"))
+  assert.ok(result.results.some((item) => /protection|proteccion/i.test(item.relativePath)))
+  await fs.rm(temporary, { recursive: true, force: true })
+})
+
 test("concurrent catalog refreshes leave a complete JSON cache", async () => {
   const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "context-shelf-catalog-concurrent-"))
   const cachePath = path.join(temporary, "catalog.json")
