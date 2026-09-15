@@ -125,6 +125,7 @@ function renderSignalSurface(surface, unavailable = false) {
   if (unavailable) {
     stateTarget.textContent = "bridge no disponible"
     sourcesTarget.textContent = "XIO · VIZZ · PUPILA"
+    renderPupilaAssistance(null, true)
     return
   }
   const labels = { xio: "XIO", vizz: "VIZZ", pupila: "PUPILA" }
@@ -148,6 +149,23 @@ function renderSignalSurface(surface, unavailable = false) {
     }).join("")
     sourcesTarget.insertAdjacentHTML("beforeend", proposalMarkup)
   }
+  renderPupilaAssistance(surface?.assistance || null)
+}
+
+function renderPupilaAssistance(assistance, unavailable = false) {
+  const target = $("#pupila-assistance")
+  if (!target) return
+  if (unavailable) {
+    target.className = "pupila-assistance"
+    target.textContent = "PUPILA: bridge no disponible"
+    return
+  }
+  const state = assistance?.state || "missing"
+  const title = assistance?.title || "PUPILA sin señal"
+  const reason = assistance?.reason || "No hay observación de aprendizaje para esta sesión."
+  target.className = `pupila-assistance ${state === "assist" ? "assist" : state}`
+  target.innerHTML = `<strong>${escapeHtml(title)}</strong> · ${escapeHtml(reason)}`
+  if (assistance?.proposal) target.insertAdjacentHTML("beforeend", " · confirmación requerida")
 }
 
 async function refreshSignalSurface(sessionId = null) {

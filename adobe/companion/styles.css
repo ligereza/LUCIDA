@@ -28,6 +28,10 @@ h1 { font-size: 17px; margin: 3px 0 0; }
 .signal-source.active b { color: var(--accent); }
 .signal-source.stale b { color: #ffd166; }
 .signal-proposal { border-left: 2px solid var(--accent); color: var(--text); font-size: 9px; padding-left: 6px; width: 100%; }
+.pupila-assistance { border-left: 2px solid #7dd3fc; color: var(--muted); font-size: 9px; line-height: 1.35; margin-top: 7px; padding-left: 7px; }
+.pupila-assistance.assist { color: var(--text); }
+.pupila-assistance.assist strong { color: #7dd3fc; }
+.pupila-assistance.stale { color: #ffd166; }
 .context span, .context p, .footer { color: var(--muted); }
 .context p { border-left: 2px solid var(--accent); margin: 7px 0 0; padding-left: 8px; }
 .analysis { color: var(--accent); font-size: 10px; margin-top: 5px; }

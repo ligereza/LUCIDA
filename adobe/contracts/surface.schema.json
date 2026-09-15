@@ -21,6 +21,23 @@
       "additionalProperties": false
     },
     "proposals": { "type": "array", "items": { "type": "object" }, "maxItems": 8 },
+    "assistance": {
+      "type": "object",
+      "required": ["source", "state", "mode", "title", "reason"],
+      "properties": {
+        "source": { "const": "pupila" },
+        "state": { "enum": ["missing", "stale", "observing", "assist"] },
+        "mode": { "enum": ["observe", "assist"] },
+        "title": { "type": ["string", "null"], "maxLength": 180 },
+        "reason": { "type": ["string", "null"], "maxLength": 400 },
+        "eventType": { "type": ["string", "null"], "maxLength": 80 },
+        "signalId": { "type": ["string", "null"], "maxLength": 160 },
+        "ageMs": { "type": ["integer", "null"], "minimum": 0 },
+        "evidence": { "type": "object" },
+        "proposal": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
     "status": {
       "type": "object",
       "required": ["state", "sourceCount", "activeSourceCount", "staleSourceCount", "proposalCount"],

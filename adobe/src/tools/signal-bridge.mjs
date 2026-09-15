@@ -1,4 +1,5 @@
 import { clone, deterministicId, sha256, stable } from "../../contracts/stable.mjs"
+import { assistanceForSurface, derivePupilaAssistance } from "./pupila-assistance.mjs"
 
 const SOURCES = new Set(["xio", "vizz", "pupila"])
 const MAX_HISTORY = 96
@@ -247,6 +248,7 @@ export function currentSurface({ sessionId = null, context = null, contextHash =
     .slice(-8)
     .reverse()
     .map((signal) => ({ ...clone(signal.proposal), source: signal.source, signalId: signal.signalId, createdAt: signal.receivedAt }))
+  const assistance = derivePupilaAssistance(signalFromState(state, "pupila"), nowMs)
   const status = surfaceStatus(sources, proposals)
   const surfaceBasis = {
     schemaVersion: 1,
@@ -254,6 +256,7 @@ export function currentSurface({ sessionId = null, context = null, contextHash =
     contextHash: contextHash || context?.contextHash || null,
     sources: Object.fromEntries(Object.entries(sources).map(([source, value]) => [source, { ...value, ageMs: undefined }])),
     proposals,
+    assistance: assistanceForSurface(assistance),
     status,
   }
   return {
@@ -268,6 +271,7 @@ export function currentSurface({ sessionId = null, context = null, contextHash =
     },
     sources,
     proposals,
+    assistance,
     status,
     safety: { proposalOnly: true, hostActions: false, rawContentForwarded: false, externalNetwork: false },
     generatedAt: now.toISOString(),
