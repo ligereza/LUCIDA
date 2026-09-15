@@ -7,6 +7,8 @@ core_acceptance_criteria:
   - Make host integration portable, contract-driven and testable without inventing live Adobe validation.
 status: active
 completed:
+  - item: Smoke-tested the Windows Electron companion lifecycle.
+    evidence: `npm run companion:start` launched Electron, started the ADOBE bridge on `127.0.0.1:47921`, exposed a proposal-only surface with PUPILA missing, and shut down without leaving the companion process, bridge listener or worker behind.
   - item: Prevented absent MobileCLIP from spawning a needless Python worker.
     evidence: `mobileClipStatus()` now short-circuits when the pinned model is not verified; the current Windows environment returns `ready=false`, `skipped=true` in about 1.4 ms and no MobileCLIP worker remains.
   - item: Corrected full-canvas and overlapping-region occupancy accounting.
@@ -89,6 +91,7 @@ files_or_resources:
   - adobe/adobe-context-shelf/photoshop-uxp/index.js
   - adobe/contracts/stable.mjs
 tests_and_checks:
+  - companion lifecycle smoke: bridge health valid, loopback-only listener, clean shutdown
   - MobileCLIP status probe: model absent, worker skipped, no lingering worker process
   - end-to-end local recommendation probe: 8 local results, remote disabled, placement bottom-center, no lingering test process
   - local catalog probe with `semantic: true`: honest lexical fallback when no MobileCLIP index exists; no worker remained
