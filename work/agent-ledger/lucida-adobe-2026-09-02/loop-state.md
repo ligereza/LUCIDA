@@ -7,6 +7,8 @@ core_acceptance_criteria:
   - Make host integration portable, contract-driven and testable without inventing live Adobe validation.
 status: active
 completed:
+  - item: Prevented absent MobileCLIP from spawning a needless Python worker.
+    evidence: `mobileClipStatus()` now short-circuits when the pinned model is not verified; the current Windows environment returns `ready=false`, `skipped=true` in about 1.4 ms and no MobileCLIP worker remains.
   - item: Corrected full-canvas and overlapping-region occupancy accounting.
     evidence: Foreground full-canvas layers no longer become invented free space; overlapping regions use exact rectangle-union area. Focused and full runtime suites pass, including `occupiedRatio=0.68` and `blankRatio=0.32` for a controlled overlap case.
   - item: Made Adobe recommendations local-first with explicit remote fallback.
@@ -87,6 +89,7 @@ files_or_resources:
   - adobe/adobe-context-shelf/photoshop-uxp/index.js
   - adobe/contracts/stable.mjs
 tests_and_checks:
+  - MobileCLIP status probe: model absent, worker skipped, no lingering worker process
   - end-to-end local recommendation probe: 8 local results, remote disabled, placement bottom-center, no lingering test process
   - local catalog probe with `semantic: true`: honest lexical fallback when no MobileCLIP index exists; no worker remained
   - npm run test:runtime: 63 passed
@@ -104,5 +107,5 @@ estimated_remaining_effort: one focused implementation and verification pass
 open_questions:
   - Whether the installed Photoshop build accepts and executes the UXP panel in a user-operated host session.
   - Whether a real Adobe context publisher will remain stable across host versions.
-next_action: Run focused local catalog and context-analysis probes, inspect their outputs against known SVG/layout fixtures, then check whether a user-operated Photoshop or Illustrator validation is available; do not claim host execution without an actual host run.
+next_action: Validate the companion against a user-operated Photoshop or Illustrator host if a loadable UXP development path is available; otherwise keep host execution explicitly pending and do not claim source tests prove Adobe behavior.
 next_checkpoint_trigger: A coherent code change with passing suites and a pushed commit.
