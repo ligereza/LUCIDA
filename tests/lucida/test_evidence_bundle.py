@@ -81,6 +81,15 @@ def test_evidence_hashes_are_stable_across_checkout_line_endings(tmp_path):
     assert _sha256(lf_path) == _sha256(crlf_path)
 
 
+def test_evidence_hashes_are_stable_across_checkout_line_endings(tmp_path):
+    lf_path = tmp_path / "fixture-lf.json"
+    crlf_path = tmp_path / "fixture-crlf.json"
+    lf_path.write_bytes(b'{"status":"PASS"}\n')
+    crlf_path.write_bytes(b'{"status":"PASS"}\r\n')
+
+    assert _sha256(lf_path) == _sha256(crlf_path)
+
+
 def test_commit_metadata_rejects_ambiguous_or_stale_fields():
     bundle = build_evidence_bundle(source_commit="c" * 40, test_counts=TEST_COUNTS)
     manifest = bundle["replay_evidence"]["manifest"]
