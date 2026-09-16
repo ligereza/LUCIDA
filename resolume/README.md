@@ -226,13 +226,17 @@ is an `FF_SOURCE` inspired by FLUJO's venue viewer. Its primary
 uses them as the authoritative front-view arrangement. It creates exactly one
 preview plane per XML `Slice`; it does not infer a main screen, banners,
 totems, stage dimensions or other venue objects from slice count or size.
-`Depth` applies one Z value to every slice, while the optional `SliceDepths`
-text field accepts comma-separated values in XML slice order, for example
-`0,0.2,-0.1`. Missing entries use `Depth` and extra entries are ignored.
-This keeps the control tied to the actual XML instead of exposing a fixed
-number of fictional slices. `MapFile` can texture those planes with an image
+`Depth` applies one Z value to every slice, while `SliceDepth01`,
+`SliceDepth02`, and so on are numeric controls shown only for the slices that
+the loaded XML actually contains. They are per-slice offsets added to `Depth`,
+so `dreftalca.xml` exposes seven depth controls rather than a fictional fixed
+count. `MapFile` can texture those planes with an image
 from the same composition, while `TemplateXML` remains the real routing
 template and `OutputRect` is never used to invent the front-view composition.
+
+When the XML file changes on disk, INSTAR detects the file signature and
+reloads the planes and visible depth controls on the next frame; the source
+does not need to be removed and re-added.
 
 The XML preview contains only mapping geometry. A venue shell or a tarima
 model must come from an explicit `VenueFile`/model source; FLUJO's tarima

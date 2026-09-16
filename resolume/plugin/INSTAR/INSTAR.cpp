@@ -7,9 +7,13 @@
 #include <fstream>
 #include <iterator>
 #include <sstream>
+#include <utility>
 
 #ifdef _WIN32
 #include <direct.h>
+#include <sys/stat.h>
+#else
+#include <sys/stat.h>
 #endif
 
 using namespace ffglqs;
@@ -27,23 +31,21 @@ float BoundedFloat(float value, float fallback, float minimum, float maximum)
 	return std::max(minimum, std::min(maximum, value));
 }
 
-std::vector<float> ParseSliceDepths(const std::string& text, size_t count, float fallback)
+std::pair<long long, long long> GetFileSignature(const std::string& path)
 {
-	std::vector<float> result(count, fallback);
-	std::istringstream input(text);
-	std::string token;
-	size_t index = 0;
-	while (index < result.size() && std::getline(input, token, ','))
-	{
-		char* end = nullptr;
-		const float parsed = std::strtof(token.c_str(), &end);
-		while (*end != '\0' && std::isspace(static_cast<unsigned char>(*end)))
-			++end;
-		if (end != token.c_str() && *end == '\0')
-			result[index] = BoundedFloat(parsed, fallback, -10.0f, 10.0f);
-		++index;
-	}
-	return result;
+	if (path.empty())
+		return {0, 0};
+#ifdef _WIN32
+	struct _stat64 info = {};
+	if (_stat64(path.c_str(), &info) != 0)
+		return {0, 0};
+	return {static_cast<long long>(info.st_mtime), static_cast<long long>(info.st_size)};
+#else
+	struct stat info = {};
+	if (stat(path.c_str(), &info) != 0)
+		return {0, 0};
+	return {static_cast<long long>(info.st_mtime), static_cast<long long>(info.st_size)};
+#endif
 }
 
 std::string PathKey(const std::string& path)
@@ -113,8 +115,22 @@ INSTAR::INSTAR()
 	AddParam(Param::Create("Brightness", brightness));
 	SetParamRange(PARAM_EDGE_BUDGET, 1.0f, 1000000.0f);
 	AddParam(ParamRange::Create("Depth", depth, ParamRange::Range(-10.0f, 10.0f)));
-	AddParam(ParamText::create("SliceDepths", sliceDepthsText));
+	for (unsigned int index = 0; index < 32U; ++index)
+	{
+		const std::string name = std::string("SliceDepth") + (index < 9U ? "0" : "") + std::to_string(index + 1U);
+		AddParam(ParamRange::Create(name, 0.0f, ParamRange::Range(-10.0f, 10.0f)));
+		SetParamVisibility(PARAM_SLICE_DEPTH_01 + index, false, false);
+	}
 	AddParam(ParamRange::Create("CameraDistance", cameraDistance, ParamRange::Range(1.0f, 20.0f)));
+}
+
+void INSTAR::ConfigureSliceDepthParams(size_t sliceCount)
+{
+	const size_t visibleCount = std::min<size_t>(sliceCount, 32U);
+	for (unsigned int index = 0; index < 32U; ++index)
+		SetParamVisibility(PARAM_SLICE_DEPTH_01 + index, index < visibleCount, true);
+	if (sliceCount > 32U)
+		FFGLLog::LogToHost("INSTAR: hay más de 32 slices; los controles visibles cubren los primeros 32");
 }
 
 FFResult INSTAR::Init()
@@ -207,6 +223,8 @@ bool INSTAR::LoadVenue()
 		if (activeTemplatePath.empty())
 		{
 			scene = BuildINSTARFlatPlaneDemoScene();
+			ConfigureSliceDepthParams(0);
+			loadedFileSignature = {0, 0};
 			loadedPath.clear();
 			sceneDirty = false;
 			return true;
@@ -218,15 +236,19 @@ bool INSTAR::LoadVenue()
 			const std::string message = "INSTAR: TemplateXML inválido para XML_PLANES: " + error;
 			FFGLLog::LogToHost(message.c_str());
 			scene = BuildINSTARFlatPlaneDemoScene();
+			ConfigureSliceDepthParams(0);
+			loadedFileSignature = GetFileSignature(activeTemplatePath);
 			loadedPath = activeTemplatePath;
 			sceneDirty = false;
 			return false;
 		}
+		ConfigureSliceDepthParams(loaded.inputPlanes.size());
 		std::vector<float> depths(loaded.inputPlanes.size(), BoundedFloat(depth, 0.0f, -10.0f, 10.0f));
-		const std::vector<float> explicitDepths = ParseSliceDepths(sliceDepthsText, loaded.inputPlanes.size(), depths.front());
-		depths = explicitDepths;
+		for (size_t index = 0; index < depths.size() && index < 32U; ++index)
+			depths[index] = BoundedFloat(depth + sliceDepths[index], 0.0f, -10.0f, 10.0f);
 		ApplyINSTARInputPlaneDepths(loaded, depths);
 		scene = loaded;
+		loadedFileSignature = GetFileSignature(activeTemplatePath);
 		loadedPath = activeTemplatePath;
 		sceneDirty = false;
 		return true;
@@ -236,6 +258,8 @@ bool INSTAR::LoadVenue()
 		// RASTER_PIXEL_MAP owns the frame. Keep a small scene available for a
 		// later mode switch, but never reload VenueFile while raster is active.
 		scene = BuildINSTARFlatPlaneDemoScene();
+		ConfigureSliceDepthParams(0);
+		loadedFileSignature = {0, 0};
 		loadedPath.clear();
 		sceneDirty = false;
 		return true;
@@ -243,6 +267,8 @@ bool INSTAR::LoadVenue()
 	if (venuePath.empty())
 	{
 		scene = BuildINSTARDemoScene();
+		ConfigureSliceDepthParams(0);
+		loadedFileSignature = {0, 0};
 		loadedPath.clear();
 		sceneDirty = false;
 		return true;
@@ -255,11 +281,15 @@ bool INSTAR::LoadVenue()
 	{
 		FFGLLog::LogToHost("INSTAR: VenueFile inválido; se usa escena demo");
 		scene = BuildINSTARDemoScene();
+		ConfigureSliceDepthParams(0);
+		loadedFileSignature = GetFileSignature(venuePath);
 		loadedPath = venuePath;
 		sceneDirty = false;
 		return false;
 	}
 	scene = loaded;
+	ConfigureSliceDepthParams(0);
+	loadedFileSignature = GetFileSignature(venuePath);
 	if (scene.omittedEdges > 0)
 	{
 		const std::string message = "INSTAR: EdgeBudget omitió " + std::to_string(scene.omittedEdges) +
@@ -394,7 +424,8 @@ void INSTAR::Update()
 	const std::string desiredPath = mode == MODE_XML_PLANES ?
 		(previewTemplatePath.empty() ? templatePath : previewTemplatePath) :
 		(mode == MODE_VENUE_3D ? venuePath : std::string());
-	if (sceneDirty || loadedPath != desiredPath)
+	const std::pair<long long, long long> desiredSignature = mode == MODE_XML_PLANES ? GetFileSignature(desiredPath) : std::pair<long long, long long>{0, 0};
+	if (sceneDirty || loadedPath != desiredPath || (mode == MODE_XML_PLANES && desiredSignature != loadedFileSignature))
 	{
 		LoadVenue();
 		UploadScene();
@@ -573,12 +604,6 @@ FFResult INSTAR::SetTextParameter(unsigned int index, const char* value)
 		sceneDirty = true;
 		return FF_SUCCESS;
 	}
-	if (index == PARAM_SLICE_DEPTHS)
-	{
-		sliceDepthsText = safeValue;
-		sceneDirty = true;
-		return FF_SUCCESS;
-	}
 	if (index == PARAM_OUTPUT_XML)
 	{
 		outputPath = safeValue.empty() ? "INSTAR_AdvancedOutput.xml" : safeValue;
@@ -599,8 +624,6 @@ char* INSTAR::GetTextParameter(unsigned int index)
 		value = &mapPath;
 	else if (index == PARAM_TEMPLATE_XML)
 		value = &templatePath;
-	else if (index == PARAM_SLICE_DEPTHS)
-		value = &sliceDepthsText;
 	else if (index == PARAM_OUTPUT_XML)
 		value = &outputPath;
 	if (value == nullptr)

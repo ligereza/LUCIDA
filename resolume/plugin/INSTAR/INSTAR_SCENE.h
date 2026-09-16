@@ -36,6 +36,7 @@ struct INSTARInputPlane
 	float width = 0.0f;
 	float height = 0.0f;
 	float depth = 0.0f;
+	std::vector<INSTARVec3> corners;
 };
 
 struct INSTARProjectedSurface

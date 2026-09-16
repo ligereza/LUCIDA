@@ -125,10 +125,18 @@ int main(int argc, char** argv)
 		{"TOTEM_L", 20.0f, 120.0f, 60.0f, 420.0f},
 		{"TOTEM_R", 1840.0f, 120.0f, 60.0f, 420.0f},
 	};
+	sliced.inputPlanes[2].corners = {
+		{960.0f, 100.0f, 0.0f},
+		{1700.0f, 500.0f, 0.0f},
+		{960.0f, 900.0f, 0.0f},
+		{220.0f, 500.0f, 0.0f},
+	};
 	ApplyINSTARInputPlaneDepths(sliced, std::vector<float>{0.0f, 0.2f, -0.2f});
 	if (sliced.lineVertices.size() != 24U || sliced.triangleVertices.size() != 18U || sliced.inputPlanes.size() != 3U)
 		return 1;
 	if (sliced.inputPlanes[0].depth != 0.0f || sliced.inputPlanes[1].depth != 0.2f || sliced.inputPlanes[2].depth != -0.2f)
+		return 1;
+	if (sliced.inputPlanes[2].corners.size() != 4U || std::fabs(sliced.lineVertices[16].position.y - sliced.lineVertices[18].position.y) < 0.1f)
 		return 1;
 	for (const INSTARVertex& vertex : sliced.lineVertices)
 	{

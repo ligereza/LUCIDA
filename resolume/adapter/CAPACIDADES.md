@@ -76,9 +76,11 @@ La implementación nativa vive en `resolume/plugin/INSTAR/`. `INSTAR.dll` es un
 Advanced Output como disposición frontal autoritativa y crea exactamente un
 plano por `Slice`. No infiere pantalla principal, banners, tótems ni tarima a
 partir de la cantidad o el tamaño de los slices. `Depth` aplica una
-profundidad global y `SliceDepths` acepta una lista CSV alineada con el orden
-real de los slices, sin un límite artificial de 32 controles. `MapFile` puede
+profundidad global y muestra `SliceDepth01`–`SliceDepthNN` solo para los
+slices realmente presentes, con valores numéricos por slice. `MapFile` puede
 texturizar esas superficies solo cuando pertenece a la misma composición.
+Si cambia el XML en disco, el plugin recarga la geometría y sus controles en
+vivo sin quitar y volver a agregar la fuente.
 
 También conserva `VENUE_3D`, que lee el JSON de polilíneas de FLUJO, y
 `RASTER_PIXEL_MAP`, que muestra un `MapFile` raster conservando proporciones.

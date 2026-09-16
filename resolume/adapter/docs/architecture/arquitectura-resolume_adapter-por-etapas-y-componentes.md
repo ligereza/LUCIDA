@@ -46,8 +46,10 @@ INSTAR tiene dos superficies coordinadas: el plugin FFGL Capture de venues y el
 parser offline que prepara entradas PDF/PNG/SVG. En el plugin, `XML_PLANES`
 lee los `InputRect` del Advanced Output como la composición frontal y crea
 exactamente un plano por `Slice`. No deduce una pantalla principal, banners,
-tótems o tarima desde el XML. `Depth` es un valor global y `SliceDepths` es
-una lista opcional alineada con el orden real de los slices. `VENUE_3D`
+tótems o tarima desde el XML. `Depth` es un valor global y los controles
+`SliceDepth01`–`SliceDepthNN` aparecen solo para los slices reales, alineados
+con su orden. Los cambios guardados en el XML se detectan y recargan en vivo.
+`VENUE_3D`
 conserva el recorrido JSON de FLUJO y `RASTER_PIXEL_MAP` conserva la
 inspección plana. `MapFile` puede texturizar los planos XML si corresponde a
 la misma composición y `TemplateXML` continúa siendo la autoridad de routing

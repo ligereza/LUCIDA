@@ -9,6 +9,7 @@
 
 #include <string>
 #include <vector>
+#include <utility>
 
 class INSTAR final : public ffglqs::Source
 {
@@ -34,6 +35,7 @@ protected:
 
 private:
 	bool LoadVenue();
+	void ConfigureSliceDepthParams(size_t sliceCount);
 	void UploadScene();
 	bool LoadRaster();
 	void BuildRasterOverlay();
@@ -57,13 +59,14 @@ private:
 	std::string templatePath;
 	std::string previewTemplatePath;
 	std::string outputPath = "INSTAR_AdvancedOutput.xml";
+	std::pair<long long, long long> loadedFileSignature = {0, 0};
 	float yaw = 0.5f;
 	float pitch = 0.5f;
 	float zoom = 0.55f;
 	float cameraDistance = 3.5f;
 	float brightness = 0.85f;
 	float depth = 0.0f;
-	std::string sliceDepthsText;
+	float sliceDepths[32] = {};
 	bool sceneDirty = true;
 	bool rasterDirty = true;
 	bool rasterReady = false;
@@ -85,7 +88,8 @@ private:
 		PARAM_ZOOM = 11,
 		PARAM_BRIGHTNESS = 12,
 		PARAM_DEPTH = 13,
-		PARAM_SLICE_DEPTHS = 14,
-		PARAM_CAMERA_DISTANCE = 15,
+		PARAM_SLICE_DEPTH_01 = 14,
+		PARAM_SLICE_DEPTH_32 = 45,
+		PARAM_CAMERA_DISTANCE = 46,
 	};
 };

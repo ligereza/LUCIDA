@@ -701,30 +701,49 @@ void ApplyINSTARInputPlaneDepths(INSTARScene& scene, const std::vector<float>& d
 	const float canvasAspect = static_cast<float>(scene.inputCanvasHeight) / static_cast<float>(scene.inputCanvasWidth);
 	for (size_t index = 0; index < scene.inputPlanes.size(); ++index)
 	{
-		const INSTARInputPlane& plane = scene.inputPlanes[index];
+		INSTARInputPlane& plane = scene.inputPlanes[index];
 		const float depth = index < depths.size() ? depths[index] : 0.0f;
-		scene.inputPlanes[index].depth = depth;
-		const float left = plane.x / static_cast<float>(scene.inputCanvasWidth) * 2.0f - 1.0f;
-		const float right = (plane.x + plane.width) / static_cast<float>(scene.inputCanvasWidth) * 2.0f - 1.0f;
-		const float top = (0.5f - plane.y / static_cast<float>(scene.inputCanvasHeight)) * 2.0f * canvasAspect;
-		const float bottom = (0.5f - (plane.y + plane.height) / static_cast<float>(scene.inputCanvasHeight)) * 2.0f * canvasAspect;
-		const INSTARVec3 topLeft{left, top, depth};
-		const INSTARVec3 topRight{right, top, depth};
-		const INSTARVec3 bottomRight{right, bottom, depth};
-		const INSTARVec3 bottomLeft{left, bottom, depth};
-		const INSTARVec2 topLeftUv{plane.x / static_cast<float>(scene.inputCanvasWidth), plane.y / static_cast<float>(scene.inputCanvasHeight)};
-		const INSTARVec2 topRightUv{(plane.x + plane.width) / static_cast<float>(scene.inputCanvasWidth), plane.y / static_cast<float>(scene.inputCanvasHeight)};
-		const INSTARVec2 bottomRightUv{(plane.x + plane.width) / static_cast<float>(scene.inputCanvasWidth), (plane.y + plane.height) / static_cast<float>(scene.inputCanvasHeight)};
-		const INSTARVec2 bottomLeftUv{plane.x / static_cast<float>(scene.inputCanvasWidth), (plane.y + plane.height) / static_cast<float>(scene.inputCanvasHeight)};
+		plane.depth = depth;
+		std::vector<INSTARVec3> corners = plane.corners;
+		if (corners.size() < 4U)
+		{
+			corners = {
+				{plane.x, plane.y, 0.0f},
+				{plane.x + plane.width, plane.y, 0.0f},
+				{plane.x + plane.width, plane.y + plane.height, 0.0f},
+				{plane.x, plane.y + plane.height, 0.0f},
+			};
+		}
+		const auto toWorld = [canvasAspect, &scene, depth](const INSTARVec3& point) {
+			return INSTARVec3{
+				point.x / static_cast<float>(scene.inputCanvasWidth) * 2.0f - 1.0f,
+				(0.5f - point.y / static_cast<float>(scene.inputCanvasHeight)) * 2.0f * canvasAspect,
+				depth,
+			};
+		};
+		const auto toUv = [&scene](const INSTARVec3& point) {
+			return INSTARVec2{
+				point.x / static_cast<float>(scene.inputCanvasWidth),
+				point.y / static_cast<float>(scene.inputCanvasHeight),
+			};
+		};
+		const INSTARVec3 first = toWorld(corners[0]);
+		const INSTARVec3 second = toWorld(corners[1]);
+		const INSTARVec3 third = toWorld(corners[2]);
+		const INSTARVec3 fourth = toWorld(corners[3]);
+		const INSTARVec2 firstUv = toUv(corners[0]);
+		const INSTARVec2 secondUv = toUv(corners[1]);
+		const INSTARVec2 thirdUv = toUv(corners[2]);
+		const INSTARVec2 fourthUv = toUv(corners[3]);
 		const float red = 0.20f + static_cast<float>((index * 37U) % 55U) / 100.0f;
 		const float green = 0.55f + static_cast<float>((index * 19U) % 35U) / 100.0f;
 		const float blue = 0.70f + static_cast<float>((index * 11U) % 25U) / 100.0f;
-		AddEdgeTextured(scene.lineVertices, topLeft, topRight, topLeftUv, topRightUv, red, green, blue);
-		AddEdgeTextured(scene.lineVertices, topRight, bottomRight, topRightUv, bottomRightUv, red, green, blue);
-		AddEdgeTextured(scene.lineVertices, bottomRight, bottomLeft, bottomRightUv, bottomLeftUv, red, green, blue);
-		AddEdgeTextured(scene.lineVertices, bottomLeft, topLeft, bottomLeftUv, topLeftUv, red, green, blue);
-		AddTriangleTextured(scene.triangleVertices, topLeft, topRight, bottomRight, topLeftUv, topRightUv, bottomRightUv, red, green, blue);
-		AddTriangleTextured(scene.triangleVertices, topLeft, bottomRight, bottomLeft, topLeftUv, bottomRightUv, bottomLeftUv, red, green, blue);
+		AddEdgeTextured(scene.lineVertices, first, second, firstUv, secondUv, red, green, blue);
+		AddEdgeTextured(scene.lineVertices, second, third, secondUv, thirdUv, red, green, blue);
+		AddEdgeTextured(scene.lineVertices, third, fourth, thirdUv, fourthUv, red, green, blue);
+		AddEdgeTextured(scene.lineVertices, fourth, first, fourthUv, firstUv, red, green, blue);
+		AddTriangleTextured(scene.triangleVertices, first, second, third, firstUv, secondUv, thirdUv, red, green, blue);
+		AddTriangleTextured(scene.triangleVertices, first, third, fourth, firstUv, thirdUv, fourthUv, red, green, blue);
 	}
 	scene.renderCentre = {};
 	scene.renderScale = 1.0f;
@@ -768,6 +787,7 @@ bool LoadINSTARAdvancedOutputPlanes(const std::string& path, INSTARScene& scene,
 		if (points.size() >= 4U)
 		{
 			INSTARInputPlane plane;
+			plane.corners.assign(points.begin(), points.begin() + 4U);
 			const size_t nameParam = xml.find("<Param name=\"Name\"", cursor);
 			if (nameParam != std::string::npos && nameParam < close)
 				plane.name = XmlAttributeValue(xml, "value", nameParam);
@@ -829,6 +849,12 @@ INSTARScene BuildINSTARFlatPlaneDemoScene()
 	plane.y = 0.0f;
 	plane.width = 1920.0f;
 	plane.height = 1080.0f;
+	plane.corners = {
+		{0.0f, 0.0f, 0.0f},
+		{1920.0f, 0.0f, 0.0f},
+		{1920.0f, 1080.0f, 0.0f},
+		{0.0f, 1080.0f, 0.0f},
+	};
 	scene.inputPlanes.push_back(plane);
 	ApplyINSTARInputPlaneDepths(scene, std::vector<float>());
 	scene.source = "INSTAR flat plane demo";
