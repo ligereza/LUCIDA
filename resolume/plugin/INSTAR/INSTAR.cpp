@@ -6,6 +6,13 @@
 
 using namespace ffglqs;
 
+namespace
+{
+constexpr int MODE_VENUE_3D = 0;
+constexpr int MODE_RASTER_PIXEL_MAP = 1;
+constexpr int MODE_XML_PLANES = 2;
+}
+
 static CFFGLPluginInfo PluginInfo(
 	PluginFactory< INSTAR >,
 	"IN01",
@@ -22,10 +29,10 @@ static CFFGLPluginInfo PluginInfo(
 INSTAR::INSTAR()
 {
 	AddParam(ParamOption::Create("Mode", {
-		{"XML_PLANES", 0.0f},
-		{"VENUE_3D", 1.0f},
-		{"RASTER_PIXEL_MAP", 2.0f},
-	}, 0));
+		{"VENUE_3D", static_cast<float>(MODE_VENUE_3D)},
+		{"RASTER_PIXEL_MAP", static_cast<float>(MODE_RASTER_PIXEL_MAP)},
+		{"XML_PLANES", static_cast<float>(MODE_XML_PLANES)},
+	}, MODE_XML_PLANES));
 	AddParam(Param::Create("VenueFile", FF_TYPE_FILE, 0.0f));
 	AddParam(Param::Create("EdgeBudget", FF_TYPE_INTEGER, 800.0f));
 	AddParam(ParamOption::Create("ConfidenceCeiling", {
@@ -186,7 +193,7 @@ bool INSTAR::LoadVenue()
 {
 	const int mode = static_cast<int>(GetFloatParameter(PARAM_MODE));
 	const INSTARTarimaConfig tarima = GetTarimaConfig();
-	if (mode == 0)
+	if (mode == MODE_XML_PLANES)
 	{
 		if (templatePath.empty())
 		{
@@ -216,7 +223,7 @@ bool INSTAR::LoadVenue()
 		sceneDirty = false;
 		return true;
 	}
-	if (mode == 2)
+	if (mode == MODE_RASTER_PIXEL_MAP)
 	{
 		// RASTER_PIXEL_MAP owns the frame. Keep a small scene available for a
 		// later mode switch, but never reload VenueFile while raster is active.
@@ -376,13 +383,13 @@ FFResult INSTAR::RenderRaster()
 void INSTAR::Update()
 {
 	const int mode = static_cast<int>(GetFloatParameter(PARAM_MODE));
-	const std::string desiredPath = mode == 0 ? templatePath : (mode == 1 ? venuePath : std::string());
+	const std::string desiredPath = mode == MODE_XML_PLANES ? templatePath : (mode == MODE_VENUE_3D ? venuePath : std::string());
 	if (sceneDirty || loadedPath != desiredPath)
 	{
 		LoadVenue();
 		UploadScene();
 	}
-	if (rasterDirty && (mode == 0 || mode == 2))
+	if (rasterDirty && (mode == MODE_XML_PLANES || mode == MODE_RASTER_PIXEL_MAP))
 		LoadRaster();
 	if (exportRequested)
 	{
@@ -456,7 +463,7 @@ bool INSTAR::ExportMapXml()
 
 FFResult INSTAR::Render(ProcessOpenGLStruct*)
 {
-	if (static_cast<int>(GetFloatParameter(PARAM_MODE)) == 2)
+	if (static_cast<int>(GetFloatParameter(PARAM_MODE)) == MODE_RASTER_PIXEL_MAP)
 		return RenderRaster();
 	const int view = static_cast<int>(GetFloatParameter(PARAM_VIEW));
 	const INSTARCamera camera = SelectINSTARCamera(view, yaw, pitch, zoom, cameraDistance);
@@ -467,7 +474,7 @@ FFResult INSTAR::Render(ProcessOpenGLStruct*)
 		currentViewport.width,
 		currentViewport.height,
 		rasterTexture,
-		static_cast<int>(GetFloatParameter(PARAM_MODE)) == 0 && rasterReady
+		static_cast<int>(GetFloatParameter(PARAM_MODE)) == MODE_XML_PLANES && rasterReady
 	);
 }
 
@@ -481,7 +488,7 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 	else if (index == PARAM_MODE)
 	{
 		sceneDirty = true;
-		if (static_cast<int>(value) == 0 || static_cast<int>(value) == 2)
+		if (static_cast<int>(value) == MODE_XML_PLANES || static_cast<int>(value) == MODE_RASTER_PIXEL_MAP)
 			rasterDirty = true;
 	}
 	else if (index == PARAM_EDGE_BUDGET || index == PARAM_CONFIDENCE_CEILING)
