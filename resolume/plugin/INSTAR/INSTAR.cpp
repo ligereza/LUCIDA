@@ -113,7 +113,7 @@ INSTAR::INSTAR()
 	}
 	AddParam(ParamRange::Create("CameraDistance", cameraDistance, ParamRange::Range(1.0f, 20.0f)));
 	AddParam(Param::Create("PlanFile", FF_TYPE_FILE, 0.0f));
-	AddParam(ParamRange::Create("PlanScale", planScale, ParamRange::Range(0.001f, 10.0f)));
+	AddParam(ParamRange::Create("PlanScale", planScale, ParamRange::Range(0.1f, 4.0f)));
 	AddParam(ParamRange::Create("ExtrusionHeight", extrusionHeight, ParamRange::Range(0.0f, 20.0f)));
 }
 
@@ -578,7 +578,7 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 		cameraDistance = BoundedFloat(value, 3.5f, 1.0f, 20.0f);
 	else if (index == PARAM_PLAN_SCALE)
 	{
-		planScale = BoundedFloat(value, 1.0f, 0.001f, 10.0f);
+		planScale = BoundedFloat(value, 1.0f, 0.1f, 4.0f);
 		sceneDirty = true;
 	}
 	else if (index == PARAM_EXTRUSION_HEIGHT)

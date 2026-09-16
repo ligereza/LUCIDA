@@ -102,7 +102,9 @@ limpio y conserva su disposición 2D como huella frontal antes de extruir cada
 `rect`, `polygon`, `polyline`, `line` o `path` básico en el eje vertical. Los
 nombres provienen de `id`, `data-name` o `aria-label`; la altura puede venir de
 `data-height`/`data-extrusion-height` o del control global `ExtrusionHeight`.
-`PlanScale` permite ajustar la proporción entre huella y altura. El modo
+El `viewBox` se normaliza automáticamente, por lo que `PlanScale=1` es el
+punto de partida normal; `PlanScale` ajusta la proporción entre huella y
+altura. El modo
 recarga al cambiar el SVG o cualquiera de esos controles. No usa `MapFile`, no
 lee `OutputRect` y no transforma un JSON en una escena: el SVG es la
 representación visual que conecta el plano 2D con la extrusión 3D. Polígonos

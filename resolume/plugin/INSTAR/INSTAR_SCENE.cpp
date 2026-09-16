@@ -934,6 +934,10 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 	scene.inputCanvasHeight = static_cast<unsigned int>(std::max(1.0f, viewHeight));
 	const float safeHeight = std::isfinite(extrusionHeight) ? std::max(0.0f, extrusionHeight) : 3.0f;
 	const float safeScale = std::isfinite(planScale) ? std::max(0.000001f, planScale) : 1.0f;
+	// SVG viewBox units are arbitrary. Normalize the plan footprint to a
+	// stable preview reference, then use PlanScale as a proportion control.
+	const float planReference = 48.0f / std::max(viewWidth, viewHeight);
+	const float effectivePlanScale = planReference * safeScale;
 
 	const auto isShapeTag = [](const std::string& tag) {
 		const std::string localName = PlanLocalName(tag);
@@ -1017,8 +1021,8 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 			{
 				for (INSTARVec3& point : shape.points)
 				{
-					point.x = (point.x - viewMinX) * safeScale;
-					point.y = (point.y - viewMinY) * safeScale;
+					point.x -= viewMinX;
+					point.y -= viewMinY;
 				}
 				scene.planShapes.push_back(shape);
 			}
@@ -1038,7 +1042,7 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 		PlanShapeColour(shape.name, red, green, blue);
 		std::vector<INSTARVec3> world;
 		for (const INSTARVec3& point : shape.points)
-			world.push_back(PlanPointToWorld(point, viewWidth * safeScale, viewHeight * safeScale, 1.0f, 0.0f));
+			world.push_back(PlanPointToWorld(point, viewWidth, viewHeight, effectivePlanScale, 0.0f));
 		INSTARSurface3D surface;
 		surface.name = shape.name;
 		surface.minimum = {world.front().x, 0.0f, world.front().z};

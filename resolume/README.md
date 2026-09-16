@@ -249,8 +249,10 @@ ground footprint: `rect`, `polygon`, `polyline`, `line` and basic `path`
 geometry are raised into walls, stages or bleachers. The SVG element `id`,
 `data-name` or `aria-label` becomes the shape name. `data-height` or
 `data-extrusion-height` supplies a shape-specific height; otherwise the
-`ExtrusionHeight` control is used. `PlanScale` changes the plan-to-height
-proportion, and both controls rebuild the scene immediately. Closed convex
+`ExtrusionHeight` control is used. The SVG `viewBox` is normalised first, so
+`PlanScale=1` is the normal starting point; `PlanScale` then changes the
+plan-footprint-to-height proportion. Both controls rebuild the scene
+immediately. Closed convex
 polygons receive a top surface; concave polygons remain safely as extruded
 edges instead of receiving an incorrect triangle fan.
 
