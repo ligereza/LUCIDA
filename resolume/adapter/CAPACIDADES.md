@@ -83,7 +83,9 @@ Si cambia el XML en disco, el plugin recarga la geometría y sus controles en
 vivo sin quitar y volver a agregar la fuente.
 
 También conserva `RASTER_PIXEL_MAP`, que muestra un `MapFile` raster
-conservando proporciones.
+conservando proporciones. Su detector es deliberadamente heurístico para mapas
+codificados por color; no pretende interpretar geometría arbitraria
+monocromática o rotada.
 `ExportMapXML` sigue siendo explícito y genera desde el PNG/JPG. Con un
 `TemplateXML` real, este es la autoridad de composición, pantalla, dispositivo,
 IDs, `OutputRect`, warpers y routing: solo se reemplazan los `InputRect`
@@ -91,6 +93,8 @@ existentes en correspondencia uno a uno. Si el número de superficies detectadas
 no coincide con el número de slices, rechaza la salida para no inventar routing
 físico. Sin template, INSTAR produce un XML virtual estructuralmente válido
 para preview, pero lo marca como sin routing físico confirmado.
+`TemplateXML` permanece visible también en este modo; después de exportar con
+éxito, INSTAR cambia a `XML_PLANES` y carga el XML generado.
 Después de escribirlo, `OutputXML` pasa a ser automáticamente la fuente del
 preview XML; el template original no se sobrescribe.
 `OutputRect`, warpers y routing no se inventan desde la imagen. El modelado de
@@ -107,23 +111,29 @@ nombres provienen de `id`, `data-name` o `aria-label`; la altura puede venir de
 El `viewBox` se normaliza automáticamente, por lo que `PlanScale=1` es el
 punto de partida normal; `PlanScale` ajusta la proporción entre huella y
 altura. `PlanHeight01`–`PlanHeight32` aparecen según las formas cargadas; `0`
-conserva la altura del SVG/default y un valor positivo la sobrescribe en vivo.
-Una forma con `data-role="screen"` usa su primera arista como base de una
+conserva la altura del SVG/default, un valor positivo la sobrescribe y `-1`
+la aplana en vivo.
+`PlanHeightSource` permite elegir `SVG_METADATA` (altura declarada por cada
+forma y `ExtrusionHeight` como fallback) o `GLOBAL` (usa `ExtrusionHeight` en
+todas las formas antes de aplicar cualquier override no nulo `PlanHeightNN`).
+Una forma con `data-role="screen"` usa su arista más larga como base de una
 superficie vertical. `data-slice` la vincula por nombre con el `Slice`
 correspondiente del `PlanMappingXML` opcional; el XML aporta las UV de la
 composición y el SVG aporta la posición 3D. `MapFile` aporta la textura
-opcional para esas pantallas. El modo
-recarga al cambiar el SVG o cualquiera de esos controles. No usa `MapFile`, no
-usa `MapFile` salvo para texturizar pantallas vinculadas, no lee `OutputRect`
-y no transforma un JSON en una escena: el SVG es la
-representación visual que conecta el plano 2D con la extrusión 3D. Polígonos
-convexos reciben tapa; polígonos cóncavos conservan sus aristas extruidas para
-evitar una triangulación visualmente falsa.
+opcional para esas pantallas; su relación de aspecto se valida contra la
+composición y se rechaza si no coincide. El modo
+recarga al cambiar el SVG o cualquiera de esos controles. Usa `MapFile` solo
+para texturizar pantallas vinculadas, no lee `OutputRect` y no transforma un
+JSON en una escena: el SVG es la
+representación visual que conecta el plano 2D con la extrusión 3D. Los
+polígonos simples convexos o cóncavos reciben una tapa triangulada; los
+autointersectados conservan sus aristas extruidas para evitar una triangulación
+visualmente falsa.
 
 El resultado es una reconstrucción visual normalizada, no una medición física.
 Un PDF o raster requiere primero la vectorización offline y debe producir
-geometría nombrada antes de cargarla en `PLANO_3D`; los arcos SVG no soportados
-y los paths decorativos sin geometría de plano se omiten.
+geometría nombrada antes de cargarla en `PLANO_3D`; los comandos SVG no
+soportados y los paths decorativos sin geometría de plano se omiten.
 `INSTAR_3D.dll` es el `FF_SOURCE` separado para cargar OBJ/MTL y visualizar
 modelos dentro de la composición, con fondo alfa y `TextureFile` opcional para
 PNG/JPG; conserva UV del OBJ y genera UV plana si faltan.

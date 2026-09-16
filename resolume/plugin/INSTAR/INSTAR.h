@@ -36,8 +36,8 @@ protected:
 private:
 	bool LoadScene();
 	void ConfigureModeParams(int mode);
-	void ConfigureSliceDepthParams(size_t sliceCount);
-	void ConfigurePlanHeightParams(size_t shapeCount);
+	void ConfigureSliceDepthParams(size_t sliceCount, const std::vector<std::string>& names = std::vector<std::string>());
+	void ConfigurePlanHeightParams(size_t shapeCount, const std::vector<std::string>& names = std::vector<std::string>());
 	void UploadScene();
 	bool LoadRaster();
 	void BuildRasterOverlay();
@@ -73,6 +73,7 @@ private:
 	float depth = 0.0f;
 	float planScale = 1.0f;
 	float extrusionHeight = 3.0f;
+	int planHeightSource = 0;
 	float sliceDepths[32] = {};
 	float planHeights[32] = {};
 	bool sceneDirty = true;
@@ -102,5 +103,6 @@ private:
 		PARAM_PLAN_HEIGHT_01 = 47,
 		PARAM_PLAN_HEIGHT_32 = 78,
 		PARAM_PLAN_MAPPING_XML = 79,
+		PARAM_PLAN_HEIGHT_SOURCE = 80,
 	};
 };

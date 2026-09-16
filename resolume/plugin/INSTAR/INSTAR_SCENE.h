@@ -79,6 +79,8 @@ struct INSTARScene
 	std::vector<INSTARPlanShape> planShapes;
 	unsigned int inputCanvasWidth = 0;
 	unsigned int inputCanvasHeight = 0;
+	unsigned int textureCanvasWidth = 0;
+	unsigned int textureCanvasHeight = 0;
 	INSTARVec3 renderCentre;
 	float renderScale = 1.0f;
 	bool hasTextureCoordinates = false;
@@ -95,7 +97,8 @@ bool LoadINSTARPlanSvg(
 	float extrusionHeight = 3.0f,
 	float planScale = 1.0f,
 	const std::vector<float>& heightOverrides = std::vector<float>(),
-	const INSTARScene* mapping = nullptr
+	const INSTARScene* mapping = nullptr,
+	bool useGlobalHeight = false
 );
 void ApplyINSTARInputPlaneDepths(INSTARScene& scene, const std::vector<float>& depths);
 INSTARScene BuildINSTARFlatPlaneDemoScene();

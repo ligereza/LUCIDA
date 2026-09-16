@@ -1,3 +1,10 @@
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 #include "INSTAR.h"
 
 #include <algorithm>
@@ -31,21 +38,55 @@ float BoundedFloat(float value, float fallback, float minimum, float maximum)
 	return std::max(minimum, std::min(maximum, value));
 }
 
+#ifdef _WIN32
+std::wstring Utf8ToWidePath(const std::string& path)
+{
+	const int wideLength = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path.c_str(), -1, nullptr, 0);
+	if (wideLength <= 0)
+		return std::wstring();
+	std::wstring result(static_cast<size_t>(wideLength), L'\0');
+	if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path.c_str(), -1, &result[0], wideLength) <= 0)
+		return std::wstring();
+	return result;
+}
+#endif
+
 std::pair<long long, long long> GetFileSignature(const std::string& path)
 {
 	if (path.empty())
 		return {0, 0};
+long long modified = 0;
+long long size = 0;
 #ifdef _WIN32
-	struct _stat64 info = {};
-	if (_stat64(path.c_str(), &info) != 0)
-		return {0, 0};
-	return {static_cast<long long>(info.st_mtime), static_cast<long long>(info.st_size)};
+	const std::wstring widePath = Utf8ToWidePath(path);
+	WIN32_FILE_ATTRIBUTE_DATA data = {};
+	if (!widePath.empty() && GetFileAttributesExW(widePath.c_str(), GetFileExInfoStandard, &data) != 0)
+	{
+		ULARGE_INTEGER writeTime = {};
+		writeTime.LowPart = data.ftLastWriteTime.dwLowDateTime;
+		writeTime.HighPart = data.ftLastWriteTime.dwHighDateTime;
+		ULARGE_INTEGER fileSize = {};
+		fileSize.LowPart = data.nFileSizeLow;
+		fileSize.HighPart = data.nFileSizeHigh;
+		modified = static_cast<long long>(writeTime.QuadPart);
+		size = static_cast<long long>(fileSize.QuadPart);
+	}
+	else
+	{
+		struct _stat64 info = {};
+		if (_stat64(path.c_str(), &info) != 0)
+			return {0, 0};
+		modified = static_cast<long long>(info.st_mtime);
+		size = static_cast<long long>(info.st_size);
+	}
 #else
 	struct stat info = {};
 	if (stat(path.c_str(), &info) != 0)
 		return {0, 0};
-	return {static_cast<long long>(info.st_mtime), static_cast<long long>(info.st_size)};
+	modified = static_cast<long long>(info.st_mtime);
+	size = static_cast<long long>(info.st_size);
 #endif
+	return {modified, size};
 }
 
 std::string PathKey(const std::string& path)
@@ -118,10 +159,14 @@ INSTAR::INSTAR()
 	for (unsigned int index = 0; index < 32U; ++index)
 	{
 		const std::string name = std::string("PlanHeight") + (index < 9U ? "0" : "") + std::to_string(index + 1U);
-		AddParam(ParamRange::Create(name, 0.0f, ParamRange::Range(0.0f, 20.0f)));
+		AddParam(ParamRange::Create(name, 0.0f, ParamRange::Range(-1.0f, 20.0f)));
 		SetParamVisibility(PARAM_PLAN_HEIGHT_01 + index, false, false);
 	}
 	AddParam(Param::Create("PlanMappingXML", FF_TYPE_FILE, 0.0f));
+	AddParam(ParamOption::Create("PlanHeightSource", {
+		{"SVG_METADATA", 0.0f},
+		{"GLOBAL", 1.0f},
+	}, planHeightSource));
 	ConfigureModeParams(MODE_XML_PLANES);
 }
 
@@ -131,7 +176,7 @@ void INSTAR::ConfigureModeParams(int mode)
 	const bool xmlMode = mode == MODE_XML_PLANES;
 	const bool planMode = mode == MODE_PLANO_3D;
 	SetParamVisibility(PARAM_MAP_FILE, rasterMode || xmlMode || planMode, true);
-	SetParamVisibility(PARAM_TEMPLATE_XML, xmlMode, true);
+	SetParamVisibility(PARAM_TEMPLATE_XML, rasterMode || xmlMode, true);
 	SetParamVisibility(PARAM_EXPORT_MAP_XML, rasterMode || xmlMode, true);
 	SetParamVisibility(PARAM_OUTPUT_XML, rasterMode || xmlMode, true);
 	SetParamVisibility(PARAM_VIEW, !rasterMode, true);
@@ -142,28 +187,40 @@ void INSTAR::ConfigureModeParams(int mode)
 	SetParamVisibility(PARAM_CAMERA_DISTANCE, !rasterMode, true);
 	SetParamVisibility(PARAM_PLAN_FILE, planMode, true);
 	SetParamVisibility(PARAM_PLAN_MAPPING_XML, planMode, true);
+	SetParamVisibility(PARAM_PLAN_HEIGHT_SOURCE, planMode, true);
 	SetParamVisibility(PARAM_PLAN_SCALE, planMode, true);
 	SetParamVisibility(PARAM_EXTRUSION_HEIGHT, planMode, true);
+	SetParamDisplayName(PARAM_PLAN_MAPPING_XML, "PlanMappingXML", true);
 	if (!planMode)
 		ConfigurePlanHeightParams(0);
 	if (!xmlMode)
 		ConfigureSliceDepthParams(0);
 }
 
-void INSTAR::ConfigurePlanHeightParams(size_t shapeCount)
+void INSTAR::ConfigurePlanHeightParams(size_t shapeCount, const std::vector<std::string>& names)
 {
 	const size_t visibleCount = std::min<size_t>(shapeCount, 32U);
 	for (unsigned int index = 0; index < 32U; ++index)
+	{
 		SetParamVisibility(PARAM_PLAN_HEIGHT_01 + index, index < visibleCount, true);
+		const std::string baseName = std::string("PlanHeight") + (index < 9U ? "0" : "") + std::to_string(index + 1U);
+		const std::string displayName = index < names.size() && !names[index].empty() ? baseName + " [" + names[index] + "]" : baseName;
+		SetParamDisplayName(PARAM_PLAN_HEIGHT_01 + index, displayName, true);
+	}
 	if (shapeCount > 32U)
 		FFGLLog::LogToHost("INSTAR: hay más de 32 formas de plano; los controles visibles cubren las primeras 32");
 }
 
-void INSTAR::ConfigureSliceDepthParams(size_t sliceCount)
+void INSTAR::ConfigureSliceDepthParams(size_t sliceCount, const std::vector<std::string>& names)
 {
 	const size_t visibleCount = std::min<size_t>(sliceCount, 32U);
 	for (unsigned int index = 0; index < 32U; ++index)
+	{
 		SetParamVisibility(PARAM_SLICE_DEPTH_01 + index, index < visibleCount, true);
+		const std::string baseName = std::string("SliceDepth") + (index < 9U ? "0" : "") + std::to_string(index + 1U);
+		const std::string displayName = index < names.size() && !names[index].empty() ? baseName + " [" + names[index] + "]" : baseName;
+		SetParamDisplayName(PARAM_SLICE_DEPTH_01 + index, displayName, true);
+	}
 	if (sliceCount > 32U)
 		FFGLLog::LogToHost("INSTAR: hay más de 32 slices; los controles visibles cubren los primeros 32");
 }
@@ -252,6 +309,13 @@ void INSTAR::Clean()
 bool INSTAR::LoadScene()
 {
 	const int mode = static_cast<int>(GetFloatParameter(PARAM_MODE));
+	const unsigned int previousTextureWidth = scene.textureCanvasWidth;
+	const unsigned int previousTextureHeight = scene.textureCanvasHeight;
+	const bool previousTextureCoordinates = scene.hasTextureCoordinates;
+	const auto refreshTextureValidation = [&]() {
+		if (previousTextureWidth != scene.textureCanvasWidth || previousTextureHeight != scene.textureCanvasHeight || previousTextureCoordinates != scene.hasTextureCoordinates)
+			rasterDirty = true;
+	};
 	if (mode == MODE_XML_PLANES)
 	{
 		const std::string activeTemplatePath = previewTemplatePath.empty() ? templatePath : previewTemplatePath;
@@ -262,6 +326,7 @@ bool INSTAR::LoadScene()
 			loadedFileSignature = {0, 0};
 			loadedMappingSignature = {0, 0};
 			loadedPath.clear();
+			refreshTextureValidation();
 			sceneDirty = false;
 			return true;
 		}
@@ -276,10 +341,14 @@ bool INSTAR::LoadScene()
 			loadedFileSignature = GetFileSignature(activeTemplatePath);
 			loadedMappingSignature = {0, 0};
 			loadedPath = activeTemplatePath;
+			refreshTextureValidation();
 			sceneDirty = false;
 			return false;
 		}
-		ConfigureSliceDepthParams(loaded.inputPlanes.size());
+		std::vector<std::string> sliceNames;
+		for (const INSTARInputPlane& plane : loaded.inputPlanes)
+			sliceNames.push_back(plane.name);
+		ConfigureSliceDepthParams(loaded.inputPlanes.size(), sliceNames);
 		std::vector<float> depths(loaded.inputPlanes.size(), BoundedFloat(depth, 0.0f, -10.0f, 10.0f));
 		for (size_t index = 0; index < depths.size() && index < 32U; ++index)
 			depths[index] = BoundedFloat(depth + sliceDepths[index], 0.0f, -10.0f, 10.0f);
@@ -288,6 +357,7 @@ bool INSTAR::LoadScene()
 		loadedFileSignature = GetFileSignature(activeTemplatePath);
 		loadedMappingSignature = {0, 0};
 		loadedPath = activeTemplatePath;
+		refreshTextureValidation();
 		sceneDirty = false;
 		return true;
 	}
@@ -304,6 +374,7 @@ bool INSTAR::LoadScene()
 			loadedFileSignature = {0, 0};
 			loadedMappingSignature = {0, 0};
 			loadedPath.clear();
+			refreshTextureValidation();
 			sceneDirty = false;
 			return true;
 		}
@@ -333,24 +404,32 @@ bool INSTAR::LoadScene()
 			loadedFileSignature = GetFileSignature(planPath);
 			loadedMappingSignature = GetFileSignature(planMappingPath);
 			loadedPath = planPath;
+			refreshTextureValidation();
 			sceneDirty = false;
 			return false;
 		}
 		ConfigureSliceDepthParams(0);
-		ConfigurePlanHeightParams(loaded.planShapes.size());
+		std::vector<std::string> shapeNames;
+		for (const INSTARPlanShape& shape : loaded.planShapes)
+			shapeNames.push_back(shape.name);
+		ConfigurePlanHeightParams(loaded.planShapes.size(), shapeNames);
 		if (mappingSource != nullptr)
 		{
 			size_t mappedCount = 0;
 			for (const INSTARPlanShape& shape : loaded.planShapes)
 				if (shape.mapped)
 					++mappedCount;
-			const std::string message = "INSTAR: pantallas vinculadas " + std::to_string(mappedCount) + "/" + std::to_string(loaded.planShapes.size());
+			const std::string message = "INSTAR: pantallas vinculadas " + std::to_string(mappedCount) + "/" + std::to_string(mappingSource->inputPlanes.size());
 			FFGLLog::LogToHost(message.c_str());
+			SetParamDisplayName(PARAM_PLAN_MAPPING_XML, "PlanMappingXML [" + std::to_string(mappedCount) + "/" + std::to_string(mappingSource->inputPlanes.size()) + " linked]", true);
 		}
+		else if (!planMappingPath.empty())
+			SetParamDisplayName(PARAM_PLAN_MAPPING_XML, "PlanMappingXML [invalid or no match]", true);
 		scene = loaded;
 		loadedFileSignature = GetFileSignature(planPath);
 		loadedMappingSignature = GetFileSignature(planMappingPath);
 		loadedPath = planPath;
+		refreshTextureValidation();
 		sceneDirty = false;
 		return true;
 	}
@@ -394,8 +473,31 @@ bool INSTAR::LoadRaster()
 		return false;
 	}
 	rasterImage = loaded;
-	rasterSurfaces = DetectINSTARSurfaces(rasterImage, rasterImage.width, rasterImage.height);
-	BuildRasterOverlay();
+	const int mode = static_cast<int>(GetFloatParameter(PARAM_MODE));
+	const bool usesCompositionTexture = mode == MODE_XML_PLANES || (mode == MODE_PLANO_3D && scene.hasTextureCoordinates);
+	if (usesCompositionTexture && scene.textureCanvasWidth > 0U && scene.textureCanvasHeight > 0U)
+	{
+		const float expectedAspect = static_cast<float>(scene.textureCanvasWidth) / static_cast<float>(scene.textureCanvasHeight);
+		const float actualAspect = static_cast<float>(rasterImage.width) / static_cast<float>(rasterImage.height);
+		if (std::fabs(expectedAspect - actualAspect) > 0.01f)
+		{
+			const std::string message = "INSTAR: MapFile rechazado; relación de aspecto " + std::to_string(actualAspect) +
+				" no coincide con la composición " + std::to_string(expectedAspect);
+			FFGLLog::LogToHost(message.c_str());
+			loadedRasterSignature = GetFileSignature(mapPath);
+			return false;
+		}
+	}
+	if (mode == MODE_RASTER_PIXEL_MAP)
+	{
+		rasterSurfaces = DetectINSTARSurfaces(rasterImage, rasterImage.width, rasterImage.height);
+		BuildRasterOverlay();
+	}
+	else
+	{
+		rasterSurfaces.clear();
+		rasterOverlayVertices.clear();
+	}
 	glBindTexture(GL_TEXTURE_2D, rasterTexture);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -600,6 +702,7 @@ bool INSTAR::ExportMapXml()
 		previewTemplatePath = outputPath;
 		loadedPath.clear();
 		sceneDirty = true;
+		SetFloatParameter(PARAM_MODE, static_cast<float>(MODE_XML_PLANES));
 		FFGLLog::LogToHost(exportMessage.c_str());
 		FFGLLog::LogToHost("INSTAR: OutputXML validado y cargado automáticamente en XML_PLANES");
 	}
@@ -665,9 +768,14 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 		extrusionHeight = BoundedFloat(value, 3.0f, 0.0f, 20.0f);
 		sceneDirty = true;
 	}
+	else if (index == PARAM_PLAN_HEIGHT_SOURCE)
+	{
+		planHeightSource = static_cast<int>(value) == 1 ? 1 : 0;
+		sceneDirty = true;
+	}
 	else if (index >= PARAM_PLAN_HEIGHT_01 && index <= PARAM_PLAN_HEIGHT_32)
 	{
-		planHeights[index - PARAM_PLAN_HEIGHT_01] = BoundedFloat(value, 0.0f, 0.0f, 20.0f);
+		planHeights[index - PARAM_PLAN_HEIGHT_01] = BoundedFloat(value, 0.0f, -1.0f, 20.0f);
 		sceneDirty = true;
 	}
 	else if (index >= PARAM_SLICE_DEPTH_01 && index <= PARAM_SLICE_DEPTH_32)
@@ -692,6 +800,7 @@ FFResult INSTAR::SetTextParameter(unsigned int index, const char* value)
 		templatePath = safeValue;
 		previewTemplatePath.clear();
 		sceneDirty = true;
+		rasterDirty = true;
 		return FF_SUCCESS;
 	}
 	if (index == PARAM_OUTPUT_XML)
@@ -705,12 +814,14 @@ FFResult INSTAR::SetTextParameter(unsigned int index, const char* value)
 	{
 		planPath = safeValue;
 		sceneDirty = true;
+		rasterDirty = true;
 		return FF_SUCCESS;
 	}
 	if (index == PARAM_PLAN_MAPPING_XML)
 	{
 		planMappingPath = safeValue;
 		sceneDirty = true;
+		rasterDirty = true;
 		return FF_SUCCESS;
 	}
 	return Source::SetTextParameter(index, value);

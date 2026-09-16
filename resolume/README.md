@@ -255,28 +255,35 @@ segments are flattened into renderable points. The SVG element `id`,
 `PlanScale=1` is the normal starting point; `PlanScale` then changes the
 plan-footprint-to-height proportion. Both controls rebuild the scene
 immediately. `PlanHeight01` through `PlanHeight32` appear for the loaded
-shapes; `0` preserves the SVG/default height and a positive value overrides
-that shape live. A shape marked `data-role="screen"` uses its first plan edge
+shapes; `0` preserves the SVG/default height, a positive value overrides the
+shape live, and `-1` flattens that shape. A shape marked `data-role="screen"` uses its longest plan edge
 as the bottom of a vertical display surface. `data-slice` links it to the
 matching `Slice` name in the optional `PlanMappingXML` Advanced Output file;
 that XML supplies the screen's composition UVs while the SVG supplies its 3D
-position. `MapFile` can provide the composition texture for linked screens.
-Closed convex
-polygons receive a top surface; concave polygons remain safely as extruded
-edges instead of receiving an incorrect triangle fan.
+position. `MapFile` can provide the composition texture for linked screens; its
+aspect ratio is checked against the mapping composition and rejected when it
+does not match.
+`PlanHeightSource` selects `SVG_METADATA` (use each shape's declared height,
+with `ExtrusionHeight` as fallback) or `GLOBAL` (use `ExtrusionHeight` for every
+shape before applying any non-zero `PlanHeightNN` override).
+Closed simple polygons receive a triangulated top surface; self-intersecting
+polygons are left as extruded edges instead of receiving an incorrect cap.
 
 This mode is a visual reconstruction of the supplied 2D geometry. It does
 not claim that an unlabeled drawing contains measured physical heights, nor
 does it use `OutputRect` or a JSON venue description to invent routing. For a
 reliable result, the plan must be exported as clean SVG with named geometry;
-decorative text paths and unsupported arc paths are ignored when line or
+decorative text paths and unsupported commands are ignored when line or
 polygon geometry is available. A PDF or raster image still needs the offline
 vectorisation step before it can become a plan SVG.
 
 The same source retains `RASTER_PIXEL_MAP` for a flat PNG/JPG inspection with
-detected surface outlines. The camera and scene core are local and do not need
-a network, model service or LED processor. `ExportMapXML` remains a separate
-explicit action from the preview.
+detected surface outlines. Its detector is intentionally a color-coded pixel
+map heuristic, not generic image understanding: it does not infer arbitrary
+monochrome or rotated venue geometry. `TemplateXML` remains available in this
+mode so `ExportMapXML` can preserve real routing; after a successful export the
+source switches to `XML_PLANES` and loads the generated XML. The camera and
+scene core are local and do not need a network, model service or LED processor.
 
 INSTAR also exposes an explicit `ExportMapXML` event. The VJ supplies a raster
 pixel map through `MapFile` (PNG/JPG). If `TemplateXML` is provided, INSTAR

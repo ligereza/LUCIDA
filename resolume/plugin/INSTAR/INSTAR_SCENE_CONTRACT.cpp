@@ -77,6 +77,9 @@ int main(int argc, char** argv)
 		       << "  </g>\n"
 		       << "  <circle id=\"PILAR\" cx=\"50\" cy=\"15\" r=\"5\" data-height=\"1\"/>\n"
 		       << "  <line id=\"PANTALLA\" data-role=\"screen\" data-slice=\"PANTALLA\" x1=\"20\" y1=\"45\" x2=\"80\" y2=\"45\" data-height=\"5\"/>\n"
+		       << "  <path id=\"ARCOS\" d=\"M 10 45 A 10 10 0 1 0 30 45 A 10 10 0 1 0 10 45 Z\" data-height=\"1\"/>\n"
+		       << "  <path id=\"MULTI_SUBPATH\" d=\"M 1 1 L 2 2 M 3 3 L 4 4\"/>\n"
+		       << "  <g style=\"display: none\"><rect id=\"HIDDEN\" x=\"1\" y=\"1\" width=\"5\" height=\"5\"/></g>\n"
 		       << "</svg>\n";
 	}
 
@@ -97,7 +100,7 @@ int main(int argc, char** argv)
 	std::string overriddenPlanError;
 	const std::vector<float> heightOverrides = {6.0f};
 	const bool overriddenPlanLoaded = LoadINSTARPlanSvg(planPath, overriddenPlan, overriddenPlanError, 3.0f, 1.0f, heightOverrides);
-	if (!planLoaded || plan.planShapes.size() != 5U || plan.lineVertices.empty() || plan.triangleVertices.empty())
+	if (!planLoaded || plan.planShapes.size() != 6U || plan.lineVertices.empty() || plan.triangleVertices.empty())
 	{
 		std::fprintf(stderr, "plan load=%d shapes=%zu lines=%zu triangles=%zu error=%s\n", planLoaded, plan.planShapes.size(), plan.lineVertices.size(), plan.triangleVertices.size(), planError.c_str());
 		return 1;
@@ -106,7 +109,7 @@ int main(int argc, char** argv)
 		std::fabs(plan.planShapes[1].height - 4.0f) > 0.0001f ||
 		std::fabs(plan.planShapes[2].height - 2.0f) > 0.0001f ||
 		plan.planShapes[2].points.size() <= 10U || plan.planShapes[3].points.size() != 32U ||
-		plan.planShapes[4].role != "screen" || plan.planShapes[4].sliceName != "PANTALLA")
+		plan.planShapes[4].role != "screen" || plan.planShapes[4].sliceName != "PANTALLA" || plan.planShapes[5].points.size() <= 8U)
 	{
 		std::fprintf(stderr, "shape checks failed: h0=%f h1=%f h2=%f p2=%zu p3=%zu role4=%s slice4=%s\\n", plan.planShapes[0].height, plan.planShapes[1].height, plan.planShapes[2].height, plan.planShapes[2].points.size(), plan.planShapes[3].points.size(), plan.planShapes[4].role.c_str(), plan.planShapes[4].sliceName.c_str());
 		return 1;
@@ -137,6 +140,11 @@ int main(int argc, char** argv)
 		std::fprintf(stderr, "override failed: loaded=%d shapes=%zu height=%f error=%s\\n", overriddenPlanLoaded, overriddenPlan.planShapes.size(), overriddenPlan.planShapes.empty() ? -1.0f : overriddenPlan.planShapes[0].height, overriddenPlanError.c_str());
 		return 1;
 	}
+	INSTARScene globalHeightPlan;
+	std::string globalHeightError;
+	const bool globalHeightLoaded = LoadINSTARPlanSvg(planPath, globalHeightPlan, globalHeightError, 7.0f, 1.0f, std::vector<float>(), nullptr, true);
+	if (!globalHeightLoaded || globalHeightPlan.planShapes.empty() || std::fabs(globalHeightPlan.planShapes[0].height - 7.0f) > 0.0001f)
+		return 1;
 	INSTARScene mapping;
 	mapping.inputCanvasWidth = 100;
 	mapping.inputCanvasHeight = 60;
@@ -154,12 +162,14 @@ int main(int argc, char** argv)
 	INSTARScene linkedPlan;
 	std::string linkedPlanError;
 	const bool linkedPlanLoaded = LoadINSTARPlanSvg(planPath, linkedPlan, linkedPlanError, 3.0f, 1.0f, std::vector<float>(), &mapping);
-	if (!linkedPlanLoaded || linkedPlan.planShapes.size() != 5U || !linkedPlan.planShapes[4].mapped ||
+	if (!linkedPlanLoaded || linkedPlan.planShapes.size() != 6U || !linkedPlan.planShapes[4].mapped ||
 		linkedPlan.planShapes[4].mappingCorners.size() != 4U || !linkedPlan.hasTextureCoordinates)
 	{
 		std::fprintf(stderr, "mapping failed: loaded=%d shapes=%zu mapped=%d corners=%zu texture=%d error=%s\\n", linkedPlanLoaded, linkedPlan.planShapes.size(), linkedPlan.planShapes.size() > 4U ? linkedPlan.planShapes[4].mapped : false, linkedPlan.planShapes.size() > 4U ? linkedPlan.planShapes[4].mappingCorners.size() : 0U, linkedPlan.hasTextureCoordinates, linkedPlanError.c_str());
 		return 1;
 	}
+	if (linkedPlan.textureCanvasWidth != 100U || linkedPlan.textureCanvasHeight != 60U)
+		return 1;
 	bool texturedScreen = false;
 	for (const INSTARVertex& vertex : linkedPlan.triangleVertices)
 		if (vertex.textureEnabled > 0.5f)

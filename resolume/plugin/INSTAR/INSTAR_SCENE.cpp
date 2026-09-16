@@ -10,11 +10,13 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <fstream>
 #include <iterator>
 #include <map>
 #include <sstream>
+#include <utility>
 
 namespace
 {
@@ -564,6 +566,62 @@ bool ParsePlanSvgPath(const std::string& value, std::vector<INSTARVec3>& points,
 			});
 		}
 	};
+	const auto appendArc = [&points](const INSTARVec3& first, float radiusX, float radiusY, float rotationDegrees, bool largeArc, bool sweep, const INSTARVec3& second) {
+		radiusX = std::fabs(radiusX);
+		radiusY = std::fabs(radiusY);
+		if (radiusX < 0.000001f || radiusY < 0.000001f ||
+			(std::fabs(first.x - second.x) < 0.000001f && std::fabs(first.y - second.y) < 0.000001f))
+		{
+			points.push_back(second);
+			return;
+		}
+		const float radians = rotationDegrees * 0.017453292519943295f;
+		const float cosine = std::cos(radians);
+		const float sine = std::sin(radians);
+		const float halfDeltaX = (first.x - second.x) * 0.5f;
+		const float halfDeltaY = (first.y - second.y) * 0.5f;
+		const float primeX = cosine * halfDeltaX + sine * halfDeltaY;
+		const float primeY = -sine * halfDeltaX + cosine * halfDeltaY;
+		const float radiusRatio = (primeX * primeX) / (radiusX * radiusX) + (primeY * primeY) / (radiusY * radiusY);
+		if (radiusRatio > 1.0f)
+		{
+			const float correction = std::sqrt(radiusRatio);
+			radiusX *= correction;
+			radiusY *= correction;
+		}
+		const float numerator = radiusX * radiusX * radiusY * radiusY - radiusX * radiusX * primeY * primeY - radiusY * radiusY * primeX * primeX;
+		const float denominator = radiusX * radiusX * primeY * primeY + radiusY * radiusY * primeX * primeX;
+		const float factor = denominator > 0.000001f ? ((largeArc == sweep) ? -1.0f : 1.0f) * std::sqrt(std::max(0.0f, numerator / denominator)) : 0.0f;
+		const float centrePrimeX = factor * radiusX * primeY / radiusY;
+		const float centrePrimeY = factor * -radiusY * primeX / radiusX;
+		const float centreX = cosine * centrePrimeX - sine * centrePrimeY + (first.x + second.x) * 0.5f;
+		const float centreY = sine * centrePrimeX + cosine * centrePrimeY + (first.y + second.y) * 0.5f;
+		const auto angleBetween = [](float ux, float uy, float vx, float vy) {
+			return std::atan2(ux * vy - uy * vx, ux * vx + uy * vy);
+		};
+		const float unitStartX = (primeX - centrePrimeX) / radiusX;
+		const float unitStartY = (primeY - centrePrimeY) / radiusY;
+		const float unitEndX = (-primeX - centrePrimeX) / radiusX;
+		const float unitEndY = (-primeY - centrePrimeY) / radiusY;
+		const float startAngle = angleBetween(1.0f, 0.0f, unitStartX, unitStartY);
+		float sweepAngle = angleBetween(unitStartX, unitStartY, unitEndX, unitEndY);
+		if (!sweep && sweepAngle > 0.0f)
+			sweepAngle -= 6.2831853071795864769f;
+		else if (sweep && sweepAngle < 0.0f)
+			sweepAngle += 6.2831853071795864769f;
+		const unsigned int samples = std::max(4U, std::min(128U, static_cast<unsigned int>(std::ceil(std::fabs(sweepAngle) / 0.2617993877991494f))));
+		for (unsigned int sample = 1U; sample <= samples; ++sample)
+		{
+			const float angle = startAngle + sweepAngle * static_cast<float>(sample) / static_cast<float>(samples);
+			const float localX = radiusX * std::cos(angle);
+			const float localY = radiusY * std::sin(angle);
+			points.push_back({
+				cosine * localX - sine * localY + centreX,
+				sine * localX + cosine * localY + centreY,
+				0.0f,
+			});
+		}
+	};
 	while (*cursor != '\0')
 	{
 		while (*cursor != '\0' && (std::isspace(static_cast<unsigned char>(*cursor)) || *cursor == ','))
@@ -591,13 +649,13 @@ bool ParsePlanSvgPath(const std::string& value, std::vector<INSTARVec3>& points,
 		const bool relative = std::islower(static_cast<unsigned char>(command)) != 0;
 		const char operation = static_cast<char>(std::toupper(static_cast<unsigned char>(command)));
 		if (operation != 'M' && operation != 'L' && operation != 'H' && operation != 'V' &&
-			operation != 'C' && operation != 'S' && operation != 'Q' && operation != 'T')
+			operation != 'C' && operation != 'S' && operation != 'Q' && operation != 'T' && operation != 'A')
 		{
-			error = operation == 'A' ? "SVG arc paths are not supported; convert arcs to polygons" : "SVG path uses an unsupported command";
+			error = "SVG path uses an unsupported command";
 			return false;
 		}
 		const size_t required = operation == 'H' || operation == 'V' ? 1U :
-			(operation == 'C' ? 6U : operation == 'S' ? 4U : operation == 'Q' ? 4U : 2U);
+			(operation == 'C' ? 6U : operation == 'S' ? 4U : operation == 'Q' ? 4U : operation == 'A' ? 7U : 2U);
 		std::vector<float> group;
 		while (group.size() < required)
 		{
@@ -623,6 +681,11 @@ bool ParsePlanSvgPath(const std::string& value, std::vector<INSTARVec3>& points,
 			next.x = relative ? current.x + group[0] : group[0];
 		else if (operation == 'V')
 			next.y = relative ? current.y + group[0] : group[0];
+		else if (operation == 'A')
+		{
+			next.x = relative ? current.x + group[5] : group[5];
+			next.y = relative ? current.y + group[6] : group[6];
+		}
 		else
 		{
 			next.x = relative ? current.x + group[0] : group[0];
@@ -630,6 +693,11 @@ bool ParsePlanSvgPath(const std::string& value, std::vector<INSTARVec3>& points,
 		}
 		if (operation == 'M')
 		{
+			if (!points.empty())
+			{
+				error = "SVG path contains multiple subpaths; split them into separate elements";
+				return false;
+			}
 			start = next;
 			command = relative ? 'l' : 'L';
 			hasLastCubicControl = false;
@@ -695,6 +763,12 @@ bool ParsePlanSvgPath(const std::string& value, std::vector<INSTARVec3>& points,
 			hasLastQuadraticControl = true;
 			hasLastCubicControl = false;
 		}
+		else if (operation == 'A')
+		{
+			appendArc(current, group[0], group[1], group[2], group[3] != 0.0f, group[4] != 0.0f, next);
+			hasLastCubicControl = false;
+			hasLastQuadraticControl = false;
+		}
 		else
 		{
 			points.push_back(next);
@@ -740,6 +814,25 @@ std::string PlanShapeRole(const std::string& xml, size_t start)
 std::string PlanShapeSliceName(const std::string& xml, size_t start)
 {
 	return PlanXmlAttributeValue(xml, "data-slice", start);
+}
+
+bool PlanElementHidden(const std::string& xml, size_t start, const std::string& localTag)
+{
+	if (localTag == "defs")
+		return true;
+	const auto lower = [](std::string value) {
+		for (char& character : value)
+			character = static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+		return value;
+	};
+	const std::string display = lower(PlanXmlAttributeValue(xml, "display", start));
+	const std::string visibility = lower(PlanXmlAttributeValue(xml, "visibility", start));
+	std::string style = lower(PlanXmlAttributeValue(xml, "style", start));
+	style.erase(std::remove_if(style.begin(), style.end(), [](char character) {
+		return std::isspace(static_cast<unsigned char>(character)) != 0;
+	}), style.end());
+	return display == "none" || visibility == "hidden" || visibility == "collapse" ||
+		style.find("display:none") != std::string::npos || style.find("visibility:hidden") != std::string::npos;
 }
 
 std::string PlanNameKey(const std::string& value)
@@ -849,27 +942,111 @@ void AddPlanScreen(
 	}
 }
 
-bool IsPlanConvex(const std::vector<INSTARVec3>& points)
+std::pair<INSTARVec3, INSTARVec3> SelectPlanScreenEdge(const std::vector<INSTARVec3>& points, bool closed)
+{
+	if (points.size() < 2U)
+		return {INSTARVec3(), INSTARVec3()};
+	const size_t segmentCount = closed && points.size() >= 3U ? points.size() : points.size() - 1U;
+	size_t selected = 0U;
+	float longest = -1.0f;
+	for (size_t index = 0; index < segmentCount; ++index)
+	{
+		const INSTARVec3& first = points[index];
+		const INSTARVec3& second = points[(index + 1U) % points.size()];
+		const float dx = second.x - first.x;
+		const float dz = second.z - first.z;
+		const float lengthSquared = dx * dx + dz * dz;
+		if (lengthSquared > longest)
+		{
+			longest = lengthSquared;
+			selected = index;
+		}
+	}
+	return {points[selected], points[(selected + 1U) % points.size()]};
+}
+
+float PlanCross(const INSTARVec3& first, const INSTARVec3& second, const INSTARVec3& third)
+{
+	return (second.x - first.x) * (third.z - first.z) - (second.z - first.z) * (third.x - first.x);
+}
+
+bool PlanPointInTriangle(const INSTARVec3& point, const INSTARVec3& first, const INSTARVec3& second, const INSTARVec3& third, bool counterClockwise)
+{
+	const float firstCross = PlanCross(first, second, point);
+	const float secondCross = PlanCross(second, third, point);
+	const float thirdCross = PlanCross(third, first, point);
+	const float epsilon = 0.000001f;
+	if (counterClockwise)
+		return firstCross >= -epsilon && secondCross >= -epsilon && thirdCross >= -epsilon;
+	return firstCross <= epsilon && secondCross <= epsilon && thirdCross <= epsilon;
+}
+
+void AddPlanCap(INSTARScene& scene, const std::vector<INSTARVec3>& points, float height, float red, float green, float blue)
 {
 	if (points.size() < 3U)
-		return false;
-	int sign = 0;
+		return;
+	float area = 0.0f;
 	for (size_t index = 0; index < points.size(); ++index)
 	{
 		const INSTARVec3& first = points[index];
 		const INSTARVec3& second = points[(index + 1U) % points.size()];
-		const INSTARVec3& third = points[(index + 2U) % points.size()];
-		const float cross = (second.x - first.x) * (third.y - second.y) -
-			(second.y - first.y) * (third.x - second.x);
-		if (std::fabs(cross) < 0.000001f)
-			continue;
-		const int currentSign = cross > 0.0f ? 1 : -1;
-		if (sign == 0)
-			sign = currentSign;
-		else if (sign != currentSign)
-			return false;
+		area += first.x * second.z - second.x * first.z;
 	}
-	return sign != 0;
+	if (std::fabs(area) < 0.000001f)
+		return;
+	const bool counterClockwise = area > 0.0f;
+	std::vector<size_t> remaining;
+	for (size_t index = 0; index < points.size(); ++index)
+		remaining.push_back(index);
+	const size_t maximumIterations = points.size() * points.size();
+	for (size_t iteration = 0; remaining.size() > 3U && iteration < maximumIterations; ++iteration)
+	{
+		bool clipped = false;
+		for (size_t index = 0; index < remaining.size(); ++index)
+		{
+			const size_t previousIndex = remaining[(index + remaining.size() - 1U) % remaining.size()];
+			const size_t currentIndex = remaining[index];
+			const size_t nextIndex = remaining[(index + 1U) % remaining.size()];
+			const float cross = PlanCross(points[previousIndex], points[currentIndex], points[nextIndex]);
+			if ((counterClockwise && cross <= 0.000001f) || (!counterClockwise && cross >= -0.000001f))
+				continue;
+			bool containsPoint = false;
+			for (const size_t candidate : remaining)
+			{
+				if (candidate == previousIndex || candidate == currentIndex || candidate == nextIndex)
+					continue;
+				if (PlanPointInTriangle(points[candidate], points[previousIndex], points[currentIndex], points[nextIndex], counterClockwise))
+				{
+					containsPoint = true;
+					break;
+				}
+			}
+			if (containsPoint)
+				continue;
+			const INSTARVec3 first{points[previousIndex].x, height, points[previousIndex].z};
+			const INSTARVec3 second{points[currentIndex].x, height, points[currentIndex].z};
+			const INSTARVec3 third{points[nextIndex].x, height, points[nextIndex].z};
+			if (counterClockwise)
+				AddTriangle(scene.triangleVertices, first, second, third, red, green, blue);
+			else
+				AddTriangle(scene.triangleVertices, first, third, second, red, green, blue);
+			remaining.erase(remaining.begin() + static_cast<std::ptrdiff_t>(index));
+			clipped = true;
+			break;
+		}
+		if (!clipped)
+			return;
+	}
+	if (remaining.size() == 3U)
+	{
+		const INSTARVec3 first{points[remaining[0]].x, height, points[remaining[0]].z};
+		const INSTARVec3 second{points[remaining[1]].x, height, points[remaining[1]].z};
+		const INSTARVec3 third{points[remaining[2]].x, height, points[remaining[2]].z};
+		if (counterClockwise)
+			AddTriangle(scene.triangleVertices, first, second, third, red, green, blue);
+		else
+			AddTriangle(scene.triangleVertices, first, third, second, red, green, blue);
+	}
 }
 }
 
@@ -1146,12 +1323,14 @@ bool LoadINSTARAdvancedOutputPlanes(const std::string& path, INSTARScene& scene,
 		error = "Advanced Output XML contains no rectangular InputRect slices";
 		return false;
 	}
+	scene.textureCanvasWidth = scene.inputCanvasWidth;
+	scene.textureCanvasHeight = scene.inputCanvasHeight;
 	ApplyINSTARInputPlaneDepths(scene, std::vector<float>());
 	scene.source = path;
 	return true;
 }
 
-bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string& error, float extrusionHeight, float planScale, const std::vector<float>& heightOverrides, const INSTARScene* mapping)
+bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string& error, float extrusionHeight, float planScale, const std::vector<float>& heightOverrides, const INSTARScene* mapping, bool useGlobalHeight)
 {
 	scene = INSTARScene();
 	std::ifstream file = OpenTextFile(path);
@@ -1197,6 +1376,11 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 	}
 	scene.inputCanvasWidth = static_cast<unsigned int>(std::max(1.0f, viewWidth));
 	scene.inputCanvasHeight = static_cast<unsigned int>(std::max(1.0f, viewHeight));
+	if (mapping != nullptr)
+	{
+		scene.textureCanvasWidth = mapping->inputCanvasWidth;
+		scene.textureCanvasHeight = mapping->inputCanvasHeight;
+	}
 	const float safeHeight = std::isfinite(extrusionHeight) ? std::max(0.0f, extrusionHeight) : 3.0f;
 	const float safeScale = std::isfinite(planScale) ? std::max(0.000001f, planScale) : 1.0f;
 	// SVG viewBox units are arbitrary. Normalize the plan footprint to a
@@ -1214,6 +1398,7 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 	bool unsupportedPathFound = false;
 	std::vector<std::string> elementStack;
 	std::vector<PlanTransform> transformStack;
+	std::vector<bool> visibilityStack;
 	while (cursor < xml.size())
 	{
 		const size_t open = xml.find('<', cursor);
@@ -1233,6 +1418,7 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 			{
 				elementStack.pop_back();
 				transformStack.pop_back();
+				visibilityStack.pop_back();
 			}
 			cursor = close + 1U;
 			continue;
@@ -1257,17 +1443,21 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 			parentTransform,
 			ParsePlanTransform(PlanXmlAttributeValue(xml, "transform", open))
 		);
-		if (isShapeTag(tag))
+		const std::string localTag = PlanLocalName(tag);
+		const bool parentVisible = visibilityStack.empty() ? true : visibilityStack.back();
+		const bool elementVisible = parentVisible && !PlanElementHidden(xml, open, localTag);
+		if (isShapeTag(tag) && elementVisible)
 		{
-			const std::string localTag = PlanLocalName(tag);
 			INSTARPlanShape shape;
 			const unsigned int shapeNumber = shapeIndex++;
 			shape.name = PlanShapeName(xml, open, tag, shapeNumber);
 			shape.role = PlanShapeRole(xml, open);
 			shape.sliceName = PlanShapeSliceName(xml, open);
 			shape.height = PlanShapeHeight(xml, open, safeHeight);
-			if (shapeNumber > 0U && shapeNumber <= heightOverrides.size() && heightOverrides[shapeNumber - 1U] > 0.0f)
-				shape.height = heightOverrides[shapeNumber - 1U];
+			if (useGlobalHeight)
+				shape.height = safeHeight;
+			if (shapeNumber > 0U && shapeNumber <= heightOverrides.size() && heightOverrides[shapeNumber - 1U] != 0.0f)
+				shape.height = std::max(0.0f, heightOverrides[shapeNumber - 1U]);
 			if (localTag == "rect")
 			{
 				float x = 0.0f, y = 0.0f, width = 0.0f, height = 0.0f;
@@ -1369,13 +1559,14 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 		{
 			elementStack.push_back(tag);
 			transformStack.push_back(elementTransform);
+			visibilityStack.push_back(elementVisible);
 		}
 		cursor = close + 1U;
 	}
 	if (scene.planShapes.empty())
 	{
 		error = unsupportedPathFound ?
-			"plan SVG contains no supported geometry; convert paths with curves to polygons" :
+			"plan SVG contains no supported geometry; split unsupported paths into simple elements" :
 			"plan SVG contains no supported geometry";
 		return false;
 	}
@@ -1401,25 +1592,18 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 		const size_t segmentCount = shape.closed && world.size() >= 3U ? world.size() : world.size() - 1U;
 		if (PlanNameKey(shape.role) == "screen" && world.size() >= 2U)
 		{
-			// A screen is represented by its first plan edge: the edge is the
-			// bottom of a vertical display surface, not a solid venue wall.
-			AddPlanScreen(scene, world[0], world[1], shape.height, red, green, blue, shape);
+			// A screen uses its longest plan edge as the bottom of a vertical
+			// display surface, not as a solid venue wall.
+			const std::pair<INSTARVec3, INSTARVec3> screenEdge = SelectPlanScreenEdge(world, shape.closed);
+			AddPlanScreen(scene, screenEdge.first, screenEdge.second, shape.height, red, green, blue, shape);
 		}
 		else
 		{
 			for (size_t index = 0; index < segmentCount; ++index)
 				AddPlanWall(scene, world[index], world[(index + 1U) % world.size()], shape.height, red, green, blue);
 		}
-		if (PlanNameKey(shape.role) != "screen" && shape.closed && world.size() >= 3U && IsPlanConvex(shape.points))
-		{
-			const INSTARVec3 topOrigin{world[0].x, shape.height, world[0].z};
-			for (size_t index = 1; index + 1U < world.size(); ++index)
-			{
-				const INSTARVec3 topFirst{world[index].x, shape.height, world[index].z};
-				const INSTARVec3 topSecond{world[index + 1U].x, shape.height, world[index + 1U].z};
-				AddTriangle(scene.triangleVertices, topOrigin, topFirst, topSecond, red, green, blue);
-			}
-		}
+		if (PlanNameKey(shape.role) != "screen" && shape.closed)
+			AddPlanCap(scene, world, shape.height, red, green, blue);
 	}
 	Normalise(scene);
 	scene.source = path;
