@@ -49,6 +49,8 @@ add_library(INSTAR SHARED
     INSTAR/INSTAR.h
     INSTAR/INSTAR_XML.cpp
     INSTAR/INSTAR_XML.h
+    INSTAR/INSTAR_IMAGE.cpp
+    INSTAR/INSTAR_IMAGE.h
     ${FFGL_SOURCES}
 )
 
@@ -64,6 +66,7 @@ set_property(TARGET INSTAR PROPERTY
 )
 target_link_libraries(INSTAR PRIVATE
     OpenGL32
+    Gdiplus
     "${FFGL_ROOT}/deps/glew-2.1.0/lib/Release/x64/glew32s.lib"
 )
 
@@ -92,3 +95,14 @@ add_test(
     NAME INSTAR_XML_CONTRACT
     COMMAND INSTAR_XML_CONTRACT "${CMAKE_CURRENT_BINARY_DIR}/INSTAR_AdvancedOutput.xml"
 )
+
+add_executable(INSTAR_IMAGE_CONTRACT
+    INSTAR/INSTAR_IMAGE.cpp
+    INSTAR/INSTAR_IMAGE.h
+    INSTAR/INSTAR_XML.cpp
+    INSTAR/INSTAR_XML.h
+    INSTAR/INSTAR_IMAGE_CONTRACT.cpp
+)
+target_compile_features(INSTAR_IMAGE_CONTRACT PRIVATE cxx_std_11)
+target_link_libraries(INSTAR_IMAGE_CONTRACT PRIVATE Gdiplus)
+add_test(NAME INSTAR_IMAGE_CONTRACT COMMAND INSTAR_IMAGE_CONTRACT)

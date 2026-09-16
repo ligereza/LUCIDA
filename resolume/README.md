@@ -224,24 +224,17 @@ The native Resolume unit is `resolume/plugin/INSTAR/`. It is an `FF_EFFECT`
 plugin built against the official Resolume FFGL SDK. It preserves the current
 layer texture and provides a low-GPU composition guide for the VJ.
 
-INSTAR also exposes an `ExportXML` event. It creates an
-`INSTAR_AdvancedOutput.xml` directly from the current canvas and an optional
-line-oriented `.instar` surface profile; it does not ask for an existing
-Advanced Output XML. The generated document contains a virtual screen,
-named slices, `InputRect`, `OutputRect` and identity warpers.
+INSTAR exposes an `ExportXML` event. The VJ supplies a raster pixel-map path
+through `MapFile` (PNG/JPG), sets `CanvasWidth` and `CanvasHeight` when the
+map's canvas differs from the current composition, and receives a generated
+`INSTAR_AdvancedOutput.xml`. The document contains a virtual screen, detected
+named slices, `InputRect`, `OutputRect` and identity warpers. No existing
+Advanced Output XML is requested.
 
-The profile format is intentionally small:
-
-```text
-canvas 4186 1283
-surface CENTRAL 0 128 2560 1024
-surface CCTV_R 2644 0 768 1280
-```
-
-The profile can be produced from a PDF/PNG/SVG by the offline INSTAR adapter,
-or written by the VJ. The plugin remains local and has no network, camera,
-model or processor dependency in its render path. Its XML describes the VJ's
-composition mapping; it does not configure NovaStar/Brompton hardware.
+The plugin remains local and has no network, camera, model or processor
+dependency in its render path. Its XML describes the VJ's composition mapping;
+it does not configure NovaStar/Brompton hardware. PDF pages are handled by the
+offline INSTAR adapter, which can rasterize them before the native export path.
 
 Build from this repository with the official FFGL checkout available at
 `C:/IA/vendor/resolume-ffgl`:

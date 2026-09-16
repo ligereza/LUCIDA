@@ -1,9 +1,8 @@
 #include "INSTAR.h"
+#include "INSTAR_IMAGE.h"
 
 #include <algorithm>
-#include <cstdlib>
 #include <fstream>
-#include <sstream>
 
 using namespace ffglqs;
 
@@ -58,8 +57,14 @@ INSTAR::INSTAR() :
 	)");
 
 	AddParam(ParamEvent::Create("ExportXML"));
-	AddParam(ParamText::create("Profile", ""));
+	// FFGL file parameter: the host supplies the selected path through
+	// SetTextParameter; the plugin never asks for an existing XML.
+	AddParam(Param::Create("MapFile", FF_TYPE_FILE, 0.0f));
 	AddParam(ParamText::create("OutputXML", outputPath));
+	AddParam(Param::Create("CanvasWidth", FF_TYPE_INTEGER, 0.0f));
+	AddParam(Param::Create("CanvasHeight", FF_TYPE_INTEGER, 0.0f));
+	SetParamRange(PARAM_CANVAS_WIDTH, 0.0f, 16384.0f);
+	SetParamRange(PARAM_CANVAS_HEIGHT, 0.0f, 16384.0f);
 	AddParam(Param::Create("GuideOpacity", 0.35f));
 	AddParam(Param::Create("GuideDetail", 0.0f));
 	AddHueColorParam("GuideColor");
@@ -79,9 +84,9 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 FFResult INSTAR::SetTextParameter(unsigned int index, const char* value)
 {
 	const std::string safeValue = value == nullptr ? "" : value;
-	if (index == PARAM_PROFILE)
+	if (index == PARAM_MAP_FILE)
 	{
-		profilePath = safeValue;
+		mapPath = safeValue;
 		return FF_SUCCESS;
 	}
 	if (index == PARAM_OUTPUT_XML)
@@ -96,8 +101,8 @@ char* INSTAR::GetTextParameter(unsigned int index)
 {
 	static char buffer[4096];
 	const std::string* value = nullptr;
-	if (index == PARAM_PROFILE)
-		value = &profilePath;
+	if (index == PARAM_MAP_FILE)
+		value = &mapPath;
 	else if (index == PARAM_OUTPUT_XML)
 		value = &outputPath;
 	if (value == nullptr)
@@ -122,54 +127,34 @@ void INSTAR::Update()
 	}
 }
 
-std::vector<INSTAR::Surface> INSTAR::LoadProfile(unsigned int fallbackWidth, unsigned int fallbackHeight) const
+std::vector<INSTAR::Surface> INSTAR::LoadMap(unsigned int canvasWidth, unsigned int canvasHeight) const
 {
-	unsigned int canvasWidth = fallbackWidth > 0 ? fallbackWidth : 1920;
-	unsigned int canvasHeight = fallbackHeight > 0 ? fallbackHeight : 1080;
+	const unsigned int width = canvasWidth > 0 ? canvasWidth : 1920;
+	const unsigned int height = canvasHeight > 0 ? canvasHeight : 1080;
 	std::vector<Surface> surfaces;
-
-	if (!profilePath.empty())
+	if (!mapPath.empty())
 	{
-		std::ifstream file(profilePath.c_str());
-		std::string line;
-		while (std::getline(file, line))
+		INSTARImage image;
+		std::string error;
+		if (LoadINSTARImage(mapPath, image, error))
+			surfaces = DetectINSTARSurfaces(image, width, height);
+		else
 		{
-			std::istringstream input(line);
-			std::string command;
-			input >> command;
-			if (command.empty() || command[0] == '#')
-				continue;
-			if (command == "canvas")
-			{
-				unsigned int width = 0, height = 0;
-				if (input >> width >> height && width > 0 && height > 0)
-				{
-					canvasWidth = width;
-					canvasHeight = height;
-				}
-				continue;
-			}
-			if (command != "surface")
-				continue;
-
-			Surface surface;
-			if (!(input >> surface.name >> surface.x >> surface.y >> surface.width >> surface.height))
-				continue;
-			if (surface.name.empty() || surface.width <= 0.0f || surface.height <= 0.0f)
-				continue;
-			if (surface.x < 0.0f || surface.y < 0.0f ||
-				surface.x + surface.width > canvasWidth || surface.y + surface.height > canvasHeight)
-				continue;
-			surfaces.push_back(surface);
+			std::string message = "INSTAR: no se pudo leer MapFile: " + error;
+			FFGLLog::LogToHost(message.c_str());
 		}
+	}
+	else
+	{
+		FFGLLog::LogToHost("INSTAR: MapFile vacío; se genera canvas completo");
 	}
 
 	if (surfaces.empty())
 	{
 		Surface fallback;
 		fallback.name = "FULL_CANVAS";
-		fallback.width = static_cast<float>(canvasWidth);
-		fallback.height = static_cast<float>(canvasHeight);
+		fallback.width = static_cast<float>(width);
+		fallback.height = static_cast<float>(height);
 		surfaces.push_back(fallback);
 	}
 	return surfaces;
@@ -177,26 +162,15 @@ std::vector<INSTAR::Surface> INSTAR::LoadProfile(unsigned int fallbackWidth, uns
 
 bool INSTAR::ExportAdvancedOutput()
 {
-	const std::vector<Surface> surfaces = LoadProfile(lastWidth, lastHeight);
 	unsigned int canvasWidth = lastWidth > 0 ? lastWidth : 1920;
 	unsigned int canvasHeight = lastHeight > 0 ? lastHeight : 1080;
-	if (!profilePath.empty())
-	{
-		std::ifstream file(profilePath.c_str());
-		std::string line;
-		while (std::getline(file, line))
-		{
-			std::istringstream input(line);
-			std::string command;
-			unsigned int width = 0, height = 0;
-			if ((input >> command >> width >> height) && command == "canvas" && width > 0 && height > 0)
-			{
-				canvasWidth = width;
-				canvasHeight = height;
-				break;
-			}
-		}
-	}
+	const float configuredWidth = GetFloatParameter(PARAM_CANVAS_WIDTH);
+	const float configuredHeight = GetFloatParameter(PARAM_CANVAS_HEIGHT);
+	if (configuredWidth >= 1.0f)
+		canvasWidth = static_cast<unsigned int>(configuredWidth);
+	if (configuredHeight >= 1.0f)
+		canvasHeight = static_cast<unsigned int>(configuredHeight);
+	const std::vector<Surface> surfaces = LoadMap(canvasWidth, canvasHeight);
 
 	const std::vector<INSTARSurface> xmlSurfaces(surfaces.begin(), surfaces.end());
 	const std::string xml = BuildINSTARAdvancedOutputXml(canvasWidth, canvasHeight, xmlSurfaces);
