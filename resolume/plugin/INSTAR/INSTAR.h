@@ -54,6 +54,7 @@ private:
 	std::string venuePath;
 	std::string loadedPath;
 	std::string mapPath;
+	std::string templatePath;
 	std::string outputPath = "INSTAR_AdvancedOutput.xml";
 	float yaw = 0.5f;
 	float pitch = 0.5f;
@@ -63,8 +64,6 @@ private:
 	bool rasterDirty = true;
 	bool rasterReady = false;
 	bool exportRequested = false;
-	unsigned int lastWidth = 1920;
-	unsigned int lastHeight = 1080;
 
 	enum Parameter : unsigned int
 	{
@@ -73,14 +72,13 @@ private:
 		PARAM_EDGE_BUDGET = 2,
 		PARAM_CONFIDENCE_CEILING = 3,
 		PARAM_MAP_FILE = 4,
-		PARAM_EXPORT_MAP_XML = 5,
-		PARAM_OUTPUT_XML = 6,
-		PARAM_VIEW = 7,
-		PARAM_YAW = 8,
-		PARAM_PITCH = 9,
-		PARAM_ZOOM = 10,
-		PARAM_BRIGHTNESS = 11,
-		PARAM_CANVAS_WIDTH = 12,
-		PARAM_CANVAS_HEIGHT = 13,
+		PARAM_TEMPLATE_XML = 5,
+		PARAM_EXPORT_MAP_XML = 6,
+		PARAM_OUTPUT_XML = 7,
+		PARAM_VIEW = 8,
+		PARAM_YAW = 9,
+		PARAM_PITCH = 10,
+		PARAM_ZOOM = 11,
+		PARAM_BRIGHTNESS = 12,
 	};
 };

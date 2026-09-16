@@ -1,6 +1,7 @@
 #include "INSTAR_XML.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <iomanip>
 #include <sstream>
 
@@ -92,6 +93,96 @@ std::string WarperXml(const INSTARSurface& surface, const std::string& indent)
 		<< indent << "</Warper>";
 	return xml.str();
 }
+
+std::string AttributeValue(const std::string& text, size_t start, const char* name)
+{
+	const std::string marker = std::string(name) + "=\"";
+	const size_t valueStart = text.find(marker, start);
+	if (valueStart == std::string::npos)
+		return std::string();
+	const size_t contentStart = valueStart + marker.size();
+	const size_t contentEnd = text.find('"', contentStart);
+	return contentEnd == std::string::npos ? std::string() : text.substr(contentStart, contentEnd - contentStart);
+}
+
+bool ParseUnsigned(const std::string& value, unsigned int& result)
+{
+	if (value.empty())
+		return false;
+	char* end = nullptr;
+	const unsigned long parsed = std::strtoul(value.c_str(), &end, 10);
+	if (end == value.c_str() || *end != '\0' || parsed == 0 || parsed > 4294967295UL)
+		return false;
+	result = static_cast<unsigned int>(parsed);
+	return true;
+}
+
+bool ParseUnsignedLongLong(const std::string& value, unsigned long long& result)
+{
+	if (value.empty())
+		return false;
+	char* end = nullptr;
+	const unsigned long long parsed = std::strtoull(value.c_str(), &end, 10);
+	if (end == value.c_str() || *end != '\0' || parsed == 0)
+		return false;
+	result = parsed;
+	return true;
+}
+
+std::string ReplaceAttribute(const std::string& text, const char* name, const std::string& value)
+{
+	const std::string marker = std::string(name) + "=\"";
+	const size_t valueStart = text.find(marker);
+	if (valueStart == std::string::npos)
+		return text;
+	const size_t contentStart = valueStart + marker.size();
+	const size_t contentEnd = text.find('"', contentStart);
+	if (contentEnd == std::string::npos)
+		return text;
+	std::string result = text;
+	result.replace(contentStart, contentEnd - contentStart, value);
+	return result;
+}
+
+std::string ReplaceSliceName(const std::string& text, const std::string& name)
+{
+	const size_t common = text.find("<Params name=\"Common\"");
+	const size_t nameParam = common == std::string::npos ? std::string::npos : text.find("<Param name=\"Name\"", common);
+	if (nameParam == std::string::npos)
+		return text;
+	const size_t valueStart = text.find("value=\"", nameParam);
+	if (valueStart == std::string::npos)
+		return text;
+	const size_t contentStart = valueStart + 7;
+	const size_t contentEnd = text.find('"', contentStart);
+	if (contentEnd == std::string::npos)
+		return text;
+	std::string result = text;
+	result.replace(contentStart, contentEnd - contentStart, XmlEscape(name));
+	return result;
+}
+
+std::string TemplateSlice(
+	const std::string& templateSlice,
+	unsigned long long uniqueId,
+	const INSTARSurfaceMapping& mapping
+)
+{
+	const size_t sliceOpenEnd = templateSlice.find('>');
+	const size_t inputStart = sliceOpenEnd == std::string::npos ? std::string::npos : templateSlice.find("<InputRect", sliceOpenEnd);
+	const size_t warperEnd = inputStart == std::string::npos ? std::string::npos : templateSlice.find("</Warper>", inputStart);
+	const size_t sliceClose = templateSlice.rfind("</Slice>");
+	if (sliceOpenEnd == std::string::npos || inputStart == std::string::npos || warperEnd == std::string::npos || sliceClose == std::string::npos)
+		return std::string();
+	std::string head = templateSlice.substr(0, inputStart);
+	head = ReplaceAttribute(head, "uniqueId", std::to_string(uniqueId));
+	head = ReplaceSliceName(head, mapping.name);
+	const std::string tail = templateSlice.substr(warperEnd + std::string("</Warper>").size(), sliceClose - warperEnd - std::string("</Warper>").size());
+	const std::string indent = "\t\t\t\t\t\t";
+	return head + RectXml("InputRect", mapping.input, indent) + "\n" +
+		RectXml("OutputRect", mapping.output, indent) + "\n" +
+		WarperXml(mapping.output, indent) + tail + "</Slice>";
+}
 }
 
 std::string BuildINSTARAdvancedOutputXml(
@@ -150,4 +241,110 @@ std::string BuildINSTARAdvancedOutputXml(
 		 << "\t</ScreenSetup>\n"
 		 << "</XmlState>\n";
 	return file.str();
+}
+
+bool ReadINSTARAdvancedOutputTemplateInfo(
+	const std::string& templateXml,
+	INSTARTemplateInfo& info,
+	std::string& error
+)
+{
+	info = INSTARTemplateInfo();
+	if (templateXml.find("<XmlState") == std::string::npos ||
+		templateXml.find("<ScreenSetup") == std::string::npos ||
+		templateXml.find("<Screen ") == std::string::npos ||
+		templateXml.find("<layers>") == std::string::npos ||
+		templateXml.find("</layers>") == std::string::npos)
+	{
+		error = "template is not a Resolume Advanced Output document";
+		return false;
+	}
+	const size_t texture = templateXml.find("<CurrentCompositionTextureSize");
+	const size_t display = templateXml.find("<OutputDeviceDisplay");
+	const size_t virtualDevice = templateXml.find("<OutputDeviceVirtual");
+	if (texture == std::string::npos)
+	{
+		error = "template has no composition texture size";
+		return false;
+	}
+	if (!ParseUnsigned(AttributeValue(templateXml, texture, "width"), info.inputWidth) ||
+		!ParseUnsigned(AttributeValue(templateXml, texture, "height"), info.inputHeight))
+	{
+		error = "template composition texture size is invalid";
+		return false;
+	}
+	const size_t outputTag = display != std::string::npos ? display : virtualDevice;
+	if (outputTag != std::string::npos)
+	{
+		ParseUnsigned(AttributeValue(templateXml, outputTag, "width"), info.outputWidth);
+		ParseUnsigned(AttributeValue(templateXml, outputTag, "height"), info.outputHeight);
+	}
+	if (info.outputWidth == 0 || info.outputHeight == 0)
+	{
+		info.outputWidth = info.inputWidth;
+		info.outputHeight = info.inputHeight;
+	}
+	const size_t slice = templateXml.find("<Slice");
+	if (slice != std::string::npos)
+		ParseUnsignedLongLong(AttributeValue(templateXml, slice, "uniqueId"), info.firstSliceId);
+	if (info.firstSliceId == 0)
+		info.firstSliceId = 1800000000001ULL;
+	return true;
+}
+
+std::vector<INSTARSurfaceMapping> ScaleINSTARSurfacesToTemplate(
+	const std::vector<INSTARSurface>& surfaces,
+	unsigned int sourceWidth,
+	unsigned int sourceHeight,
+	const INSTARTemplateInfo& templateInfo
+)
+{
+	std::vector<INSTARSurfaceMapping> mappings;
+	if (sourceWidth == 0 || sourceHeight == 0 || templateInfo.inputWidth == 0 || templateInfo.inputHeight == 0 || templateInfo.outputWidth == 0 || templateInfo.outputHeight == 0)
+		return mappings;
+	for (const INSTARSurface& surface : surfaces)
+	{
+		INSTARSurfaceMapping mapping;
+		mapping.name = surface.name;
+		mapping.input.x = surface.x / static_cast<float>(sourceWidth) * templateInfo.inputWidth;
+		mapping.input.y = surface.y / static_cast<float>(sourceHeight) * templateInfo.inputHeight;
+		mapping.input.width = surface.width / static_cast<float>(sourceWidth) * templateInfo.inputWidth;
+		mapping.input.height = surface.height / static_cast<float>(sourceHeight) * templateInfo.inputHeight;
+		mapping.output.x = surface.x / static_cast<float>(sourceWidth) * templateInfo.outputWidth;
+		mapping.output.y = surface.y / static_cast<float>(sourceHeight) * templateInfo.outputHeight;
+		mapping.output.width = surface.width / static_cast<float>(sourceWidth) * templateInfo.outputWidth;
+		mapping.output.height = surface.height / static_cast<float>(sourceHeight) * templateInfo.outputHeight;
+		mappings.push_back(mapping);
+	}
+	return mappings;
+}
+
+std::string BuildINSTARAdvancedOutputXmlFromTemplate(
+	const std::string& templateXml,
+	const std::vector<INSTARSurfaceMapping>& mappings
+)
+{
+	INSTARTemplateInfo info;
+	std::string error;
+	if (!ReadINSTARAdvancedOutputTemplateInfo(templateXml, info, error))
+		return std::string();
+	const size_t layersOpen = templateXml.find("<layers>");
+	const size_t layersClose = templateXml.find("</layers>", layersOpen);
+	const size_t sliceOpen = templateXml.find("<Slice", layersOpen);
+	const size_t sliceClose = sliceOpen == std::string::npos ? std::string::npos : templateXml.find("</Slice>", sliceOpen);
+	if (layersOpen == std::string::npos || layersClose == std::string::npos || sliceOpen == std::string::npos || sliceClose == std::string::npos)
+		return std::string();
+	const std::string templateSlice = templateXml.substr(sliceOpen, sliceClose + std::string("</Slice>").size() - sliceOpen);
+	std::ostringstream output;
+	output << templateXml.substr(0, layersOpen + std::string("<layers>").size()) << "\n";
+	unsigned long long nextId = info.firstSliceId;
+	for (const INSTARSurfaceMapping& mapping : mappings)
+	{
+		const std::string slice = TemplateSlice(templateSlice, nextId++, mapping);
+		if (slice.empty())
+			return std::string();
+		output << slice << "\n";
+	}
+	output << templateXml.substr(layersClose);
+	return output.str();
 }

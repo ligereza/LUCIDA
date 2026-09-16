@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iterator>
 
 using namespace ffglqs;
 
@@ -34,6 +35,7 @@ INSTAR::INSTAR()
 		{"TODOS", 4.0f},
 	}, 4));
 	AddParam(Param::Create("MapFile", FF_TYPE_FILE, 0.0f));
+	AddParam(Param::Create("TemplateXML", FF_TYPE_FILE, 0.0f));
 	AddParam(ParamEvent::Create("ExportMapXML"));
 	AddParam(ParamText::create("OutputXML", outputPath));
 	AddParam(ParamOption::Create("View", {
@@ -45,10 +47,6 @@ INSTAR::INSTAR()
 	AddParam(Param::Create("Pitch", pitch));
 	AddParam(Param::Create("Zoom", zoom));
 	AddParam(Param::Create("Brightness", brightness));
-	AddParam(Param::Create("CanvasWidth", FF_TYPE_INTEGER, 0.0f));
-	AddParam(Param::Create("CanvasHeight", FF_TYPE_INTEGER, 0.0f));
-	SetParamRange(PARAM_CANVAS_WIDTH, 0.0f, 16384.0f);
-	SetParamRange(PARAM_CANVAS_HEIGHT, 0.0f, 16384.0f);
 	SetParamRange(PARAM_EDGE_BUDGET, 1.0f, 1000000.0f);
 }
 
@@ -285,11 +283,6 @@ FFResult INSTAR::RenderRaster()
 
 void INSTAR::Update()
 {
-	if (currentViewport.width > 0 && currentViewport.height > 0)
-	{
-		lastWidth = currentViewport.width;
-		lastHeight = currentViewport.height;
-	}
 	if (sceneDirty || loadedPath != venuePath)
 	{
 		LoadVenue();
@@ -311,14 +304,11 @@ bool INSTAR::ExportMapXml()
 		FFGLLog::LogToHost("INSTAR: MapFile vacío; ExportMapXML requiere PNG/JPG");
 		return false;
 	}
-	unsigned int canvasWidth = lastWidth > 0 ? lastWidth : 1920;
-	unsigned int canvasHeight = lastHeight > 0 ? lastHeight : 1080;
-	const float configuredWidth = GetFloatParameter(PARAM_CANVAS_WIDTH);
-	const float configuredHeight = GetFloatParameter(PARAM_CANVAS_HEIGHT);
-	if (configuredWidth >= 1.0f)
-		canvasWidth = static_cast<unsigned int>(configuredWidth);
-	if (configuredHeight >= 1.0f)
-		canvasHeight = static_cast<unsigned int>(configuredHeight);
+	if (templatePath.empty())
+	{
+		FFGLLog::LogToHost("INSTAR: TemplateXML vacío; se requiere un Advanced Output real");
+		return false;
+	}
 
 	INSTARImage image;
 	std::string error;
@@ -328,13 +318,35 @@ bool INSTAR::ExportMapXml()
 		FFGLLog::LogToHost(message.c_str());
 		return false;
 	}
-	const std::vector<INSTARSurface> surfaces = DetectINSTARSurfaces(image, canvasWidth, canvasHeight);
+	std::ifstream templateFile(templatePath.c_str());
+	if (!templateFile.is_open())
+	{
+		FFGLLog::LogToHost("INSTAR: no se pudo abrir TemplateXML");
+		return false;
+	}
+	const std::string templateXml((std::istreambuf_iterator<char>(templateFile)), std::istreambuf_iterator<char>());
+	INSTARTemplateInfo templateInfo;
+	std::string templateError;
+	if (!ReadINSTARAdvancedOutputTemplateInfo(templateXml, templateInfo, templateError))
+	{
+		const std::string message = "INSTAR: TemplateXML inválido: " + templateError;
+		FFGLLog::LogToHost(message.c_str());
+		return false;
+	}
+	const std::vector<INSTARSurface> surfaces = DetectINSTARSurfaces(image, image.width, image.height);
 	if (surfaces.empty())
 	{
 		FFGLLog::LogToHost("INSTAR: no se detectaron superficies; no se genera XML");
 		return false;
 	}
-	const std::string xml = BuildINSTARAdvancedOutputXml(canvasWidth, canvasHeight, surfaces);
+	const std::vector<INSTARSurfaceMapping> mappings = ScaleINSTARSurfacesToTemplate(
+		surfaces, image.width, image.height, templateInfo);
+	const std::string xml = BuildINSTARAdvancedOutputXmlFromTemplate(templateXml, mappings);
+	if (xml.empty())
+	{
+		FFGLLog::LogToHost("INSTAR: no se pudo construir XML desde TemplateXML");
+		return false;
+	}
 	std::ofstream file(outputPath.c_str(), std::ios::out | std::ios::trunc);
 	if (!file.is_open())
 	{
@@ -405,6 +417,11 @@ FFResult INSTAR::SetTextParameter(unsigned int index, const char* value)
 		rasterDirty = true;
 		return FF_SUCCESS;
 	}
+	if (index == PARAM_TEMPLATE_XML)
+	{
+		templatePath = safeValue;
+		return FF_SUCCESS;
+	}
 	if (index == PARAM_OUTPUT_XML)
 	{
 		outputPath = safeValue.empty() ? "INSTAR_AdvancedOutput.xml" : safeValue;
@@ -421,6 +438,8 @@ char* INSTAR::GetTextParameter(unsigned int index)
 		value = &venuePath;
 	else if (index == PARAM_MAP_FILE)
 		value = &mapPath;
+	else if (index == PARAM_TEMPLATE_XML)
+		value = &templatePath;
 	else if (index == PARAM_OUTPUT_XML)
 		value = &outputPath;
 	if (value == nullptr)

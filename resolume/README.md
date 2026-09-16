@@ -234,11 +234,13 @@ explicitly. In raster mode, detected slices are outlined in the source before
 `ExportMapXML`, so the XML-producing regions are visible.
 
 INSTAR also exposes an explicit `ExportMapXML` event. The VJ supplies a raster
-pixel map through `MapFile` (PNG/JPG), sets `CanvasWidth` and `CanvasHeight`
-when needed, and receives `INSTAR_AdvancedOutput.xml`. This path is separate
-from the 3D model viewer: an OBJ is never converted to XML by default. PDF and
-SVG inputs remain with the offline adapter, which can rasterize or vector-map
-them before an explicit export.
+pixel map through `MapFile` (PNG/JPG) and a real Resolume Advanced Output file
+through `TemplateXML`. INSTAR preserves that template's composition size,
+screen, output device, device identity and slice parameter structure, replacing
+only the mapping layers with the detected raster surfaces. This path is
+separate from the 3D model viewer: an OBJ is never converted to XML by default.
+PDF and SVG inputs remain with the offline adapter, which can rasterize or
+vector-map them before an explicit export.
 
 Build from this repository with the official FFGL checkout available at
 `C:/IA/vendor/resolume-ffgl`:

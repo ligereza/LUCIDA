@@ -3,26 +3,39 @@
 
 #include <cstdio>
 #include <cmath>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
 
+namespace
+{
+bool HasSuffix(const std::string& value, const char* suffix)
+{
+	if (value.size() < std::strlen(suffix))
+		return false;
+	return value.compare(value.size() - std::strlen(suffix), std::strlen(suffix), suffix) == 0;
+}
+}
+
 int main(int argc, char** argv)
 {
 	if (argc == 2)
 	{
-		INSTARScene venue;
+		INSTARScene scene;
 		std::string error;
-		if (!LoadINSTARVenueJson(argv[1], venue, error))
+		const std::string path = argv[1];
+		const bool loaded = HasSuffix(path, ".json") ? LoadINSTARVenueJson(path, scene, error) : LoadINSTARObj(path, scene, error);
+		if (!loaded)
 		{
 			std::cerr << error << "\n";
 			return 1;
 		}
-		std::cout << "venue_lines=" << venue.lineVertices.size()
-			      << " surfaces=" << venue.surfaces.size()
-			      << " triangles=" << venue.triangleVertices.size() << "\n";
-		return venue.lineVertices.empty() || !venue.surfaces.empty() || !venue.triangleVertices.empty() ? 1 : 0;
+		std::cout << (HasSuffix(path, ".json") ? "venue_lines=" : "obj_lines=") << scene.lineVertices.size()
+			      << " surfaces=" << scene.surfaces.size()
+			      << " triangles=" << scene.triangleVertices.size() << "\n";
+		return scene.lineVertices.empty() ? 1 : 0;
 	}
 	if (argc > 2)
 		return 2;
