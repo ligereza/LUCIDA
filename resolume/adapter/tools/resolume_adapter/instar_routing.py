@@ -207,6 +207,7 @@ def import_pixel_peeker_routing(
     unmatched_ports: list[str] = []
     ambiguous_ports: list[str] = []
     unmatched_regions: list[str] = []
+    conflicting_regions: dict[str, list[str]] = {}
     regions: list[dict[str, Any]] = []
     layout_path: str | None = None
     if layout_report is not None:
@@ -226,6 +227,10 @@ def import_pixel_peeker_routing(
                     candidates.append((region, "contained_geometry", round(overlap / minimum_area, 6)))
             if len(candidates) == 1:
                 region, method, score = candidates[0]
+                if region["name"] in used_region_names:
+                    conflicting_regions.setdefault(region["name"], []).append(port_id)
+                    ambiguous_ports.append(port_id)
+                    continue
                 used_region_names.add(region["name"])
                 matches.append({
                     "processor": processor,
@@ -241,7 +246,7 @@ def import_pixel_peeker_routing(
             else:
                 unmatched_ports.append(port_id)
         unmatched_regions = [region["name"] for region in regions if region["name"] not in used_region_names]
-        geometry_status = "GEOMETRIC_MATCH" if not unmatched_ports and not ambiguous_ports and not unmatched_regions and bool(matches) else "PARTIAL_MATCH"
+        geometry_status = "GEOMETRIC_MATCH" if not unmatched_ports and not ambiguous_ports and not unmatched_regions and not conflicting_regions and bool(matches) else "PARTIAL_MATCH"
         validation_status = "PASS" if geometry_status == "GEOMETRIC_MATCH" else "REVIEW"
     else:
         geometry_status = "NOT_COMPARED"
@@ -262,6 +267,7 @@ def import_pixel_peeker_routing(
             "unmatched_ports": unmatched_ports,
             "ambiguous_ports": ambiguous_ports,
             "unmatched_regions": unmatched_regions,
+            "conflicting_regions": conflicting_regions,
             "tolerance_px": tolerance,
         },
         "status": {
@@ -309,4 +315,5 @@ def processor_routing_text_report(report: Mapping[str, Any]) -> str:
         f"Coincidencias: {len(comparison.get('matches') or [])}",
         f"Puertos sin coincidencia: {len(comparison.get('unmatched_ports') or [])}",
         f"Regiones sin coincidencia: {len(comparison.get('unmatched_regions') or [])}",
+        f"Conflictos de región: {len(comparison.get('conflicting_regions') or {})}",
     ])

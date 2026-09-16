@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 
 import pytest
 
@@ -94,6 +95,20 @@ def test_import_accepts_svg_slice_points(tmp_path):
 
     assert report["comparison"]["geometry_status"] == "GEOMETRIC_MATCH"
     assert report["comparison"]["matches"][0]["surface"] == "CENTRAL"
+
+
+def test_import_does_not_pass_when_two_ports_claim_one_surface():
+    data = interchange()
+    second_port = deepcopy(data["processors"][0]["ports"][0])
+    second_port["label"] = "ETH 2"
+    data["processors"][0]["ports"].append(second_port)
+    layout = {"regions": [{"name": "CENTRAL", "bounds": {"x": 0, "y": 0, "width": 2560, "height": 1024}}]}
+
+    report = import_pixel_peeker_routing(data, layout_report=layout)
+
+    assert report["comparison"]["geometry_status"] == "PARTIAL_MATCH"
+    assert report["validation"]["status"] == "REVIEW"
+    assert report["comparison"]["conflicting_regions"] == {"CENTRAL": ["MX40 A/ETH 2"]}
 
 
 def test_import_rejects_another_json_schema():
