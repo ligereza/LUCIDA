@@ -37,6 +37,7 @@ from resolume_adapter.incidents import INCIDENT_CATEGORIES, build_incident_plan,
 from resolume_adapter.instar import run_instar, text_report as instar_text_report, write_report
 from resolume_adapter.instar_image import build_raster_mapping, raster_mapping_text_report, write_raster_mapping_report
 from resolume_adapter.instar_svg import build_svg_mapping, svg_mapping_text_report, write_svg_mapping_report
+from resolume_adapter.instar_template import apply_input_svg_to_template, input_template_text_report, write_input_template_report
 from resolume_adapter.manifest import write_manifest
 from resolume_adapter.media import ResolumeAdapterError
 from resolume_adapter.nayade import (
@@ -264,6 +265,16 @@ def build_parser() -> argparse.ArgumentParser:
     image_mapping.add_argument("--pdf-page", type=int, default=1, help="Página PDF que se rasteriza (default: 1).")
     image_mapping.add_argument("--pdf-dpi", type=int, default=200, help="DPI de rasterización PDF (default: 200).")
     image_mapping.add_argument("--report", help="Ruta opcional para guardar el candidato JSON.")
+
+    template_mapping = commands.add_parser(
+        "instar-apply-input-map",
+        help="Actualiza InputRect desde un SVG y conserva OutputRect/routing de un template Advanced Output.",
+    )
+    template_mapping.add_argument("template_xml", help="Template XML existente de Advanced Output.")
+    template_mapping.add_argument("input_svg", help="SVG con la geometría de entrada por nombre de superficie.")
+    template_mapping.add_argument("--composition-size", type=_resolution, help="Resolución de composición si no está en el template.")
+    template_mapping.add_argument("--xml", required=True, help="Ruta del XML candidato resultante.")
+    template_mapping.add_argument("--report", help="Ruta opcional para guardar el reporte JSON.")
 
     adapt = commands.add_parser(
         "instar-adapt",
@@ -684,6 +695,19 @@ def main(argv: list[str] | None = None) -> int:
             if args.report:
                 report_path = write_raster_mapping_report(report, args.report)
                 print(f"\nCandidato JSON: {report_path}")
+            return 0
+
+        if args.command == "instar-apply-input-map":
+            report = apply_input_svg_to_template(
+                args.template_xml,
+                args.input_svg,
+                args.xml,
+                composition_size=args.composition_size,
+            )
+            print(input_template_text_report(report))
+            if args.report:
+                report_path = write_input_template_report(report, args.report)
+                print(f"\nReporte JSON: {report_path}")
             return 0
 
         if args.command == "instar-adapt":

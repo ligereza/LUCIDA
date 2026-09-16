@@ -191,6 +191,23 @@ python .\tools\resolume_adapter_cli.py instar-map-image `
   --xml .\artifacts\event-raster-candidate.xml
 ```
 
+### Aplicar solo la geometría de entrada sobre un template
+
+Si ya existe un Advanced Output XML con routing de procesadores, INSTAR puede
+actualizar únicamente `InputRect` por nombre y conservar `OutputRect`,
+dispositivos y warpers:
+
+```powershell
+python .\tools\resolume_adapter_cli.py instar-apply-input-map `
+  .\data\event\AdvancedOutput.xml `
+  .\data\event\input-map.svg `
+  --xml .\artifacts\event-advanced-output-candidate.xml `
+  --report .\artifacts\event-input-template.json
+```
+
+Esta es la vía para unir un layout detectado con routing real sin inferir la
+cadena física desde una imagen.
+
 La salida de una imagen se etiqueta como `stage_layout_candidate`. Si el
 documento no aporta procesadores, puertos o cadena de datos, el campo
 `processor_routing` queda en `UNKNOWN`; INSTAR no convierte una disposición
