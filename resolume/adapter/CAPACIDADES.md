@@ -73,9 +73,10 @@ y snapshot de procesador antes de tocar niveles o gamma.
 
 La implementación nativa vive en `resolume/plugin/INSTAR/`. El plugin trabaja
 en Resolume, conserva la textura de entrada, muestra una guía de composición y
-genera `INSTAR_AdvancedOutput.xml` directamente desde `MapFile` (PNG/JPG) y el
-canvas configurado. No pide un XML real a otra persona y no configura
-procesadores LED.
+genera `INSTAR_AdvancedOutput.xml` directamente desde `MapFile` (PNG/JPG/OBJ) y
+el canvas configurado. Un OBJ usa grupos nombrados de superficies y el mismo
+núcleo de proyección 3D que INSTAR CAPTURE. No pide un XML real a otra persona
+y no configura procesadores LED.
 
 El resto de esta sección describe el acompañante offline que prepara los
 perfiles antes del show; no debe confundirse con el plugin FFGL.

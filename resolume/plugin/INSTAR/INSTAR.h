@@ -1,6 +1,7 @@
 #pragma once
 
 #include <FFGLSDK.h>
+#include "INSTAR_SCENE.h"
 #include "INSTAR_XML.h"
 
 #include <string>
@@ -28,7 +29,7 @@ protected:
 private:
 	using Surface = INSTARSurface;
 
-	std::vector<Surface> LoadMap(unsigned int canvasWidth, unsigned int canvasHeight) const;
+	std::vector<Surface> LoadMap(unsigned int canvasWidth, unsigned int canvasHeight);
 	bool ExportAdvancedOutput();
 
 	std::string mapPath;
@@ -44,8 +45,9 @@ private:
 		PARAM_OUTPUT_XML = 2,
 		PARAM_CANVAS_WIDTH = 3,
 		PARAM_CANVAS_HEIGHT = 4,
-		PARAM_GUIDE_OPACITY = 5,
-		PARAM_GUIDE_DETAIL = 6,
-		PARAM_GUIDE_COLOR = 7,
+		PARAM_VIEW = 5,
+		PARAM_GUIDE_OPACITY = 6,
+		PARAM_GUIDE_DETAIL = 7,
+		PARAM_GUIDE_COLOR = 8,
 	};
 };

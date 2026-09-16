@@ -2,6 +2,7 @@
 #include "INSTAR_IMAGE.h"
 
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 
 using namespace ffglqs;
@@ -65,9 +66,26 @@ INSTAR::INSTAR() :
 	AddParam(Param::Create("CanvasHeight", FF_TYPE_INTEGER, 0.0f));
 	SetParamRange(PARAM_CANVAS_WIDTH, 0.0f, 16384.0f);
 	SetParamRange(PARAM_CANVAS_HEIGHT, 0.0f, 16384.0f);
+	AddParam(ParamOption::Create("View", {
+		{"AEREO", 0.0f},
+		{"PISTA", 1.0f},
+		{"LIBRE", 2.0f},
+	}, 0));
 	AddParam(Param::Create("GuideOpacity", 0.35f));
 	AddParam(Param::Create("GuideDetail", 0.0f));
 	AddHueColorParam("GuideColor");
+}
+
+static bool IsObjPath(const std::string& path)
+{
+	const size_t dot = path.find_last_of('.');
+	if (dot == std::string::npos)
+		return false;
+	std::string extension = path.substr(dot);
+	std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char character) {
+		return static_cast<char>(std::tolower(character));
+	});
+	return extension == ".obj";
 }
 
 FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
@@ -127,21 +145,62 @@ void INSTAR::Update()
 	}
 }
 
-std::vector<INSTAR::Surface> INSTAR::LoadMap(unsigned int canvasWidth, unsigned int canvasHeight) const
+std::vector<INSTAR::Surface> INSTAR::LoadMap(unsigned int canvasWidth, unsigned int canvasHeight)
 {
 	const unsigned int width = canvasWidth > 0 ? canvasWidth : 1920;
 	const unsigned int height = canvasHeight > 0 ? canvasHeight : 1080;
 	std::vector<Surface> surfaces;
 	if (!mapPath.empty())
 	{
-		INSTARImage image;
-		std::string error;
-		if (LoadINSTARImage(mapPath, image, error))
-			surfaces = DetectINSTARSurfaces(image, width, height);
+		if (IsObjPath(mapPath))
+		{
+			INSTARScene scene;
+			std::string error;
+			if (LoadINSTARObj(mapPath, scene, error))
+			{
+				float yaw = 0.0f;
+				float pitch = -0.15f;
+				const int view = static_cast<int>(GetFloatParameter(PARAM_VIEW));
+				if (view == 0)
+				{
+					yaw = 0.75f;
+					pitch = -0.75f;
+				}
+				else if (view == 2)
+				{
+					yaw = 0.0f;
+					pitch = 0.0f;
+				}
+				const std::vector<INSTARProjectedSurface> projected = ProjectINSTARSurfaces(
+					scene, yaw, pitch, 1.8f, width, height);
+				for (const INSTARProjectedSurface& source : projected)
+				{
+					Surface surface;
+					surface.name = source.name;
+					surface.x = source.x;
+					surface.y = source.y;
+					surface.width = source.width;
+					surface.height = source.height;
+					surfaces.push_back(surface);
+				}
+			}
+			else
+			{
+				std::string message = "INSTAR: no se pudo leer OBJ de MapFile: " + error;
+				FFGLLog::LogToHost(message.c_str());
+			}
+		}
 		else
 		{
-			std::string message = "INSTAR: no se pudo leer MapFile: " + error;
-			FFGLLog::LogToHost(message.c_str());
+			INSTARImage image;
+			std::string error;
+			if (LoadINSTARImage(mapPath, image, error))
+				surfaces = DetectINSTARSurfaces(image, width, height);
+			else
+			{
+				std::string message = "INSTAR: no se pudo leer MapFile: " + error;
+				FFGLLog::LogToHost(message.c_str());
+			}
 		}
 	}
 	else

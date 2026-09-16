@@ -225,11 +225,13 @@ plugin built against the official Resolume FFGL SDK. It preserves the current
 layer texture and provides a low-GPU composition guide for the VJ.
 
 INSTAR exposes an `ExportXML` event. The VJ supplies a raster pixel-map path
-through `MapFile` (PNG/JPG), sets `CanvasWidth` and `CanvasHeight` when the
-map's canvas differs from the current composition, and receives a generated
-`INSTAR_AdvancedOutput.xml`. The document contains a virtual screen, detected
-named slices, `InputRect`, `OutputRect` and identity warpers. No existing
-Advanced Output XML is requested.
+through `MapFile` (PNG/JPG) or a Wavefront OBJ containing named LED/screen
+groups, sets `CanvasWidth` and `CanvasHeight` when the map's canvas differs
+from the current composition, and receives a generated
+`INSTAR_AdvancedOutput.xml`. Raster inputs are segmented into candidate
+surfaces; OBJ inputs use the shared 3D projection core. The document contains
+a virtual screen, named slices, `InputRect`, `OutputRect` and identity
+warpers. No existing Advanced Output XML is requested.
 
 The plugin remains local and has no network, camera, model or processor
 dependency in its render path. Its XML describes the VJ's composition mapping;
@@ -254,9 +256,10 @@ requires the final installation step on a machine with Resolume.
 
 `resolume/plugin/INSTAR/INSTAR_CAPTURE.cpp` builds a second FFGL entry point,
 `INSTAR_CAPTURE.dll`, as an `FF_SOURCE`. It loads Wavefront OBJ geometry through
-the shared INSTAR scene core and renders a low-cost wireframe venue view inside
-the Resolume composition. Its view selector contains `AEREO`, `PISTA` and
-`LIBRE`; when no model is selected, it shows a deterministic stage/screen demo.
+the shared INSTAR scene core and renders a low-cost filled-mesh plus wireframe
+venue view inside the Resolume composition. Its view selector contains
+`AEREO`, `PISTA` and `LIBRE`; when no model is selected, it shows a deterministic
+stage/screen demo.
 An `ExportXML` event projects named OBJ groups containing `screen`, `led`,
 `banner`, `cctv`, `display`, `surface` or `panel` into the same
 `AdvancedOutput.xml` serializer used by INSTAR MAP.

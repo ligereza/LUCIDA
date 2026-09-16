@@ -16,6 +16,13 @@ void AddEdge(std::vector<INSTARVertex>& output, const INSTARVec3& first, const I
 	output.push_back({second, red, green, blue});
 }
 
+void AddTriangle(std::vector<INSTARVertex>& output, const INSTARVec3& first, const INSTARVec3& second, const INSTARVec3& third, float red, float green, float blue)
+{
+	output.push_back({first, red, green, blue});
+	output.push_back({second, red, green, blue});
+	output.push_back({third, red, green, blue});
+}
+
 void Normalise(INSTARScene& scene)
 {
 	if (scene.lineVertices.empty())
@@ -39,6 +46,12 @@ void Normalise(INSTARScene& scene)
 	const float extent = std::max(maximum.x - minimum.x, std::max(maximum.y - minimum.y, maximum.z - minimum.z));
 	const float scale = extent > 0.000001f ? 2.0f / extent : 1.0f;
 	for (INSTARVertex& vertex : scene.lineVertices)
+	{
+		vertex.position.x = (vertex.position.x - centre.x) * scale;
+		vertex.position.y = (vertex.position.y - centre.y) * scale;
+		vertex.position.z = (vertex.position.z - centre.z) * scale;
+	}
+	for (INSTARVertex& vertex : scene.triangleVertices)
 	{
 		vertex.position.x = (vertex.position.x - centre.x) * scale;
 		vertex.position.y = (vertex.position.y - centre.y) * scale;
@@ -83,6 +96,12 @@ void AddBox(INSTARScene& scene, const INSTARVec3& centre, const INSTARVec3& size
 	const int edges[][2] = {{0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},{0,4},{1,5},{2,6},{3,7}};
 	for (const auto& edge : edges)
 		AddEdge(scene.lineVertices, p[edge[0]], p[edge[1]], red, green, blue);
+	const int faces[][4] = {{0,3,2,1},{4,5,6,7},{0,1,5,4},{3,7,6,2},{0,4,7,3},{1,2,6,5}};
+	for (const auto& face : faces)
+	{
+		AddTriangle(scene.triangleVertices, p[face[0]], p[face[1]], p[face[2]], red, green, blue);
+		AddTriangle(scene.triangleVertices, p[face[0]], p[face[2]], p[face[3]], red, green, blue);
+	}
 }
 
 void AddNamedBox(INSTARScene& scene, const std::string& name, const INSTARVec3& centre, const INSTARVec3& size, float red, float green, float blue)
@@ -169,6 +188,7 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 			AddEdge(scene.lineVertices, first, second, red, green, blue);
 			AddEdge(scene.lineVertices, second, third, red, green, blue);
 			AddEdge(scene.lineVertices, third, first, red, green, blue);
+			AddTriangle(scene.triangleVertices, first, second, third, red, green, blue);
 		}
 		++faceNumber;
 	}

@@ -65,7 +65,8 @@ FFResult INSTARCapture::Init()
 			p = vec3(p.x, cp * p.y - sp * p.z, sp * p.y + cp * p.z);
 			p.z += 3.5;
 			float perspective = u_zoom / max(0.5, p.z);
-			gl_Position = vec4(p.x * perspective / max(0.1, u_aspect), p.y * perspective, 0.0, 1.0);
+			float depth = clamp((p.z - 0.5) / 6.0 * 2.0 - 1.0, -1.0, 1.0);
+			gl_Position = vec4(p.x * perspective / max(0.1, u_aspect), p.y * perspective, depth, 1.0);
 			v_colour = colour;
 		}
 	)";
@@ -83,7 +84,9 @@ FFResult INSTARCapture::Init()
 		return FF_FAIL;
 	glGenVertexArrays(1, &vao);
 	glGenBuffers(1, &vbo);
-	if (vao == 0 || vbo == 0)
+	glGenVertexArrays(1, &triangleVao);
+	glGenBuffers(1, &triangleVbo);
+	if (vao == 0 || vbo == 0 || triangleVao == 0 || triangleVbo == 0)
 		return FF_FAIL;
 	LoadScene();
 	UploadScene();
@@ -96,8 +99,14 @@ void INSTARCapture::Clean()
 		glDeleteBuffers(1, &vbo);
 	if (vao != 0)
 		glDeleteVertexArrays(1, &vao);
+	if (triangleVbo != 0)
+		glDeleteBuffers(1, &triangleVbo);
+	if (triangleVao != 0)
+		glDeleteVertexArrays(1, &triangleVao);
 	vbo = 0;
 	vao = 0;
+	triangleVbo = 0;
+	triangleVao = 0;
 	sceneShader.FreeGLResources();
 }
 
@@ -134,6 +143,15 @@ void INSTARCapture::UploadScene()
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(scene.lineVertices.size() * sizeof(INSTARVertex)), scene.lineVertices.data(), GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(0));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(sizeof(INSTARVec3)));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	glBindVertexArray(triangleVao);
+	glBindBuffer(GL_ARRAY_BUFFER, triangleVbo);
+	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(scene.triangleVertices.size() * sizeof(INSTARVertex)), scene.triangleVertices.data(), GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(0));
 	glEnableVertexAttribArray(1);
@@ -226,10 +244,10 @@ bool INSTARCapture::ExportSceneXml()
 
 FFResult INSTARCapture::Render(ProcessOpenGLStruct*)
 {
-	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
 	glClearColor(0.005f, 0.008f, 0.015f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
-	if (!sceneShader.IsReady() || scene.lineVertices.empty())
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	if (!sceneShader.IsReady() || (scene.lineVertices.empty() && scene.triangleVertices.empty()))
 		return FF_SUCCESS;
 	float selectedYaw = (yaw - 0.5f) * 6.2831853f;
 	float selectedPitch = (pitch - 0.5f) * 2.2f;
@@ -251,8 +269,12 @@ FFResult INSTARCapture::Render(ProcessOpenGLStruct*)
 	sceneShader.Set("u_zoom", 0.8f + zoom * 1.8f);
 	sceneShader.Set("u_aspect", aspect);
 	sceneShader.Set("u_brightness", 0.2f + brightness * 1.2f);
+	glBindVertexArray(triangleVao);
+	if (!scene.triangleVertices.empty())
+		glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(scene.triangleVertices.size()));
 	glBindVertexArray(vao);
-	glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(scene.lineVertices.size()));
+	if (!scene.lineVertices.empty())
+		glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(scene.lineVertices.size()));
 	glBindVertexArray(0);
 	return FF_SUCCESS;
 }

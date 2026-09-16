@@ -37,6 +37,8 @@ private:
 	ffglex::FFGLShader sceneShader;
 	GLuint vao = 0;
 	GLuint vbo = 0;
+	GLuint triangleVao = 0;
+	GLuint triangleVbo = 0;
 	INSTARScene scene;
 	std::string modelPath;
 	std::string loadedPath;

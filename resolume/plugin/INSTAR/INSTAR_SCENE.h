@@ -37,6 +37,7 @@ struct INSTARProjectedSurface
 struct INSTARScene
 {
 	std::vector<INSTARVertex> lineVertices;
+	std::vector<INSTARVertex> triangleVertices;
 	std::vector<INSTARSurface3D> surfaces;
 	bool fromObj = false;
 	std::string source;
