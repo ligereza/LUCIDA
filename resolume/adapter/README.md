@@ -206,7 +206,11 @@ python .\tools\resolume_adapter_cli.py instar-apply-input-map `
 ```
 
 Esta es la vía para unir un layout detectado con routing real sin inferir la
-cadena física desde una imagen.
+cadena física desde una imagen. La coincidencia ignora mayúsculas, acentos y
+separadores; si los nombres de dos fuentes no coinciden, se puede entregar un
+JSON explícito con `--aliases`, por ejemplo `{"CENTRAL":"MAIN CENTER"}`.
+Si falta alguna superficie en cualquiera de las dos fuentes, el resultado
+queda en `REVIEW` y no se aplica una coincidencia ambigua.
 
 La salida de una imagen se etiqueta como `stage_layout_candidate`. Si el
 documento no aporta procesadores, puertos o cadena de datos, el campo

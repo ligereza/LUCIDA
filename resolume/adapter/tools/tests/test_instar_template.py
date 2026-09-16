@@ -39,3 +39,30 @@ class InstarInputTemplateTests(unittest.TestCase):
             self.assertEqual(report["validation"]["status"], "PASS")
             self.assertEqual(item["input"]["bounds"], {"x": 400.0, "y": 100.0, "width": 500.0, "height": 250.0})
             self.assertEqual(item["output"]["bounds"], {"x": 200.0, "y": 300.0, "width": 400.0, "height": 200.0})
+
+    def test_alias_match_is_explicit_and_partial_templates_stay_in_review(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            template = root / "template.xml"
+            source = root / "input.svg"
+            output = root / "candidate.xml"
+            template.write_text(
+                '''<?xml version="1.0" encoding="utf-8"?>
+<XmlState><ScreenSetup><CurrentCompositionTextureSize width="1000" height="500"/><screens>
+<Screen name="Screen"><Params name="Params"/><layers>
+<Slice><Params name="Common"><Param name="Name" value="MAIN CENTER"/></Params><InputRect><v x="0" y="0"/><v x="1" y="0"/><v x="1" y="1"/><v x="0" y="1"/></InputRect><OutputRect><v x="0" y="0"/><v x="1" y="0"/><v x="1" y="1"/><v x="0" y="1"/></OutputRect></Slice>
+<Slice><Params name="Common"><Param name="Name" value="OTHER"/></Params><InputRect><v x="0" y="0"/><v x="1" y="0"/><v x="1" y="1"/><v x="0" y="1"/></InputRect><OutputRect><v x="0" y="0"/><v x="1" y="0"/><v x="1" y="1"/><v x="0" y="1"/></OutputRect></Slice>
+</layers></Screen></screens></ScreenSetup></XmlState>''',
+                encoding="utf-8",
+            )
+            source.write_text(
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500"><rect id="CENTRAL" x="100" y="50" width="500" height="250"/></svg>',
+                encoding="utf-8",
+            )
+
+            report = apply_input_svg_to_template(template, source, output, aliases={"CENTRAL": "MAIN CENTER"})
+
+            self.assertEqual(report["validation"]["status"], "REVIEW")
+            self.assertEqual(report["matched_slices"], ["MAIN CENTER"])
+            self.assertEqual(report["unmatched_template"], ["OTHER"])
+            self.assertEqual(report["match_methods"], {"MAIN CENTER": "alias"})

@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+import unicodedata
+from typing import Any, Mapping
 from xml.etree import ElementTree
 
 from .instar_svg import _canonical_rect, _find_canvas_view, _parse_svg, _view_box
@@ -32,6 +33,13 @@ def _slice_name(element: ElementTree.Element) -> str | None:
         if name is not None and name.attrib.get("value"):
             return name.attrib["value"]
     return element.attrib.get("name")
+
+
+def _name_key(value: str | None) -> str:
+    if not value:
+        return ""
+    decomposed = unicodedata.normalize("NFKD", value.casefold())
+    return "".join(char for char in decomposed if char.isalnum())
 
 
 def _replace_input_rect(element: ElementTree.Element, points: list[tuple[float, float]]) -> None:
@@ -62,6 +70,7 @@ def apply_input_svg_to_template(
     xml_output: str | Path,
     *,
     composition_size: tuple[int, int] | None = None,
+    aliases: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     template_path = Path(template_xml).expanduser().resolve()
     input_path = Path(input_svg).expanduser().resolve()
@@ -82,7 +91,8 @@ def apply_input_svg_to_template(
     shapes = _parse_svg(input_path, resolved_size)
     by_name: dict[str, list[dict[str, Any]]] = {}
     for shape in shapes:
-        by_name.setdefault(shape["name"], []).append(shape)
+        by_name.setdefault(_name_key(shape["name"]), []).append(shape)
+    alias_targets = {_name_key(target): _name_key(source) for source, target in (aliases or {}).items()}
 
     setup = root.find("./ScreenSetup")
     if setup is None:
@@ -100,14 +110,19 @@ def apply_input_svg_to_template(
     unmatched_input: list[str] = []
     unsupported_input: list[str] = []
     ambiguous_template: list[str] = []
+    match_methods: dict[str, str] = {}
+    matched_input_names: set[str] = set()
 
     for element in template_elements:
         name = _slice_name(element)
-        if not name or name not in by_name:
+        if not name:
             continue
-        candidates = by_name[name]
+        target_key = _name_key(name)
+        source_key = alias_targets.get(target_key, target_key)
+        candidates = by_name.get(source_key, [])
         if len(candidates) != 1:
-            ambiguous_template.append(name)
+            if candidates:
+                ambiguous_template.append(name)
             continue
         points = _canonical_rect(candidates[0]["points"])
         if points is None:
@@ -115,16 +130,26 @@ def apply_input_svg_to_template(
             continue
         _replace_input_rect(element, points)
         matched.append(name)
+        matched_input_names.add(source_key)
+        match_methods[name] = "alias" if target_key in alias_targets else "normalised_name"
 
-    for name in by_name:
-        if name not in template_names:
-            unmatched_input.append(name)
+    for shape in shapes:
+        if _name_key(shape["name"]) not in matched_input_names:
+            unmatched_input.append(shape["name"])
+    matched_template_names = {_name_key(name) for name in matched}
+    unmatched_template = [name for name in template_names if name and _name_key(name) not in matched_template_names]
 
     output_path = Path(xml_output).expanduser().resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     ElementTree.indent(root, space="\t")
     ElementTree.ElementTree(root).write(output_path, encoding="utf-8", xml_declaration=True)
-    status = "PASS" if matched and not unsupported_input and not ambiguous_template else "REVIEW"
+    status = "PASS" if (
+        matched
+        and not unmatched_input
+        and not unmatched_template
+        and not unsupported_input
+        and not ambiguous_template
+    ) else "REVIEW"
     return {
         "schema_version": "0.1",
         "map_type": "InstarInputTemplateApplication",
@@ -133,8 +158,11 @@ def apply_input_svg_to_template(
         "composition": {"width": resolved_size[0], "height": resolved_size[1]},
         "matched_slices": matched,
         "unmatched_input": unmatched_input,
+        "unmatched_template": unmatched_template,
         "unsupported_input": unsupported_input,
         "ambiguous_template": ambiguous_template,
+        "match_methods": match_methods,
+        "alias_count": len(alias_targets),
         "processor_routing": {"status": "PRESERVED_FROM_TEMPLATE"},
         "output": {"xml": str(output_path), "input_rects_changed": len(matched), "output_rects_changed": 0},
         "validation": {"status": status, "errors": [], "warnings": [] if status == "PASS" else [
@@ -157,6 +185,8 @@ def input_template_text_report(report: dict[str, Any]) -> str:
         f"Template: {report.get('source', {}).get('template_xml')}",
         f"Input SVG: {report.get('source', {}).get('input_svg')}",
         f"Slices actualizadas: {output.get('input_rects_changed', 0)}",
+        f"Template sin coincidencia: {len(report.get('unmatched_template') or [])}",
+        f"Input sin coincidencia: {len(report.get('unmatched_input') or [])}",
         f"OutputRects modificados: {output.get('output_rects_changed', 0)}",
         f"Routing: {(report.get('processor_routing') or {}).get('status')}",
         f"Estado: {validation.get('status', 'UNKNOWN')}",

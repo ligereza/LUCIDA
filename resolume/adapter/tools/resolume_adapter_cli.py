@@ -273,6 +273,7 @@ def build_parser() -> argparse.ArgumentParser:
     template_mapping.add_argument("template_xml", help="Template XML existente de Advanced Output.")
     template_mapping.add_argument("input_svg", help="SVG con la geometría de entrada por nombre de superficie.")
     template_mapping.add_argument("--composition-size", type=_resolution, help="Resolución de composición si no está en el template.")
+    template_mapping.add_argument("--aliases", help="JSON con aliases {nombre_input: nombre_template} para coincidencias explícitas.")
     template_mapping.add_argument("--xml", required=True, help="Ruta del XML candidato resultante.")
     template_mapping.add_argument("--report", help="Ruta opcional para guardar el reporte JSON.")
 
@@ -698,11 +699,17 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "instar-apply-input-map":
+            aliases = None
+            if args.aliases:
+                aliases = json.loads(Path(args.aliases).expanduser().resolve().read_text(encoding="utf-8"))
+                if not isinstance(aliases, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in aliases.items()):
+                    raise ResolumeAdapterError("--aliases debe ser un objeto JSON de nombre_input a nombre_template.")
             report = apply_input_svg_to_template(
                 args.template_xml,
                 args.input_svg,
                 args.xml,
                 composition_size=args.composition_size,
+                aliases=aliases,
             )
             print(input_template_text_report(report))
             if args.report:
