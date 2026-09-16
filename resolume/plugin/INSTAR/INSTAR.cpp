@@ -8,6 +8,10 @@
 #include <iterator>
 #include <sstream>
 
+#ifdef _WIN32
+#include <direct.h>
+#endif
+
 using namespace ffglqs;
 
 namespace
@@ -40,6 +44,28 @@ std::vector<float> ParseSliceDepths(const std::string& text, size_t count, float
 		++index;
 	}
 	return result;
+}
+
+std::string PathKey(const std::string& path)
+{
+	std::string value = path;
+#ifdef _WIN32
+	char fullPath[32768] = {};
+	if (_fullpath(fullPath, path.c_str(), sizeof(fullPath)) != nullptr)
+		value = fullPath;
+#endif
+	for (char& character : value)
+	{
+		if (character == '\\')
+			character = '/';
+		character = static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+	}
+	return value;
+}
+
+bool PathsEquivalent(const std::string& left, const std::string& right)
+{
+	return !left.empty() && !right.empty() && PathKey(left) == PathKey(right);
 }
 }
 
@@ -177,7 +203,8 @@ bool INSTAR::LoadVenue()
 	const int mode = static_cast<int>(GetFloatParameter(PARAM_MODE));
 	if (mode == MODE_XML_PLANES)
 	{
-		if (templatePath.empty())
+		const std::string activeTemplatePath = previewTemplatePath.empty() ? templatePath : previewTemplatePath;
+		if (activeTemplatePath.empty())
 		{
 			scene = BuildINSTARFlatPlaneDemoScene();
 			loadedPath.clear();
@@ -186,12 +213,12 @@ bool INSTAR::LoadVenue()
 		}
 		std::string error;
 		INSTARScene loaded;
-		if (!LoadINSTARAdvancedOutputPlanes(templatePath, loaded, error))
+		if (!LoadINSTARAdvancedOutputPlanes(activeTemplatePath, loaded, error))
 		{
 			const std::string message = "INSTAR: TemplateXML inválido para XML_PLANES: " + error;
 			FFGLLog::LogToHost(message.c_str());
 			scene = BuildINSTARFlatPlaneDemoScene();
-			loadedPath = templatePath;
+			loadedPath = activeTemplatePath;
 			sceneDirty = false;
 			return false;
 		}
@@ -200,7 +227,7 @@ bool INSTAR::LoadVenue()
 		depths = explicitDepths;
 		ApplyINSTARInputPlaneDepths(loaded, depths);
 		scene = loaded;
-		loadedPath = templatePath;
+		loadedPath = activeTemplatePath;
 		sceneDirty = false;
 		return true;
 	}
@@ -364,7 +391,9 @@ FFResult INSTAR::RenderRaster()
 void INSTAR::Update()
 {
 	const int mode = static_cast<int>(GetFloatParameter(PARAM_MODE));
-	const std::string desiredPath = mode == MODE_XML_PLANES ? templatePath : (mode == MODE_VENUE_3D ? venuePath : std::string());
+	const std::string desiredPath = mode == MODE_XML_PLANES ?
+		(previewTemplatePath.empty() ? templatePath : previewTemplatePath) :
+		(mode == MODE_VENUE_3D ? venuePath : std::string());
 	if (sceneDirty || loadedPath != desiredPath)
 	{
 		LoadVenue();
@@ -389,6 +418,11 @@ bool INSTAR::ExportMapXml()
 	if (templatePath.empty())
 	{
 		FFGLLog::LogToHost("INSTAR: TemplateXML vacío; se requiere un Advanced Output real");
+		return false;
+	}
+	if (PathsEquivalent(templatePath, outputPath))
+	{
+		FFGLLog::LogToHost("INSTAR: OutputXML no puede sobrescribir TemplateXML");
 		return false;
 	}
 
@@ -438,7 +472,15 @@ bool INSTAR::ExportMapXml()
 	file << xml;
 	const bool written = file.good();
 	file.close();
-	FFGLLog::LogToHost(written ? "INSTAR: AdvancedOutput.xml generado desde raster" : "INSTAR: error al escribir AdvancedOutput.xml");
+	if (written)
+	{
+		previewTemplatePath = outputPath;
+		loadedPath.clear();
+		sceneDirty = true;
+		FFGLLog::LogToHost("INSTAR: AdvancedOutput.xml generado; se carga automáticamente en XML_PLANES");
+	}
+	else
+		FFGLLog::LogToHost("INSTAR: error al escribir AdvancedOutput.xml");
 	return written;
 }
 
@@ -512,6 +554,7 @@ FFResult INSTAR::SetTextParameter(unsigned int index, const char* value)
 	if (index == PARAM_TEMPLATE_XML)
 	{
 		templatePath = safeValue;
+		previewTemplatePath.clear();
 		sceneDirty = true;
 		return FF_SUCCESS;
 	}
@@ -524,6 +567,8 @@ FFResult INSTAR::SetTextParameter(unsigned int index, const char* value)
 	if (index == PARAM_OUTPUT_XML)
 	{
 		outputPath = safeValue.empty() ? "INSTAR_AdvancedOutput.xml" : safeValue;
+		previewTemplatePath.clear();
+		sceneDirty = true;
 		return FF_SUCCESS;
 	}
 	return Source::SetTextParameter(index, value);

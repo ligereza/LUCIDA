@@ -84,6 +84,8 @@ También conserva `VENUE_3D`, que lee el JSON de polilíneas de FLUJO, y
 `RASTER_PIXEL_MAP`, que muestra un `MapFile` raster conservando proporciones.
 `ExportMapXML` sigue siendo explícito y genera desde el PNG/JPG usando
 `TemplateXML` real como autoridad de composición, pantalla, dispositivo e IDs.
+Después de escribirlo, `OutputXML` pasa a ser automáticamente la fuente del
+preview XML; el template original no se sobrescribe.
 `OutputRect`, warpers y routing no se inventan desde la imagen. Un escenario
 adicional debe venir de un `VenueFile` o modelo explícito. `EdgeBudget`
 prioriza polilíneas por confianza y `ConfidenceCeiling` permite excluir niveles;

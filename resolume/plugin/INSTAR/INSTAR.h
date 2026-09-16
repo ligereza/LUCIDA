@@ -55,6 +55,7 @@ private:
 	std::string loadedPath;
 	std::string mapPath;
 	std::string templatePath;
+	std::string previewTemplatePath;
 	std::string outputPath = "INSTAR_AdvancedOutput.xml";
 	float yaw = 0.5f;
 	float pitch = 0.5f;

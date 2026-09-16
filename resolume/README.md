@@ -254,6 +254,10 @@ through `TemplateXML`. INSTAR preserves that template's composition size,
 screen, output device, device identity and slice parameter structure, replacing
 only the mapping layers with the detected raster surfaces. This path is
 separate from the 3D model viewer: an OBJ is never converted to XML by default.
+After a successful export, `OutputXML` becomes the active XML preview source
+automatically; the original `TemplateXML` remains the export source and can be
+restored by selecting it again. INSTAR rejects an output path that would
+overwrite the template.
 PDF and SVG inputs remain with the offline adapter, which can rasterize or
 vector-map them before an explicit export.
 
