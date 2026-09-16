@@ -474,6 +474,14 @@ bool INSTAR::ExportMapXml()
 	file.close();
 	if (written)
 	{
+		INSTARScene generatedPreview;
+		std::string generatedError;
+		if (!LoadINSTARAdvancedOutputPlanes(outputPath, generatedPreview, generatedError))
+		{
+			const std::string message = "INSTAR: OutputXML escrito pero no es reutilizable en XML_PLANES: " + generatedError;
+			FFGLLog::LogToHost(message.c_str());
+			return false;
+		}
 		previewTemplatePath = outputPath;
 		loadedPath.clear();
 		sceneDirty = true;
