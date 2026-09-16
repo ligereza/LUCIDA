@@ -51,7 +51,8 @@ una lista opcional alineada con el orden real de los slices. `VENUE_3D`
 conserva el recorrido JSON de FLUJO y `RASTER_PIXEL_MAP` conserva la
 inspección plana. `MapFile` puede texturizar los planos XML si corresponde a
 la misma composición y `TemplateXML` continúa siendo la autoridad de routing
-para la exportación explícita. Tras una exportación correcta, `OutputXML` se
+para la exportación explícita: la exportación solo actualiza los `InputRect`
+existentes uno a uno y rechaza diferencias de cantidad. Tras una exportación correcta, `OutputXML` se
 recarga automáticamente como fuente del preview sin sobrescribir el template.
 `INSTAR_3D.dll` recibe
 OBJ/MTL para visualización de modelos y no genera XML. La exportación raster de

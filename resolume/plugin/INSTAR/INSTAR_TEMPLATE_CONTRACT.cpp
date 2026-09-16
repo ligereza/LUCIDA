@@ -19,7 +19,8 @@ int VerifySyntheticTemplate()
 		"<XmlState name=\"MOVISTARLOLLA\"><ScreenSetup><CurrentCompositionTextureSize width=\"7680\" height=\"1792\"/>"
 		"<screens><Screen name=\"Screen 1\"><layers><Slice uniqueId=\"1773510997554\">"
 		"<Params name=\"Common\"><Param name=\"Name\" value=\"old\"/></Params>"
-		"<InputRect/><OutputRect/><Warper></Warper></Slice></layers>"
+		"<InputRect><v x=\"0\" y=\"0\"/><v x=\"7680\" y=\"0\"/><v x=\"7680\" y=\"1792\"/><v x=\"0\" y=\"1792\"/></InputRect>"
+		"<OutputRect><v x=\"10\" y=\"20\"/></OutputRect><Warper><sentinel/></Warper></Slice></layers>"
 		"<OutputDevice><OutputDeviceDisplay name=\"Display 2\" width=\"3840\" height=\"2160\"/></OutputDevice>"
 		"</Screen></screens></ScreenSetup></XmlState>";
 	INSTARTemplateInfo info;
@@ -37,8 +38,13 @@ int VerifySyntheticTemplate()
 	const std::vector<INSTARSurfaceMapping> mappings = ScaleINSTARSurfacesToTemplate({source}, 1000, 500, info);
 	const std::string output = BuildINSTARAdvancedOutputXmlFromTemplate(templateXml, mappings);
 	if (output.empty() || output.find("OutputDeviceDisplay") == std::string::npos ||
-		output.find("value=\"CENTRAL\"") == std::string::npos ||
-		output.find("1773510997554") == std::string::npos)
+		output.find("value=\"old\"") == std::string::npos ||
+		output.find("1773510997554") == std::string::npos ||
+		output.find("x=\"768\"") == std::string::npos ||
+		output.find("x=\"10\" y=\"20\"") == std::string::npos ||
+		output.find("<sentinel/>") == std::string::npos)
+		return 1;
+	if (!BuildINSTARAdvancedOutputXmlFromTemplate(templateXml, {mappings.front(), mappings.front()}).empty())
 		return 1;
 	return 0;
 }

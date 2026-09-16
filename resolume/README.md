@@ -252,7 +252,9 @@ INSTAR also exposes an explicit `ExportMapXML` event. The VJ supplies a raster
 pixel map through `MapFile` (PNG/JPG) and a real Resolume Advanced Output file
 through `TemplateXML`. INSTAR preserves that template's composition size,
 screen, output device, device identity and slice parameter structure, replacing
-only the mapping layers with the detected raster surfaces. This path is
+only the existing slices' `InputRect` values with the detected raster
+surfaces. The detected surface count must match the template slice count;
+otherwise the export is rejected instead of inventing physical routing. This path is
 separate from the 3D model viewer: an OBJ is never converted to XML by default.
 After a successful export, `OutputXML` becomes the active XML preview source
 automatically; the original `TemplateXML` remains the export source and can be

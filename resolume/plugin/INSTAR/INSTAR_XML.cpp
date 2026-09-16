@@ -129,59 +129,22 @@ bool ParseUnsignedLongLong(const std::string& value, unsigned long long& result)
 	return true;
 }
 
-std::string ReplaceAttribute(const std::string& text, const char* name, const std::string& value)
-{
-	const std::string marker = std::string(name) + "=\"";
-	const size_t valueStart = text.find(marker);
-	if (valueStart == std::string::npos)
-		return text;
-	const size_t contentStart = valueStart + marker.size();
-	const size_t contentEnd = text.find('"', contentStart);
-	if (contentEnd == std::string::npos)
-		return text;
-	std::string result = text;
-	result.replace(contentStart, contentEnd - contentStart, value);
-	return result;
-}
-
-std::string ReplaceSliceName(const std::string& text, const std::string& name)
-{
-	const size_t common = text.find("<Params name=\"Common\"");
-	const size_t nameParam = common == std::string::npos ? std::string::npos : text.find("<Param name=\"Name\"", common);
-	if (nameParam == std::string::npos)
-		return text;
-	const size_t valueStart = text.find("value=\"", nameParam);
-	if (valueStart == std::string::npos)
-		return text;
-	const size_t contentStart = valueStart + 7;
-	const size_t contentEnd = text.find('"', contentStart);
-	if (contentEnd == std::string::npos)
-		return text;
-	std::string result = text;
-	result.replace(contentStart, contentEnd - contentStart, XmlEscape(name));
-	return result;
-}
-
-std::string TemplateSlice(
+std::string ReplaceTemplateSliceInput(
 	const std::string& templateSlice,
-	unsigned long long uniqueId,
-	const INSTARSurfaceMapping& mapping
+	const INSTARSurface& input
 )
 {
-	const size_t sliceOpenEnd = templateSlice.find('>');
-	const size_t inputStart = sliceOpenEnd == std::string::npos ? std::string::npos : templateSlice.find("<InputRect", sliceOpenEnd);
-	const size_t warperEnd = inputStart == std::string::npos ? std::string::npos : templateSlice.find("</Warper>", inputStart);
-	const size_t sliceClose = templateSlice.rfind("</Slice>");
-	if (sliceOpenEnd == std::string::npos || inputStart == std::string::npos || warperEnd == std::string::npos || sliceClose == std::string::npos)
+	const size_t inputStart = templateSlice.find("<InputRect");
+	const size_t inputClose = inputStart == std::string::npos ? std::string::npos : templateSlice.find("</InputRect>", inputStart);
+	if (inputStart == std::string::npos || inputClose == std::string::npos)
 		return std::string();
-	std::string head = templateSlice.substr(0, inputStart);
-	head = ReplaceAttribute(head, "uniqueId", std::to_string(uniqueId));
-	head = ReplaceSliceName(head, mapping.name);
-	const std::string tail = templateSlice.substr(warperEnd + std::string("</Warper>").size(), sliceClose - warperEnd - std::string("</Warper>").size());
-	const std::string indent = "\t\t\t\t\t\t";
-	return head + RectXml("InputRect", mapping.input, indent) + "\n" +
-		RectXml("OutputRect", mapping.output, indent) + "\n" +
-		WarperXml(mapping.output, indent) + tail + "</Slice>";
+	const size_t lineStart = templateSlice.rfind('\n', inputStart);
+	const std::string indent = templateSlice.substr(
+		lineStart == std::string::npos ? 0 : lineStart + 1,
+		inputStart - (lineStart == std::string::npos ? 0 : lineStart + 1)
+	);
+	const size_t inputEnd = inputClose + std::string("</InputRect>").size();
+	return templateSlice.substr(0, inputStart) + RectXml("InputRect", input, indent) + templateSlice.substr(inputEnd);
 }
 }
 
@@ -330,17 +293,30 @@ std::string BuildINSTARAdvancedOutputXmlFromTemplate(
 		return std::string();
 	const size_t layersOpen = templateXml.find("<layers>");
 	const size_t layersClose = templateXml.find("</layers>", layersOpen);
-	const size_t sliceOpen = templateXml.find("<Slice", layersOpen);
-	const size_t sliceClose = sliceOpen == std::string::npos ? std::string::npos : templateXml.find("</Slice>", sliceOpen);
-	if (layersOpen == std::string::npos || layersClose == std::string::npos || sliceOpen == std::string::npos || sliceClose == std::string::npos)
+	if (layersOpen == std::string::npos || layersClose == std::string::npos)
 		return std::string();
-	const std::string templateSlice = templateXml.substr(sliceOpen, sliceClose + std::string("</Slice>").size() - sliceOpen);
+	std::vector<std::string> templateSlices;
+	size_t cursor = layersOpen + std::string("<layers>").size();
+	while (cursor < layersClose)
+	{
+		const size_t sliceOpen = templateXml.find("<Slice", cursor);
+		if (sliceOpen == std::string::npos || sliceOpen >= layersClose)
+			break;
+		const size_t sliceClose = templateXml.find("</Slice>", sliceOpen);
+		if (sliceClose == std::string::npos || sliceClose >= layersClose)
+			return std::string();
+		templateSlices.push_back(templateXml.substr(sliceOpen, sliceClose + std::string("</Slice>").size() - sliceOpen));
+		cursor = sliceClose + std::string("</Slice>").size();
+	}
+	// A real template defines the physical routing. Only a one-to-one input
+	// update is safe; changing the number of slices would invent routing.
+	if (templateSlices.empty() || templateSlices.size() != mappings.size())
+		return std::string();
 	std::ostringstream output;
 	output << templateXml.substr(0, layersOpen + std::string("<layers>").size()) << "\n";
-	unsigned long long nextId = info.firstSliceId;
-	for (const INSTARSurfaceMapping& mapping : mappings)
+	for (size_t index = 0; index < mappings.size(); ++index)
 	{
-		const std::string slice = TemplateSlice(templateSlice, nextId++, mapping);
+		const std::string slice = ReplaceTemplateSliceInput(templateSlices[index], mappings[index].input);
 		if (slice.empty())
 			return std::string();
 		output << slice << "\n";
