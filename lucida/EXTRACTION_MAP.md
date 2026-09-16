@@ -1,6 +1,6 @@
-# Mapa de extracción RESOLUME_ADAPTER → LUCIDA
+# Mapa de extracción RESOLUME → LUCIDA
 
-LUCIDA consolida la coordinación común de RESOLUME_ADAPTER/VJ. No reemplaza RESOLUME_ADAPTER ni
+LUCIDA consolida la coordinación común de RESOLUME/VJ. No reemplaza RESOLUME ni
 absorbe clips, obras, presets, showfiles, XML de venues, rutas locales,
 credenciales o configuraciones privadas.
 
@@ -43,7 +43,7 @@ la capacidad correspondiente a la fase crea una propuesta para ese evento.
 - lectura de configuraciones reales, timing de transporte y sincronización;
 - compatibilidad futura del contrato de eventos con XIO.
 
-## Fuera de LUCIDA; permanece exclusivo de RESOLUME_ADAPTER o requiere otro adaptador
+## Fuera de LUCIDA; permanece exclusivo de la superficie RESOLUME o requiere otro adaptador
 
 - análisis de carpetas de INSTAR, sidecars, caché y backends GPU;
 - conversión y validación DXV;
@@ -68,7 +68,7 @@ que LUCIDA tome control irreversible del show.
 | --- | --- | --- |
 | ADOBE | lucida.signals.adobe.AdobeSignalConsumer | Photoshop/Illustrator/After Effects/Premiere y el bridge local |
 | MULTI/XIO | lucida.signals.xio_bridge | captura, transporte, red, OSC, Art-Net, timecode y registro |
-| RESOLUME/RESOLUME_ADAPTER | lucida.signals.boundary y semantic_light_field | Resolume, liveshow, clips, cues, showfiles y hardware |
+| RESOLUME | lucida.signals.boundary y semantic_light_field | Resolume, liveshow, clips, cues, showfiles y hardware |
 
 Las tres entradas desembocan en replay y propuestas explícitas. Ninguna
 transfiere contenido crudo ni convierte a LUCIDA en dueño del host de origen.

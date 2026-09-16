@@ -14,12 +14,12 @@ shape.
 The current engine includes strict metadata-only adapters for VISUAL and PUPILA.
 They translate already-redacted domain states into `EngineEvent` values; they do
 not capture sensors, infer attention, open a window or execute host actions.
-XIO and RESOLUME_ADAPTER remain contract slots owned by their repositories:
+XIO and RESOLUME remain contract slots owned by their repositories:
 
 | Domain | Source role | Candidate event families | Current owner |
 | --- | --- | --- | --- |
 | XIO | transport and signal observation | `signal.observed`, `peer.updated`, `timecode.observed` | XIO adapter |
-| RESOLUME_ADAPTER | show-state projection | `show.state`, `show.phase`, `preview.candidate` | RESOLUME_ADAPTER adapter |
+| RESOLUME | show-state projection | `show.state`, `show.phase`, `preview.candidate` | RESOLUME adapter |
 | VISUAL | bounded perception state | `focus.state`, `geometry.state`, `perception.quality` | `visual.metadata` |
 | PUPILA | coordination proposals | `coordination.state`, `coordination.proposal` | `pupila.coordination` |
 

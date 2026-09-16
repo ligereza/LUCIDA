@@ -1,9 +1,13 @@
-# RESOLUME_ADAPTER — Capacidades
+# LUCIDA/RESOLUME — Capacidades
+
+Este documento describe el adaptador específico de Resolume dentro de la
+superficie LUCIDA/RESOLUME. El identificador técnico resolume_adapter se
+mantiene en comandos, módulos y rutas por compatibilidad.
 
 Documento de referencia del estado real del repositorio. Última revisión:
 2026-09-02.
 
-RESOLUME_ADAPTER es un repositorio de herramientas, contratos y conocimiento operativo
+El adaptador de Resolume es un conjunto de herramientas, contratos y conocimiento operativo
 para trabajo VJ. Su objetivo es convertir problemas habituales de preparación,
 soundcheck y show en procesos reproducibles, medibles y seguros.
 
@@ -20,7 +24,7 @@ soundcheck y show en procesos reproducibles, medibles y seguros.
 | CLI portable | Implementado | Launcher Windows, bootstrap opcional y diagnóstico `doctor`; no altera showfiles ni hardware |
 | Incidentes VJ | Implementado en primera versión | Planes de evidencia, hipótesis y recuperación reversible compartidos por las tres etapas |
 
-## Flujo RESOLUME_ADAPTER
+## Flujo LUCIDA/RESOLUME
 
 ```text
 INSTAR  ->  NAYADE  ->  IMAGO
@@ -101,7 +105,7 @@ análisis de apoyo y no reemplaza la revisión artística del VJ.
 
 ### DXV
 
-RESOLUME_ADAPTER puede preparar una conversión a DXV usando el encoder disponible y
+El adaptador puede preparar una conversión a DXV usando el encoder disponible y
 validar la salida. El flujo conserva resolución, FPS y alpha según la
 configuración solicitada; no crea alpha falso para videos con fondo negro.
 
@@ -111,7 +115,7 @@ Resolume y que el material quede documentado.
 
 ### Cues de Resolume
 
-RESOLUME_ADAPTER puede leer una composición `.avc` y extraer:
+El adaptador puede leer una composición `.avc` y extraer:
 
 - clips y capas;
 - posiciones de CUE en milisegundos, segundos y normalizadas;
@@ -239,7 +243,7 @@ El contrato de módulo permite registrar, con origen y confianza:
 - topología;
 - condiciones de operación.
 
-RESOLUME_ADAPTER no intenta inferir todo desde HDMI. El pitch puede calcularse cuando se
+El adaptador no intenta inferir todo desde HDMI. El pitch puede calcularse cuando se
 conocen dimensiones y píxeles, pero la marca, el brillo máximo, el entorno y
 la calibración requieren una ficha, lectura, etiqueta, medición u otra fuente.
 
@@ -323,7 +327,7 @@ como `calculada`, `probable`, `conflictiva` o `desconocida`.
 
 - Los comandos actuales son de lectura, generación de reportes o generación
   de derivados.
-- RESOLUME_ADAPTER no cambia BIOS, drivers, perfil de energía ni configuración de
+- El adaptador no cambia BIOS, drivers, perfil de energía ni configuración de
   Resolume.
 - NAYADE no escribe en procesadores LED desconocidos.
 - No se deben usar perfiles inferidos para enviar parámetros automáticamente.

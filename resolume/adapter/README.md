@@ -1,4 +1,7 @@
-# RESOLUME_ADAPTER
+# LUCIDA/RESOLUME — adaptador de Resolume
+
+Este directorio contiene la integración operativa específica de Resolume.
+El nombre técnico resolume_adapter se conserva en CLI, módulos y rutas por compatibilidad.
 
 Repositorio personal de herramientas, procedimientos y conocimiento práctico para trabajo VJ.
 
@@ -55,7 +58,7 @@ python -m pytest tests tools/tests
 El archivo pytest.ini local evita heredar por accidente la configuración del
 repositorio padre y deseleccionar todos los tests.
 
-Para usar RESOLUME_ADAPTER como colega sin conocer la estructura del repositorio:
+Para usar el adaptador de Resolume sin conocer la estructura del repositorio:
 
 ```powershell
 .\tools\Bootstrap-RESOLUME_ADAPTER.ps1 -Dev
@@ -71,7 +74,7 @@ Para habilitar el análisis visual GPU en una máquina NVIDIA:
 python -m pip install -r requirements-gpu.txt
 ```
 
-El runtime de RESOLUME_ADAPTER usa la biblioteca estándar de Python. El preflight técnico
+El runtime del adaptador usa la biblioteca estándar de Python. El preflight técnico
 de INSTAR usa sólo FFprobe y no decodifica todo el video; `--deep` activa el
 diagnóstico adicional de luminancia. `--gpu` usa NVDEC/CUDA y no hace fallback
 silencioso a CPU. Para analizar media
@@ -104,14 +107,14 @@ red. Para validar una instancia JSON concreta, agrega `--schema` y `--instance`.
 
 ```text
 docs/
-  architecture/     Arquitectura de componentes y etapas de RESOLUME_ADAPTER.
+  architecture/     Arquitectura de componentes y etapas del adaptador.
   decisions/       Decisiones de diseño del repositorio.
   research/        Mapa de conceptos VJ y herramientas open source.
   runbooks/        Procedimientos operativos paso a paso.
   checklists/      Listas breves para usar antes o durante un show.
   templates/       Plantillas para registrar nuevos casos.
 schemas/           Contratos compartidos para INSTAR, NAYADE e IMAGO.
-tools/             Scripts locales y núcleo de herramientas RESOLUME_ADAPTER.
+tools/             Scripts locales y núcleo de herramientas del adaptador.
 artifacts/         Salidas locales; ignoradas por Git.
 ```
 
@@ -214,11 +217,11 @@ Resolume, DMX ni procesadores. El contrato esta en
 ## Próximos incrementos
 
 1. Validar `INSTAR Media Preflight` con clips sintéticos y casos reales.
-2. Mejorar `RESOLUME_ADAPTER DXV Assistant` con procesamiento por lotes y más perfiles.
+2. Mejorar el asistente DXV con procesamiento por lotes y más perfiles.
 3. Empaquetar las herramientas como aplicación portable para colegas.
 4. Incorporar una plantilla de incidente para flicker, tearing, frames dropped y pérdida de rutas.
 5. Registrar resultados de pruebas reales en `docs/cases/` sin copiar medios al repositorio.
-6. Diseñar el perfil de señal de RESOLUME_ADAPTER para diagnóstico seguro de GPU, HDMI y procesadores LED.
+6. Diseñar el perfil de señal de RESOLUME para diagnóstico seguro de GPU, HDMI y procesadores LED.
 7. Crear en `INSTAR` el importador de `VENUE` y `BASE DE DATOS PUBLICA`, comenzando por Advanced Output XML.
 8. Integrar el auditor de composición Resolume con el MCP local, manteniendo el modo de lectura como comportamiento por defecto.
 9. Permitir que IMAGO consuma un plan de mapping aprobado, sin aplicar cambios

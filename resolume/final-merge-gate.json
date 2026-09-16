@@ -2,6 +2,7 @@
   "base_commit": "e2f2cb15a51b0b82be72973de40e96f40675ab23",
   "blockers": [],
   "candidate_commit": "a155762d946cff2cf41f2cc68c721ad77f3b4445",
+  "candidate_in_current_head": true,
   "candidate_parent_commit": "7722ce7ae5c619c63e7587b8f08854bb403fed4a",
   "changed_file_classes": {
     "contamination": [],
@@ -49,18 +50,21 @@
     "dependency_drift": false,
     "forbidden_paths": [],
     "generated_assets_in_candidate_diff": false,
-    "main_checkout_status": "RESOLUME...origin/RESOLUME; ?? adobe/",
+    "main_checkout_status": "historical Windows checkout; current run is on MAK",
     "network_used": false,
     "private_media_in_candidate_diff": false,
     "unexpected_subprocess_behavior": false
   },
+  "current_branch": "RESOLUME",
+  "current_head": "04c1040816176fd95dad30e3c341f32fc72be15f",
   "decision": "READY_FOR_EXPLICIT_MERGE",
   "main_checkout_untouched": true,
   "merge_command": "git merge --ff-only a155762d946cff2cf41f2cc68c721ad77f3b4445",
-  "next_action": "Offer a155762d946cff2cf41f2cc68c721ad77f3b4445 for explicit operator merge from the clean C:\\IA\\LUCIDA checkout; do not execute automatically.",
+  "next_action": "Historical record: candidate is already integrated into the current RESOLUME lineage; use current HEAD for new work.",
   "proposed_merge_targets": [
     "a155762d946cff2cf41f2cc68c721ad77f3b4445"
   ],
+  "record_status": "historical_record",
   "regression_checks": {
     "ascii_guard": true,
     "base_head_exact": true,

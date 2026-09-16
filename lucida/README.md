@@ -1,6 +1,6 @@
 # LUCIDA
 
-LUCIDA es la capa integradora de RESOLUME_ADAPTER/VJ: una única superficie estructurada
+LUCIDA es la capa integradora de LUCIDA/RESOLUME/VJ: una única superficie estructurada
 que coordina tres capacidades internas —`INSTAR`, `NAYADE` e `IMAGO`— sin
 convertirlas en tres interfaces separadas.
 
@@ -77,7 +77,7 @@ reporte.
 - Las propuestas requieren que un operador o un host autorizado decida qué
   hacer y registre el resultado; no existe un método de ejecución automática.
 - Los detalles de medios, cues, mapping, GPU, protocolos y hardware siguen
-  siendo implementaciones exclusivas o pendientes de RESOLUME_ADAPTER.
+  siendo implementaciones exclusivas o pendientes de la superficie RESOLUME.
 
 La convención de ASCII técnico y la verificación offline están documentadas en
 [`CONTRIBUTING.md`](CONTRIBUTING.md).

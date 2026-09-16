@@ -90,7 +90,7 @@ This keeps the boundaries separate:
 
 - ADOBE publishes bounded context or proposal signals.
 - MULTI/XIO owns transport, peer sessions, clocks, hashes, and provenance.
-- RESOLUME/RESOLUME_ADAPTER owns the visual host adapter and live-show concerns.
+- RESOLUME owns the visual host adapter and live-show concerns.
 - LUCIDA integrates the resulting summaries and records explicit outcomes.
 
 No connector opens a host, socket, router, or device from this package.

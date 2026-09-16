@@ -1,6 +1,6 @@
 # LUCIDA Resolume surface
 
-This branch contains the portable VJ integration extracted from RESOLUME_ADAPTER. The
+This branch contains the portable VJ integration for LUCIDA/RESOLUME. The
 source package remains in `lucida/`; the integration is proposal-only and does
 not open Resolume, sockets or external processes during replay.
 
@@ -65,7 +65,7 @@ external_side_effects=false
 
 The smoke entry point validates the existing recorded signal-envelope-v1
 fixture, feeds its normalized signals into the existing replay dispatcher with
-the RESOLUME_ADAPTER semantic report fixture, and reads the existing RESOLUME overlay
+the semantic report fixture, and reads the existing RESOLUME overlay
 contract. The `REVIEW` status is expected because the proposal remains pending
 approval. Repeating the command with the same fixtures produces the same
 evidence.
@@ -132,7 +132,7 @@ future host adapter.
 
 The concrete RESOLUME surface entrypoint is
 `lucida.signals.boundary.OscResolumeBoundary`. Its
-`ingest_semantic_light_field_report()` method consumes the existing RESOLUME_ADAPTER
+`ingest_semantic_light_field_report()` method consumes the existing semantic
 `ResolumeAdapterSemanticLightFieldReplayReport`, validates the existing `VJProposal`
 contract and the tape SHA-256/schema evidence, and projects a bounded
 `resolume_preview` with `pending_approval` status.
@@ -141,7 +141,7 @@ The projection keeps `proposal_only=true`, `reversible=true`, and
 `resolume_opened=false`. It carries tape schema, hash, frame count, and
 calibration status only; tape frames stay in the upstream replay report and
 are never copied into `VJProposal` or the LUCIDA surface state. Approval still
-uses the existing explicit result boundary. No XIO/RESOLUME_ADAPTER rendering engine,
+uses the existing explicit result boundary. No rendering engine,
 ledger, replay engine, socket, GPU, camera, or hardware implementation is
 duplicated here.
 

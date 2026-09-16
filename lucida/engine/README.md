@@ -10,13 +10,13 @@ render output.
 
 Adapters are registered explicitly by an ASCII `adapter_id`. The engine never
 auto-detects a source from payload shape: an unknown or mismatched adapter is a
-hard error. This keeps XIO, RESOLUME_ADAPTER, VISUAL and PUPILA replaceable and prevents a
+hard error. This keeps XIO, RESOLUME, VISUAL and PUPILA replaceable and prevents a
 payload from silently entering the wrong domain boundary.
 
 The first slice is intentionally small:
 
 ```text
-XIO event or RESOLUME_ADAPTER state
+XIO event or RESOLUME state
         -> EngineEvent
         -> LucidaEngine
         -> RenderPlan
