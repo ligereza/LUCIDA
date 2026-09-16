@@ -218,17 +218,30 @@ the artifact does not claim live Resolume, audio, venue, timing, calibration,
 or hardware validation. Evidence file hashes canonicalize CRLF to LF so the
 same Git blob produces the same manifest in Windows worktrees.
 
-## Native FFGL plugin prototype
+## Native INSTAR FFGL plugin
 
-The first native Resolume unit is `resolume/plugin/LucidaGuide/`. It is an
-`FF_EFFECT` plugin built against the official Resolume FFGL SDK. It receives
-the current layer texture, preserves it, and adds a GPU-light composition
-guide controlled by `GuideOpacity`, `GuideDetail`, and `GuideColor`.
+The native Resolume unit is `resolume/plugin/INSTAR/`. It is an `FF_EFFECT`
+plugin built against the official Resolume FFGL SDK. It preserves the current
+layer texture and provides a low-GPU composition guide for the VJ.
 
-The plugin deliberately has no network, filesystem, Python, camera, model, or
-PUPILA dependency in its render path. This keeps the native surface suitable
-for live use while the host-neutral LUCIDA engine remains the place for
-proposals and later user assistance.
+INSTAR also exposes an `ExportXML` event. It creates an
+`INSTAR_AdvancedOutput.xml` directly from the current canvas and an optional
+line-oriented `.instar` surface profile; it does not ask for an existing
+Advanced Output XML. The generated document contains a virtual screen,
+named slices, `InputRect`, `OutputRect` and identity warpers.
+
+The profile format is intentionally small:
+
+```text
+canvas 4186 1283
+surface CENTRAL 0 128 2560 1024
+surface CCTV_R 2644 0 768 1280
+```
+
+The profile can be produced from a PDF/PNG/SVG by the offline INSTAR adapter,
+or written by the VJ. The plugin remains local and has no network, camera,
+model or processor dependency in its render path. Its XML describes the VJ's
+composition mapping; it does not configure NovaStar/Brompton hardware.
 
 Build from this repository with the official FFGL checkout available at
 `C:/IA/vendor/resolume-ffgl`:
@@ -239,7 +252,7 @@ cmake --build work/resolume-plugin-build --config Release
 ```
 
 The resulting DLL is copied to
-`work/resolume-plugin-build/Extra Effects/LucidaGuide.dll`. Add that folder in
+`work/resolume-plugin-build/Extra Effects/INSTAR.dll`. Add that folder in
 Resolume Preferences → Video → FFGL Directories and restart Resolume. The
-prototype is not evidence of live host loading until that final installation
-step is performed on a machine with Resolume.
+native build and XML contract are verified locally; live host loading still
+requires the final installation step on a machine with Resolume.

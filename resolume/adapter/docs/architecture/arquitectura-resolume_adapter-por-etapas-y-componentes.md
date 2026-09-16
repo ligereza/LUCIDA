@@ -1,7 +1,14 @@
 # Arquitectura RESOLUME_ADAPTER por etapas y componentes
 
-Estado: propuesta de diseño  
-Fecha: 2026-08-28
+Estado: actualizado para la implementación INSTAR FFGL
+Fecha: 2026-09-16
+
+> Corrección de arquitectura: la versión anterior de este documento describía
+> INSTAR como herramienta externa y reservaba el plugin FFGL para IMAGO. Esa
+> definición queda supersedida en la rama actual: `INSTAR` es el plugin nativo
+> de Resolume para el VJ y genera `AdvancedOutput.xml`; el parser Python de
+> INSTAR es su acompañante offline para preparar perfiles, no un requisito de
+> XML externo.
 
 ## Decisión principal
 
@@ -31,13 +38,14 @@ Las etapas de uso quedan como una taxonomía independiente:
 
 | Etapa | Uso principal |
 |---|---|
-| `INSTAR` | PRE SHOW: preparación de media y del sistema |
+| `INSTAR` | PRE SHOW y guía VJ: perfil de superficies, mapping y XML |
 | `NAYADE` | SOUNDCHEK: prueba estable, handoff y routing con el house |
 | `IMAGO` | SHOW: operación real en vivo dentro de Resolume |
 
-Estas etiquetas no obligan a que cada etapa sea un plugin. Algunas serán
-herramientas externas, otras perfiles y otras entradas FFGL. Los reportes y
-estadísticas se generan como evidencia transversal, no como una cuarta etapa.
+INSTAR tiene dos superficies coordinadas: el plugin FFGL que trabaja dentro de
+Resolume y el parser offline que prepara perfiles desde PDF/PNG/SVG. El plugin
+no solicita un `AdvancedOutput.xml` real: lo genera. Los reportes y estadísticas
+son evidencia transversal, no una cuarta etapa.
 
 ## Tipos de componente
 
@@ -240,13 +248,15 @@ lavados durante el show”.
 
 ### Paso 1: `INSTAR`
 
-Herramienta externa de pre-show:
+Plugin FFGL de Resolume para el VJ, acompañado por un parser offline:
 
 - diagnostica media, codecs, resolución, FPS y alpha;
 - prepara o valida DXV;
 - registra estado de GPU, disco, memoria y temperatura;
 - genera el perfil inicial de señal;
-- prepara los fixtures y el reporte de soundcheck.
+- genera un `AdvancedOutput.xml` válido desde el canvas y el perfil de superficies;
+- muestra una guía visual de bajo consumo durante la preparación y el show;
+- el parser offline prepara el perfil desde PDF/PNG/SVG cuando existe esa fuente.
 
 Funciones nuevas de conocimiento y preparación:
 
@@ -277,7 +287,7 @@ Resolume son pistas de asociación, no pruebas suficientes de ubicación.
 
 #### Primera función técnica a atacar
 
-El primer módulo de `INSTAR` será un **Venue Profile Importer** local. Recibirá
+El acompañante offline de `INSTAR` es un **Venue Profile Importer** local. Recibirá
 una carpeta o un ZIP de trabajo y producirá un perfil técnico reutilizable:
 
 ```text
@@ -311,7 +321,7 @@ Herramienta externa de soundcheck, sólo lectura:
 
 ### Paso 3: `IMAGO`
 
-Plugin FFGL de Resolume:
+Capa posterior de observación/propuestas; no es el plugin FFGL nativo actual:
 
 - carga el perfil al iniciar;
 - aplica sólo la transformación recomendada;

@@ -44,37 +44,51 @@ set(FFGL_SOURCES
     "${FFGL_SOURCE_ROOT}/ffgl/FFGLThumbnailInfo.cpp"
 )
 
-add_library(LucidaGuide SHARED
-    LucidaGuide/LucidaGuide.cpp
-    LucidaGuide/LucidaGuide.h
+add_library(INSTAR SHARED
+    INSTAR/INSTAR.cpp
+    INSTAR/INSTAR.h
+    INSTAR/INSTAR_XML.cpp
+    INSTAR/INSTAR_XML.h
     ${FFGL_SOURCES}
 )
 
-target_include_directories(LucidaGuide PRIVATE
+target_include_directories(INSTAR PRIVATE
     "${FFGL_SOURCE_ROOT}"
     "${FFGL_ROOT}/deps/glew-2.1.0/include"
 )
 
-target_compile_features(LucidaGuide PRIVATE cxx_std_11)
-target_compile_definitions(LucidaGuide PRIVATE GLEW_STATIC)
-set_property(TARGET LucidaGuide PROPERTY
+target_compile_features(INSTAR PRIVATE cxx_std_11)
+target_compile_definitions(INSTAR PRIVATE GLEW_STATIC)
+set_property(TARGET INSTAR PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
 )
-target_link_libraries(LucidaGuide PRIVATE
+target_link_libraries(INSTAR PRIVATE
     OpenGL32
     "${FFGL_ROOT}/deps/glew-2.1.0/lib/Release/x64/glew32s.lib"
 )
 
-set_target_properties(LucidaGuide PROPERTIES
-    OUTPUT_NAME "LucidaGuide"
+set_target_properties(INSTAR PROPERTIES
+    OUTPUT_NAME "INSTAR"
     PREFIX ""
     SUFFIX ".dll"
 )
 
-add_custom_command(TARGET LucidaGuide POST_BUILD
+add_custom_command(TARGET INSTAR POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
         "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "$<TARGET_FILE:LucidaGuide>"
-        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/LucidaGuide.dll"
+        "$<TARGET_FILE:INSTAR>"
+        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/INSTAR.dll"
+)
+
+enable_testing()
+add_executable(INSTAR_XML_CONTRACT
+    INSTAR/INSTAR_XML.cpp
+    INSTAR/INSTAR_XML.h
+    INSTAR/INSTAR_XML_CONTRACT.cpp
+)
+target_compile_features(INSTAR_XML_CONTRACT PRIVATE cxx_std_11)
+add_test(
+    NAME INSTAR_XML_CONTRACT
+    COMMAND INSTAR_XML_CONTRACT "${CMAKE_CURRENT_BINARY_DIR}/INSTAR_AdvancedOutput.xml"
 )

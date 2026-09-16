@@ -15,7 +15,7 @@ soundcheck y show en procesos reproducibles, medibles y seguros.
 
 | Área | Estado | Capacidad actual |
 | --- | --- | --- |
-| INSTAR | Implementado | Preflight, catálogo, análisis de visuales, DXV, cues y adaptación a superficies |
+| INSTAR | Implementado | Plugin FFGL para el VJ, guía de composición, generación de Advanced Output XML y parser offline de media/superficies |
 | NAYADE | Implementado en primera versión | Tarjeta de prueba, matriz de soundcheck, catálogo de procesadores y diagnóstico de señal |
 | IMAGO | Implementado en primera versión | Observación del show, cues, incidentes, checkpoints, recovery y cierre proposal-only |
 | Procesadores LED | Base segura implementada | Descubrimiento pasivo USB/COM, snapshots y catálogo; el control activo depende del modelo confirmado |
@@ -69,7 +69,15 @@ propuestas `proposal_only` y una lista de recuperación. En particular, el caso
 de negro gris orienta a comparar PLUGE, rampa de grises, fuente de referencia
 y snapshot de procesador antes de tocar niveles o gamma.
 
-## INSTAR — preparación del material y del destino
+## INSTAR — plugin de mapping VJ y preparación del material
+
+La implementación nativa vive en `resolume/plugin/INSTAR/`. El plugin trabaja
+en Resolume, conserva la textura de entrada, muestra una guía de composición y
+genera `INSTAR_AdvancedOutput.xml` desde el canvas y un perfil `.instar`
+opcional. No pide un XML real a otra persona y no configura procesadores LED.
+
+El resto de esta sección describe el acompañante offline que prepara los
+perfiles antes del show; no debe confundirse con el plugin FFGL.
 
 ### Preflight de media
 

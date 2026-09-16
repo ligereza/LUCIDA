@@ -1,0 +1,8 @@
+# INSTAR surface profile extracted from the FONDA 18 Huechuraba layout.
+# Coordinates are composition pixels; processor and port routing are separate.
+canvas 4186 1283
+surface BANNER_FRONTAL 0 0 2560 128
+surface CENTRAL 0 128 2560 1024
+surface BANNER_PISO 0 1152 2560 128
+surface CCTV_R 2644 0 768 1280
+surface CCTV_L 3414 0 768 1280
