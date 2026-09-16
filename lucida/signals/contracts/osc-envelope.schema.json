@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lucida:signals:osc-envelope",
+  "title": "OSC Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["address", "arguments", "timestamp", "sequence", "source"],
+  "properties": {
+    "contract_type": { "const": "OscEnvelope" },
+    "schema_version": { "const": "0.1" },
+    "address": { "type": "string", "pattern": "^/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$" },
+    "arguments": {
+      "type": "array",
+      "items": {
+        "type": ["string", "number", "integer", "boolean", "null"]
+      }
+    },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "source": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+$" }
+  }
+}

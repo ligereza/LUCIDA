@@ -1,0 +1,132 @@
+{
+  "fixture_type": "VJReplayFixture",
+  "schema_version": "0.1",
+  "session_id": "fictional-vj-session-001",
+  "events": [
+    {
+      "event_id": "evt-001",
+      "timestamp": "2026-01-10T20:00:00Z",
+      "phase": "preflight",
+      "event_type": "phase.completed",
+      "payload": {"status": "pass", "checks": ["media", "signal"]},
+      "source": "operator"
+    },
+    {
+      "event_id": "evt-002",
+      "timestamp": "2026-01-10T20:20:00Z",
+      "phase": "preparation",
+      "event_type": "phase.completed",
+      "payload": {"status": "pass", "checks": ["mapping", "testcard"]},
+      "source": "operator"
+    },
+    {
+      "event_id": "evt-003",
+      "timestamp": "2026-01-10T22:00:00Z",
+      "phase": "show",
+      "event_type": "show.started",
+      "payload": {"mode": "improvised", "timecode": false},
+      "source": "operator"
+    },
+    {
+      "event_id": "evt-004",
+      "timestamp": "2026-01-10T22:37:14Z",
+      "phase": "incident",
+      "event_type": "incident.detected",
+      "payload": {
+        "category": "signal_color_mismatch",
+        "symptoms": ["near-black appears gray"],
+        "evidence": ["operator observation", "black test pattern"]
+      },
+      "source": "operator"
+    },
+    {
+      "event_id": "evt-005",
+      "timestamp": "2026-01-10T22:39:00Z",
+      "phase": "recovery",
+      "event_type": "recovery.started",
+      "payload": {"checkpoint_id": "checkpoint-evt-002", "approval": "operator"},
+      "source": "operator"
+    },
+    {
+      "event_id": "evt-006",
+      "timestamp": "2026-01-10T22:43:30Z",
+      "phase": "recovery",
+      "event_type": "recovery.verified",
+      "payload": {"status": "pass", "checks": ["black", "white", "geometry"]},
+      "source": "operator"
+    },
+    {
+      "event_id": "evt-007",
+      "timestamp": "2026-01-11T00:00:00Z",
+      "phase": "closure",
+      "event_type": "show.closed",
+      "payload": {"status": "complete"},
+      "source": "operator"
+    }
+  ],
+  "results": [
+    {
+      "after_event_id": "evt-001",
+      "result_id": "res-001",
+      "proposal_id": "proposal-evt-001-checkpoint-preflight",
+      "recorded_at": "2026-01-10T20:01:00Z",
+      "status": "observed",
+      "notes": "Estado de preflight conservado para replay.",
+      "evidence": ["preflight-report"]
+    },
+    {
+      "after_event_id": "evt-002",
+      "result_id": "res-002",
+      "proposal_id": "proposal-evt-002-checkpoint-preparation",
+      "recorded_at": "2026-01-10T20:21:00Z",
+      "status": "accepted",
+      "notes": "Mapping and testcard approved by the operator.",
+      "evidence": ["testcard-review"]
+    },
+    {
+      "after_event_id": "evt-003",
+      "result_id": "res-003",
+      "proposal_id": "proposal-evt-003-observe-show",
+      "recorded_at": "2026-01-10T22:00:01Z",
+      "status": "observed",
+      "notes": "Show iniciado sin timecode.",
+      "evidence": ["show-log"]
+    },
+    {
+      "after_event_id": "evt-004",
+      "result_id": "res-004",
+      "proposal_id": "proposal-evt-004-capture-incident",
+      "recorded_at": "2026-01-10T22:37:20Z",
+      "status": "accepted",
+      "notes": "The symptom is preserved before intervention.",
+      "evidence": ["black-pattern-note"]
+    },
+    {
+      "after_event_id": "evt-005",
+      "result_id": "res-005",
+      "proposal_id": "proposal-evt-005-prepare-recovery",
+      "recorded_at": "2026-01-10T22:39:10Z",
+      "status": "accepted",
+      "notes": "Recovery explicitly approved.",
+      "evidence": ["checkpoint-evt-002"]
+    },
+    {
+      "after_event_id": "evt-006",
+      "result_id": "res-006",
+      "proposal_id": "proposal-evt-006-verify-recovery",
+      "recorded_at": "2026-01-10T22:44:00Z",
+      "status": "accepted",
+      "notes": "Recovery tests approved.",
+      "evidence": ["black", "white", "geometry"]
+    },
+    {
+      "after_event_id": "evt-007",
+      "result_id": "res-007",
+      "proposal_id": "proposal-evt-007-close-session",
+      "recorded_at": "2026-01-11T00:00:01Z",
+      "status": "observed",
+      "notes": "Replay ready for later analysis.",
+      "evidence": ["show-log"]
+    }
+  ]
+}

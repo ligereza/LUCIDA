@@ -1,0 +1,14 @@
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+*.log
+.env
+.env.*
+!.env.example
+credentials/
+secrets/
+artifacts/
+coverage/

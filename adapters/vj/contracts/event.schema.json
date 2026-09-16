@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:vj-interface-layer:contracts:vj-event",
+  "title": "VJ Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "timestamp", "phase", "event_type", "payload"],
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "phase": { "enum": ["preflight", "preparation", "show", "incident", "recovery", "closure"] },
+    "event_type": { "type": "string", "minLength": 1 },
+    "payload": { "type": "object" },
+    "source": { "type": "string", "minLength": 1 }
+  }
+}

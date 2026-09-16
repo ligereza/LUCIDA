@@ -1,0 +1,65 @@
+{
+  "session_id": "session-engine-001",
+  "events": [
+    {
+      "session_id": "session-engine-001",
+      "event_id": "xio-event-001",
+      "timestamp": "2026-09-02T12:00:00Z",
+      "sequence": 1,
+      "source": "xio",
+      "event_type": "peer.connected",
+      "source_version": "0.1",
+      "capabilities": ["event_delivery"],
+      "summary": {
+        "display_title": "Peer connected",
+        "display_body": "Metadata channel is ready"
+      }
+    },
+    {
+      "session_id": "session-engine-001",
+      "event_id": "mosaik-event-001",
+      "timestamp": "2026-09-02T12:00:01Z",
+      "sequence": 1,
+      "source": "mosaik",
+      "event_type": "show.phase",
+      "source_version": "0.1",
+      "capabilities": ["show_state", "preview_candidate"],
+      "summary": {
+        "phase": "soundcheck"
+      },
+      "proposal": {
+        "proposal_id": "mosaik-proposal-001",
+        "kind": "show_state",
+        "title": "Soundcheck",
+        "body": "Preview the current show state before live output",
+        "priority": 70,
+        "ttl_ms": 5000,
+        "requires_confirmation": true,
+        "reversible": true
+      }
+    },
+    {
+      "session_id": "session-engine-001",
+      "event_id": "pupila-event-001",
+      "timestamp": "2026-09-02T12:00:02Z",
+      "sequence": 1,
+      "source": "pupila",
+      "event_type": "learning.proposal",
+      "source_version": "0.1",
+      "capabilities": ["learning_context"],
+      "summary": {
+        "topic": "show workflow"
+      },
+      "proposal": {
+        "proposal_id": "pupila-proposal-001",
+        "kind": "next_step",
+        "title": "Review the next step",
+        "body": "Compare the proposal with the current task",
+        "priority": 40,
+        "ttl_ms": 5000,
+        "requires_confirmation": true,
+        "reversible": true
+      }
+    }
+  ]
+}

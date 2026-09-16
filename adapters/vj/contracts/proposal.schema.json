@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:vj-interface-layer:contracts:vj-proposal",
+  "title": "VJ Proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["proposal_id", "event_id", "phase", "operation", "reason", "risk", "requires_explicit_approval", "reversible", "execution_mode"],
+  "properties": {
+    "proposal_id": { "type": "string", "minLength": 1 },
+    "event_id": { "type": "string", "minLength": 1 },
+    "phase": { "enum": ["preflight", "preparation", "show", "incident", "recovery", "closure"] },
+    "operation": { "type": "string", "minLength": 1 },
+    "reason": { "type": "string", "minLength": 1 },
+    "risk": { "type": "string", "minLength": 1 },
+    "requires_explicit_approval": { "const": true },
+    "reversible": { "const": true },
+    "execution_mode": { "const": "proposal_only" },
+    "evidence": { "type": "array", "items": { "type": "string" } }
+  }
+}
