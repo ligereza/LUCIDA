@@ -46,12 +46,19 @@ struct INSTARScene
 	std::vector<INSTARVertex> lineVertices;
 	std::vector<INSTARVertex> triangleVertices;
 	std::vector<INSTARSurface3D> surfaces;
+	unsigned int totalEdges = 0;
+	unsigned int omittedEdges = 0;
 	bool fromObj = false;
 	std::string source;
 };
 
 bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& error);
-bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::string& error);
+bool LoadINSTARVenueJson(
+	const std::string& path,
+	INSTARScene& scene,
+	std::string& error,
+	unsigned int edgeBudget = 0
+);
 INSTARScene BuildINSTARDemoScene();
 
 INSTARCamera SelectINSTARCamera(

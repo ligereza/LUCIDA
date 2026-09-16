@@ -76,7 +76,8 @@ La implementación nativa vive en `resolume/plugin/INSTAR/`. `INSTAR.dll` es un
 sala con AEREO/PISTA/LIBRE y dibuja sus líneas por nivel de confianza. Su
 modo `RASTER_PIXEL_MAP` muestra un `MapFile` raster conservando proporciones y
 su `ExportMapXML` explícito genera `INSTAR_AdvancedOutput.xml` desde ese mismo
-PNG/JPG; no convierte modelos 3D ni configura procesadores LED.
+PNG/JPG; `EdgeBudget` prioriza polilíneas por confianza y contabiliza las
+omitidas. No convierte modelos 3D ni configura procesadores LED.
 `INSTAR_3D.dll` es el `FF_SOURCE` separado para cargar OBJ/MTL y visualizar
 modelos dentro de la composición.
 

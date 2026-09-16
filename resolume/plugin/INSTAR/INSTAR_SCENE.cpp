@@ -264,6 +264,25 @@ void VenueConfidenceColour(const std::string& confidence, float& red, float& gre
 	else
 		red = 0.25f, green = 0.24f, blue = 0.21f;
 }
+
+struct INSTARVenueLine
+{
+	std::vector<INSTARVec3> points;
+	std::string confidence;
+};
+
+int VenueConfidenceOrder(const std::string& confidence)
+{
+	if (confidence == "medido")
+		return 0;
+	if (confidence == "citado")
+		return 1;
+	if (confidence == "ajustado")
+		return 2;
+	if (confidence == "aportado")
+		return 3;
+	return 4;
+}
 }
 
 bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& error)
@@ -387,7 +406,7 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 	return true;
 }
 
-bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::string& error)
+bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::string& error, unsigned int edgeBudget)
 {
 	scene = INSTARScene();
 	std::ifstream file(path.c_str());
@@ -411,6 +430,7 @@ bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::strin
 		return false;
 	}
 
+	std::vector<INSTARVenueLine> lines;
 	size_t cursor = opening + 1;
 	while (cursor < closing)
 	{
@@ -433,12 +453,32 @@ bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::strin
 			if (quote != std::string::npos && endQuote != std::string::npos)
 				confidence = text.substr(quote + 1, endQuote - quote - 1);
 		}
-		float red = 0.0f, green = 0.0f, blue = 0.0f;
-		VenueConfidenceColour(confidence, red, green, blue);
 		const std::vector<INSTARVec3> points = ParseVenuePoints(text, pointsOpening, pointsClosing);
-		for (size_t point = 1; point < points.size(); ++point)
-			AddEdge(scene.lineVertices, points[point - 1], points[point], red, green, blue);
+		if (points.size() >= 2U)
+		{
+			INSTARVenueLine line;
+			line.points = points;
+			line.confidence = confidence;
+			lines.push_back(line);
+		}
 		cursor = pointsClosing + 1;
+	}
+	std::stable_sort(lines.begin(), lines.end(), [](const INSTARVenueLine& left, const INSTARVenueLine& right) {
+		return VenueConfidenceOrder(left.confidence) < VenueConfidenceOrder(right.confidence);
+	});
+	for (const INSTARVenueLine& line : lines)
+	{
+		const unsigned int edges = static_cast<unsigned int>(line.points.size() - 1U);
+		scene.totalEdges += edges;
+		if (edgeBudget != 0 && scene.lineVertices.size() / 2U + edges > edgeBudget)
+		{
+			scene.omittedEdges += edges;
+			continue;
+		}
+		float red = 0.0f, green = 0.0f, blue = 0.0f;
+		VenueConfidenceColour(line.confidence, red, green, blue);
+		for (size_t point = 1; point < line.points.size(); ++point)
+			AddEdge(scene.lineVertices, line.points[point - 1], line.points[point], red, green, blue);
 	}
 	if (scene.lineVertices.empty())
 	{

@@ -25,6 +25,7 @@ INSTAR::INSTAR()
 		{"RASTER_PIXEL_MAP", 1.0f},
 	}, 0));
 	AddParam(Param::Create("VenueFile", FF_TYPE_FILE, 0.0f));
+	AddParam(Param::Create("EdgeBudget", FF_TYPE_INTEGER, 800.0f));
 	AddParam(Param::Create("MapFile", FF_TYPE_FILE, 0.0f));
 	AddParam(ParamEvent::Create("ExportMapXML"));
 	AddParam(ParamText::create("OutputXML", outputPath));
@@ -41,6 +42,7 @@ INSTAR::INSTAR()
 	AddParam(Param::Create("CanvasHeight", FF_TYPE_INTEGER, 0.0f));
 	SetParamRange(PARAM_CANVAS_WIDTH, 0.0f, 16384.0f);
 	SetParamRange(PARAM_CANVAS_HEIGHT, 0.0f, 16384.0f);
+	SetParamRange(PARAM_EDGE_BUDGET, 1.0f, 1000000.0f);
 }
 
 FFResult INSTAR::Init()
@@ -103,7 +105,8 @@ bool INSTAR::LoadVenue()
 	}
 	std::string error;
 	INSTARScene loaded;
-	if (!LoadINSTARVenueJson(venuePath, loaded, error))
+	const unsigned int edgeBudget = static_cast<unsigned int>(std::max(1.0f, GetFloatParameter(PARAM_EDGE_BUDGET)));
+	if (!LoadINSTARVenueJson(venuePath, loaded, error, edgeBudget))
 	{
 		FFGLLog::LogToHost("INSTAR: VenueFile inválido; se usa escena demo");
 		scene = BuildINSTARDemoScene();
@@ -112,6 +115,12 @@ bool INSTAR::LoadVenue()
 		return false;
 	}
 	scene = loaded;
+	if (scene.omittedEdges > 0)
+	{
+		const std::string message = "INSTAR: EdgeBudget omitió " + std::to_string(scene.omittedEdges) +
+			" de " + std::to_string(scene.totalEdges) + " aristas";
+		FFGLLog::LogToHost(message.c_str());
+	}
 	loadedPath = venuePath;
 	sceneDirty = false;
 	return true;

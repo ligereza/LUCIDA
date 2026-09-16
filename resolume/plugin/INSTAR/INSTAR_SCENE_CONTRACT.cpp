@@ -109,9 +109,15 @@ int main(int argc, char** argv)
 	INSTARScene venue;
 	std::string venueError;
 	const bool venueLoaded = LoadINSTARVenueJson(venuePath, venue, venueError);
-	std::remove(venuePath);
 	if (!venueLoaded || venue.fromObj || !venue.surfaces.empty() || venue.lineVertices.size() != 6U ||
+		venue.totalEdges != 3U || venue.omittedEdges != 0U ||
 		venue.lineVertices[0].red < 0.90f || venue.lineVertices.back().red > 0.26f)
+		return 1;
+	INSTARScene budgetedVenue;
+	std::string budgetError;
+	const bool budgetLoaded = LoadINSTARVenueJson(venuePath, budgetedVenue, budgetError, 2);
+	std::remove(venuePath);
+	if (!budgetLoaded || budgetedVenue.totalEdges != 3U || budgetedVenue.omittedEdges != 1U || budgetedVenue.lineVertices.size() != 4U)
 		return 1;
 	return 0;
 }
