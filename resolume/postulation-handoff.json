@@ -1,0 +1,195 @@
+{
+  "manifest_type": "LucidaResolumePostulationHandoff",
+  "schema_version": "1.0",
+  "purpose": "Verified offline handoff for the Obras Experimentales 2027 proposal.",
+  "commit_provenance": {
+    "base_commit": "e2f2cb15a51b0b82be72973de40e96f40675ab23",
+    "candidate_commit": "a155762d946cff2cf41f2cc68c721ad77f3b4445",
+    "candidate_parent_commit": "7722ce7ae5c619c63e7587b8f08854bb403fed4a",
+    "rehearsal_commit": "ef6262a7d408db873dc8f25e969253a954cf95bb",
+    "rehearsal_result": "fast_forward",
+    "candidate_is_descendant_of_base": true,
+    "artifact_source_commit_meaning": "The exact local HEAD used when an evidence bundle is generated.",
+    "runtime_integration_base_commit": "The historical commit that introduced the offline RESOLUME smoke integration.",
+    "runtime_integration_base_commit_value": "ac0fb16734483f48517696c2a1d3619d72a5df84",
+    "rehearsal_commit_meaning": "The clean RESOLUME-base worktree commit used for the final integration rehearsal.",
+    "current_handoff_snapshot_commit": "ef6262a7d408db873dc8f25e969253a954cf95bb"
+  },
+  "candidate_scope": {
+    "file_count": 26,
+    "insertions": 2913,
+    "deletions": 3,
+    "files": [
+      "lucida/__init__.py",
+      "lucida/contracts/surface-projection-v1.schema.json",
+      "lucida/evidence_bundle.py",
+      "lucida/replay/__init__.py",
+      "lucida/replay/contracts/signal-envelope-v1.schema.json",
+      "lucida/replay/fixtures/session-signal-envelope-v1-fictional.json",
+      "lucida/replay/session.py",
+      "lucida/signals/__init__.py",
+      "lucida/signals/boundary.py",
+      "lucida/signals/replay.py",
+      "lucida/signals/semantic_light_field.py",
+      "lucida/signals/smoke.py",
+      "lucida/surface_conformance.py",
+      "lucida/surface_projection.py",
+      "resolume/README.md",
+      "resolume/evidence-manifest.json",
+      "tests/lucida/fixtures/fictional-surface-projection-v1.json",
+      "tests/lucida/fixtures/mosaik-semantic-light-field-report.json",
+      "tests/lucida/fixtures/resolume-surface-projection-v1.json",
+      "tests/lucida/test_evidence_bundle.py",
+      "tests/lucida/test_resolume_runtime_semantic_light_field.py",
+      "tests/lucida/test_resolume_semantic_light_field.py",
+      "tests/lucida/test_resolume_smoke.py",
+      "tests/lucida/test_signal_envelope_v1.py",
+      "tests/lucida/test_surface_conformance.py",
+      "tests/lucida/test_surface_projection.py"
+    ],
+    "forbidden_paths": [],
+    "adobe_changes": false,
+    "asset_changes": false,
+    "private_media_changes": false,
+    "credential_changes": false,
+    "other_repository_changes": false
+  },
+  "architecture_boundary": {
+    "input_validation": "lucida.replay.session.replay_signal_envelope_v1_fixture",
+    "runtime_dispatch": "lucida.signals.replay.replay_fixture",
+    "semantic_adapter": "lucida.signals.semantic_light_field.project_semantic_light_field_report",
+    "surface_projection": "lucida.surface_projection.SurfaceProjectionV1",
+    "resolume_boundary": "lucida.signals.boundary.OscResolumeBoundary",
+    "evidence_bundle": "lucida.evidence_bundle.build_evidence_bundle",
+    "legacy_replay": "lucida.replay.engine.replay_fixture",
+    "legacy_replay_role": "Preserved VJEvent fixture compatibility; not used by the envelope-backed RESOLUME smoke.",
+    "duplication_assessment": "Distinct input, session, domain, and compatibility contracts; no active duplicate in the RESOLUME path.",
+    "shared_contract_boundary": "SurfaceProjectionV1 contains proposal, evidence, identity, approval, reversibility, and safety fields only.",
+    "resolume_specific_boundary": "Tape schema, tape hash, frame count, calibration status, and OSC details remain outside SurfaceProjectionV1."
+  },
+  "verified_implementation": {
+    "recorded_signal_envelope_v1": true,
+    "deterministic_replay": true,
+    "proposal_only": true,
+    "explicit_approval": true,
+    "reversible": true,
+    "shared_projection": true,
+    "unknown_optional_fields_ignored": true,
+    "malformed_input_fail_closed": true,
+    "external_side_effects": false,
+    "live_resolume": false,
+    "live_audio": false,
+    "live_hardware": false
+  },
+  "evidence": {
+    "candidate_tests_collected": 116,
+    "candidate_tests_passed": 116,
+    "rehearsal_tests_collected": 118,
+    "rehearsal_tests_passed": 118,
+    "freeze_snapshot_tests_collected": 121,
+    "freeze_snapshot_tests_passed": 121,
+    "freeze_snapshot_tests_failed": 0,
+    "projection_schema_sha256": "3bca2f33944f062acfbb9aef6444e4b84d5977bb7eede7f31673d7360e7a356e",
+    "signal_envelope_fixture_sha256": "0b806342e2d51dd6dce4bf330579aec6bf60b494c50bb2196357eee736c5023f",
+    "semantic_report_fixture_sha256": "c0939a24b4b80850b30a351bc497323dad8dd7aaa7d9e8bfa57e6d64f1db2286",
+    "tape_sha256": "f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec",
+    "smoke_status": "REVIEW",
+    "proposal_id": "proposal-cli-light-field-001",
+    "overlay_status": "pending_approval",
+    "execution_mode": "proposal_only",
+    "requires_explicit_approval": true,
+    "reversible": true,
+    "external_side_effects": false
+  },
+  "postulation_mapping": {
+    "mathematical_layout": {
+      "status": "partial_offline_support",
+      "supports": [
+        "Deterministic semantic tape identity, schema, frame count, and proposal evidence.",
+        "Shared projection preserves proposal identity, evidence, host identity, and surface identity."
+      ],
+      "does_not_support": [
+        "Physical layout reconstruction.",
+        "Camera calibration, photometry, or venue phase measurement.",
+        "Mapping, patching, or physical fixture accuracy."
+      ]
+    },
+    "software_feasibility": {
+      "status": "offline_supported",
+      "supports": [
+        "Recorded envelope validation into deterministic session replay.",
+        "Replay dispatch into semantic proposal, shared projection, read-only overlay, and evidence bundle.",
+        "Fail-closed malformed input and explicit approval boundaries."
+      ],
+      "does_not_support": [
+        "Live protocol or host execution.",
+        "Multi-device backend behavior or venue timing."
+      ]
+    },
+    "reversible_proposal_behavior": {
+      "status": "offline_verified",
+      "supports": [
+        "Proposal-only state.",
+        "Explicit approval requirement.",
+        "Reversible pending state and no external side effects."
+      ],
+      "does_not_support": [
+        "Operator approval in a live venue."
+      ]
+    },
+    "light_audio_venue": {
+      "status": "prospective",
+      "supports": [
+        "A bounded proposal for future approved light and audio consumers."
+      ],
+      "does_not_support": [
+        "Live light or audio synchronization.",
+        "DMX, Art-Net, OSC, Resolume, projector, camera, or venue validation.",
+        "Calibration, acoustics, latency, or physical routing measurements."
+      ]
+    }
+  },
+  "reproduction": {
+    "full_tests": "python -m pytest -q",
+    "compile": "python -m compileall -q lucida tests",
+    "diff_check": "git diff --check",
+    "ascii_guard": "python -m pytest -q tests/lucida/test_ascii_guard.py",
+    "bundle_json": "python -m lucida.evidence_bundle --json",
+    "bundle_report": "python -m lucida.evidence_bundle --report",
+    "smoke_manifest": "python -m lucida.signals.smoke --manifest",
+    "preview": "python -m lucida.signals.smoke --preview",
+    "conformance": "python -m lucida.surface_conformance",
+    "envelope_replay": "python -m lucida.signals.smoke",
+    "one_command_evidence": "python -m lucida.evidence_bundle --report"
+  },
+  "contamination_check": {
+    "main_checkout": "C:\\IA\\LUCIDA",
+    "main_branch": "RESOLUME",
+    "main_head": "e2f2cb15a51b0b82be72973de40e96f40675ab23",
+    "adobe_path_observed_untracked": true,
+    "adobe_path_read": false,
+    "adobe_path_modified": false,
+    "network_used": false,
+    "hardware_used": false,
+    "live_resolume_used": false,
+    "gpu_used": false,
+    "camera_used": false,
+    "subprocess_or_socket_side_effects": false
+  },
+  "safe_integration": {
+    "working_directory": "C:\\IA\\LUCIDA",
+    "preflight_command": "git status --short --branch",
+    "command": "git merge --ff-only a155762d946cff2cf41f2cc68c721ad77f3b4445",
+    "expected_result": "RESOLUME advances from e2f2cb1 to a155762 without a merge commit.",
+    "authorization_required": true,
+    "must_not_execute_automatically": true,
+    "handoff_artifacts_are_not_candidate_files": true
+  },
+  "limitations": [
+    "This handoff proves an offline integration rehearsal, not live Resolume validation.",
+    "Live light, audio, venue, hardware, calibration, timing, network, camera, GPU, and transport behavior remain untested.",
+    "ADOBE, PUPILA, and VIZZ remain offline shared-contract candidates only.",
+    "The evidence supports software feasibility and reversible proposal behavior, not physical installation results.",
+    "The artifact source commit is generated from the local HEAD at bundle time and must not be confused with the historical runtime integration base commit."
+  ]
+}

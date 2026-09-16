@@ -1,0 +1,113 @@
+{
+  "artifact_hash_semantics": "SHA-256 over UTF-8 bytes after CRLF to LF canonicalization, matching lucida.evidence_bundle._sha256.",
+  "attachment_recommendation": {
+    "candidate_package_is_runtime_free": true,
+    "mode": "evidence_reference_only",
+    "official_attachment_decision": "OPERATOR_DEPENDENT",
+    "operator_review_required": true,
+    "recommendation": "Transfer exactly the three included artifacts as internal postulation evidence references.",
+    "runtime_material_transferred": false
+  },
+  "evidence_boundary": {
+    "live_validation_claim": false,
+    "operator_dependent": [
+      "Transfer destination review.",
+      "Any future live Resolume, audio, lighting, venue, hardware, camera, GPU, network, or transport validation."
+    ],
+    "prospective": [
+      "Mathematical layout as a declared design axis, not measured physical geometry.",
+      "Future approved light and audio consumers."
+    ],
+    "verified": [
+      "Recorded signal envelope validation and deterministic replay.",
+      "Proposal-only pending projection with explicit approval and reversibility.",
+      "Offline evidence and no external side effects."
+    ]
+  },
+  "excluded_runtime_material": [
+    "camera data",
+    "credentials",
+    "hardware configuration",
+    "live validation results",
+    "media and personal data",
+    "merge or checkout changes",
+    "network transport configuration",
+    "python source modules",
+    "runtime dependencies",
+    "schemas and replay fixtures",
+    "tests"
+  ],
+  "handoff_sha256": "23c9f12f44c60f8d9bb71b0837106681e024153911b1821d042eab07f1176540",
+  "included_artifacts": [
+    {
+      "path": "resolume/postulation-evidence-matrix.json",
+      "role": "Machine-readable claim status, evidence references, limits, and verification commands.",
+      "sha256": "338c0029ef78d1eecbba48e39d94b0d7afb44a1bab37884507eb5cbfdf38906e",
+      "status": "VERIFIED",
+      "transfer_class": "internal_reference"
+    },
+    {
+      "path": "resolume/postulation-evidence-note.md",
+      "role": "Human-readable evidence-to-proposal mapping with verified, prospective, and operator-dependent boundaries.",
+      "sha256": "1d23d4e1ffd49304c7c5ed717e86572accdf4435baaf0fd0219a1055baefa43e",
+      "status": "VERIFIED",
+      "transfer_class": "internal_reference"
+    },
+    {
+      "path": "resolume/postulation-handoff.json",
+      "role": "Commit provenance, candidate scope, evidence hashes, reproducibility commands, and limitations.",
+      "sha256": "23c9f12f44c60f8d9bb71b0837106681e024153911b1821d042eab07f1176540",
+      "status": "VERIFIED",
+      "transfer_class": "internal_reference"
+    }
+  ],
+  "manifest_commit_meaning": "The containing commit is the child commit created from manifest_parent_commit; this manifest does not self-reference its own commit hash.",
+  "manifest_parent_commit": "be2af673b9a7fe06d4e1c95b274ac20675b3e566",
+  "manifest_type": "LucidaResolumePostulationIntegrationManifest",
+  "operator_action": {
+    "contact_remote_package": false,
+    "merge_executed": false,
+    "next_step": "Review the three artifacts at the proposed target path and keep them separate from runtime source.",
+    "push_executed": false,
+    "requires_explicit_authorization": true,
+    "runtime_execution": false
+  },
+  "reproducibility_scope": {
+    "candidate_package": {
+      "commands_executable": [],
+      "reason": "The transfer set intentionally excludes lucida source modules, tests, schemas, fixtures, and runtime dependencies.",
+      "status": "NOT_REPRODUCIBLE"
+    },
+    "full_lucida_worktree": {
+      "commands": [
+        "python -m lucida.evidence_bundle --json",
+        "python -m lucida.evidence_bundle --report",
+        "python -m lucida.signals.smoke",
+        "python -m lucida.signals.smoke --manifest",
+        "python -m lucida.signals.smoke --preview",
+        "python -m lucida.surface_conformance",
+        "python -m pytest -q",
+        "python -m pytest -q tests/lucida/test_ascii_guard.py",
+        "python -m compileall -q lucida tests",
+        "git diff --check"
+      ],
+      "required_paths": [
+        "lucida/",
+        "resolume/",
+        "tests/"
+      ],
+      "status": "VERIFIED"
+    },
+    "transfer_artifact_set": {
+      "commands_executable": [
+        "JSON inspection and hash verification only"
+      ],
+      "reason": "The three artifacts are inspectable evidence references and are not an executable source package.",
+      "status": "INSPECTABLE_ONLY"
+    }
+  },
+  "schema_version": "1.0",
+  "source_commit": "be2af673b9a7fe06d4e1c95b274ac20675b3e566",
+  "source_commit_meaning": "Commit tree containing the exact canonical bytes of every included artifact; distinct from the later manifest commit.",
+  "target_package_relative_path": "evidence/lucida-resolume/"
+}
