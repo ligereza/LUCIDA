@@ -2,6 +2,7 @@
 #include "INSTAR_XML.h"
 
 #include <cstdio>
+#include <cmath>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -63,6 +64,13 @@ int main()
 	}
 	const INSTARScene demo = BuildINSTARDemoScene();
 	if (demo.surfaces.size() != 3U || demo.triangleVertices.empty())
+		return 1;
+	const INSTARCamera aerial = SelectINSTARCamera(0, 0.5f, 0.5f, 0.55f);
+	const INSTARCamera track = SelectINSTARCamera(1, 0.5f, 0.5f, 0.55f);
+	const INSTARCamera free = SelectINSTARCamera(2, 0.25f, 0.75f, 0.4f);
+	if (std::fabs(aerial.yaw - track.yaw) < 0.0001f ||
+		std::fabs(track.pitch - free.pitch) < 0.0001f ||
+		std::fabs(free.zoom - 1.52f) > 0.0001f)
 		return 1;
 	return 0;
 }

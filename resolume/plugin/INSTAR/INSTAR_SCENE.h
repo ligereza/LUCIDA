@@ -34,6 +34,13 @@ struct INSTARProjectedSurface
 	float height = 0.0f;
 };
 
+struct INSTARCamera
+{
+	float yaw = 0.0f;
+	float pitch = 0.0f;
+	float zoom = 1.8f;
+};
+
 struct INSTARScene
 {
 	std::vector<INSTARVertex> lineVertices;
@@ -45,6 +52,13 @@ struct INSTARScene
 
 bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& error);
 INSTARScene BuildINSTARDemoScene();
+
+INSTARCamera SelectINSTARCamera(
+	int view,
+	float yaw,
+	float pitch,
+	float zoom
+);
 
 std::vector<INSTARProjectedSurface> ProjectINSTARSurfaces(
 	const INSTARScene& scene,

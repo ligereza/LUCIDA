@@ -185,25 +185,14 @@ bool INSTARCapture::ExportSceneXml()
 	if (configuredHeight >= 1.0f)
 		canvasHeight = static_cast<unsigned int>(configuredHeight);
 
-	float selectedYaw = (yaw - 0.5f) * 6.2831853f;
-	float selectedPitch = (pitch - 0.5f) * 2.2f;
 	const int view = static_cast<int>(GetFloatParameter(PARAM_VIEW));
-	if (view == 0)
-	{
-		selectedYaw = 0.75f;
-		selectedPitch = -0.75f;
-	}
-	else if (view == 1)
-	{
-		selectedYaw = 0.0f;
-		selectedPitch = -0.15f;
-	}
+	const INSTARCamera camera = SelectINSTARCamera(view, yaw, pitch, zoom);
 
 	const std::vector<INSTARProjectedSurface> projected = ProjectINSTARSurfaces(
 		scene,
-		selectedYaw,
-		selectedPitch,
-		0.8f + zoom * 1.8f,
+		camera.yaw,
+		camera.pitch,
+		camera.zoom,
 		canvasWidth,
 		canvasHeight
 	);
@@ -249,24 +238,13 @@ FFResult INSTARCapture::Render(ProcessOpenGLStruct*)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	if (!sceneShader.IsReady() || (scene.lineVertices.empty() && scene.triangleVertices.empty()))
 		return FF_SUCCESS;
-	float selectedYaw = (yaw - 0.5f) * 6.2831853f;
-	float selectedPitch = (pitch - 0.5f) * 2.2f;
 	const int view = static_cast<int>(GetFloatParameter(PARAM_VIEW));
-	if (view == 0)
-	{
-		selectedYaw = 0.75f;
-		selectedPitch = -0.75f;
-	}
-	else if (view == 1)
-	{
-		selectedYaw = 0.0f;
-		selectedPitch = -0.15f;
-	}
+	const INSTARCamera camera = SelectINSTARCamera(view, yaw, pitch, zoom);
 	const float aspect = currentViewport.height > 0 ? static_cast<float>(currentViewport.width) / static_cast<float>(currentViewport.height) : 1.777f;
 	ffglex::ScopedShaderBinding binding(sceneShader.GetGLID());
-	sceneShader.Set("u_yaw", selectedYaw);
-	sceneShader.Set("u_pitch", selectedPitch);
-	sceneShader.Set("u_zoom", 0.8f + zoom * 1.8f);
+	sceneShader.Set("u_yaw", camera.yaw);
+	sceneShader.Set("u_pitch", camera.pitch);
+	sceneShader.Set("u_zoom", camera.zoom);
 	sceneShader.Set("u_aspect", aspect);
 	sceneShader.Set("u_brightness", 0.2f + brightness * 1.2f);
 	glBindVertexArray(triangleVao);

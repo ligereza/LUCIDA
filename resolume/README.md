@@ -264,6 +264,10 @@ An `ExportXML` event projects named OBJ groups containing `screen`, `led`,
 `banner`, `cctv`, `display`, `surface` or `panel` into the same
 `AdvancedOutput.xml` serializer used by INSTAR MAP.
 
+The three view modes use one shared camera selector in the native scene core,
+so the preview and the exported projection use the same AEREO/PISTA/LIBRE
+interpretation.
+
 This is the Capture-like visualization layer: it is not a NovaStar controller
 and it does not pretend that a 3D preview is a physical patch. OBJ geometry is
 the first importer; materials, textures and additional formats are deliberately

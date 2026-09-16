@@ -243,6 +243,25 @@ INSTARScene BuildINSTARDemoScene()
 	return scene;
 }
 
+INSTARCamera SelectINSTARCamera(int view, float yaw, float pitch, float zoom)
+{
+	INSTARCamera camera;
+	camera.yaw = (yaw - 0.5f) * 6.2831853f;
+	camera.pitch = (pitch - 0.5f) * 2.2f;
+	camera.zoom = 0.8f + zoom * 1.8f;
+	if (view == 0)
+	{
+		camera.yaw = 0.75f;
+		camera.pitch = -0.75f;
+	}
+	else if (view == 1)
+	{
+		camera.yaw = 0.0f;
+		camera.pitch = -0.15f;
+	}
+	return camera;
+}
+
 std::vector<INSTARProjectedSurface> ProjectINSTARSurfaces(
 	const INSTARScene& scene,
 	float yaw,

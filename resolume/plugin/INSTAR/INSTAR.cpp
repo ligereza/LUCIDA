@@ -158,21 +158,10 @@ std::vector<INSTAR::Surface> INSTAR::LoadMap(unsigned int canvasWidth, unsigned 
 			std::string error;
 			if (LoadINSTARObj(mapPath, scene, error))
 			{
-				float yaw = 0.0f;
-				float pitch = -0.15f;
 				const int view = static_cast<int>(GetFloatParameter(PARAM_VIEW));
-				if (view == 0)
-				{
-					yaw = 0.75f;
-					pitch = -0.75f;
-				}
-				else if (view == 2)
-				{
-					yaw = 0.0f;
-					pitch = 0.0f;
-				}
+				const INSTARCamera camera = SelectINSTARCamera(view, 0.5f, 0.5f, 0.55f);
 				const std::vector<INSTARProjectedSurface> projected = ProjectINSTARSurfaces(
-					scene, yaw, pitch, 1.8f, width, height);
+					scene, camera.yaw, camera.pitch, camera.zoom, width, height);
 				for (const INSTARProjectedSurface& source : projected)
 				{
 					Surface surface;
