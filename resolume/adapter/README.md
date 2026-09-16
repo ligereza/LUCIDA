@@ -212,6 +212,19 @@ JSON explícito con `--aliases`, por ejemplo `{"CENTRAL":"MAIN CENTER"}`.
 Si falta alguna superficie en cualquiera de las dos fuentes, el resultado
 queda en `REVIEW` y no se aplica una coincidencia ambigua.
 
+La misma operación puede recibir directamente una imagen o PDF:
+
+```powershell
+python .\tools\resolume_adapter_cli.py instar-apply-image-map `
+  .\data\event\AdvancedOutput.xml `
+  .\data\event\pixel-map.png `
+  --ocr-exe C:\ruta\instar-ocr.exe `
+  --xml .\artifacts\event-advanced-output-candidate.xml
+```
+
+La detección raster produce nombres y geometría candidatas; el template sigue
+siendo la única fuente de `OutputRect` y routing físico.
+
 La salida de una imagen se etiqueta como `stage_layout_candidate`. Si el
 documento no aporta procesadores, puertos o cadena de datos, el campo
 `processor_routing` queda en `UNKNOWN`; INSTAR no convierte una disposición

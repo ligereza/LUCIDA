@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 import unicodedata
 from typing import Any, Mapping
 from xml.etree import ElementTree
 
+from .instar_image import build_raster_mapping
 from .instar_svg import _canonical_rect, _find_canvas_view, _parse_svg, _view_box
 from .media import ResolumeAdapterError
 
@@ -176,6 +178,55 @@ def apply_input_svg_to_template(
     }
 
 
+def apply_raster_image_to_template(
+    template_xml: str | Path,
+    image_path: str | Path,
+    xml_output: str | Path,
+    *,
+    canvas_size: tuple[int, int] | None = None,
+    ocr_executable: str | Path | None = None,
+    pdf_renderer: str | Path | None = None,
+    pdf_page: int = 1,
+    pdf_dpi: int = 200,
+    aliases: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    """Aplica un mapa raster al InputRect de un template sin tocar su output."""
+
+    with tempfile.TemporaryDirectory(prefix="instar-template-image-") as directory:
+        directory_path = Path(directory)
+        raster_report = build_raster_mapping(
+            image_path,
+            directory_path / "detected.xml",
+            canvas_size=canvas_size,
+            svg_output=directory_path / "detected.svg",
+            ocr_executable=ocr_executable,
+            pdf_renderer=pdf_renderer,
+            pdf_page=pdf_page,
+            pdf_dpi=pdf_dpi,
+        )
+        report = apply_input_svg_to_template(
+            template_xml,
+            directory_path / "detected.svg",
+            xml_output,
+            composition_size=(raster_report["canvas"]["width"], raster_report["canvas"]["height"]),
+            aliases=aliases,
+        )
+    report["source"]["input_image"] = str(Path(image_path).expanduser().resolve())
+    report["source"]["input_svg"] = None
+    report["source"]["input_kind"] = "raster"
+    report["raster_detection"] = {
+        "layout_role": raster_report.get("layout_role"),
+        "regions": raster_report.get("regions"),
+        "metadata": raster_report.get("metadata"),
+        "ocr": {
+            "available": (raster_report.get("ocr") or {}).get("available", False),
+            "language": (raster_report.get("ocr") or {}).get("language"),
+            "passes": (raster_report.get("ocr") or {}).get("passes", 0),
+        },
+    }
+    return report
+
+
 def input_template_text_report(report: dict[str, Any]) -> str:
     output = report.get("output") or {}
     validation = report.get("validation") or {}
@@ -183,7 +234,7 @@ def input_template_text_report(report: dict[str, Any]) -> str:
         "RESOLUME_ADAPTER INSTAR INPUT TEMPLATE",
         "=======================================",
         f"Template: {report.get('source', {}).get('template_xml')}",
-        f"Input SVG: {report.get('source', {}).get('input_svg')}",
+        f"Entrada: {report.get('source', {}).get('input_image') or report.get('source', {}).get('input_svg')}",
         f"Slices actualizadas: {output.get('input_rects_changed', 0)}",
         f"Template sin coincidencia: {len(report.get('unmatched_template') or [])}",
         f"Input sin coincidencia: {len(report.get('unmatched_input') or [])}",

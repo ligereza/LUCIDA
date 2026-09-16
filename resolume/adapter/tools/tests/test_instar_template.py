@@ -4,7 +4,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from resolume_adapter.instar_template import apply_input_svg_to_template
+import cv2
+import numpy as np
+
+from resolume_adapter.instar_template import apply_input_svg_to_template, apply_raster_image_to_template
 from resolume_adapter.resolume import extract_advanced_output_map
 
 
@@ -66,3 +69,31 @@ class InstarInputTemplateTests(unittest.TestCase):
             self.assertEqual(report["matched_slices"], ["MAIN CENTER"])
             self.assertEqual(report["unmatched_template"], ["OTHER"])
             self.assertEqual(report["match_methods"], {"MAIN CENTER": "alias"})
+
+    def test_raster_image_updates_template_input_without_touching_output(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            image = root / "map.png"
+            template = root / "template.xml"
+            output = root / "candidate.xml"
+            pixels = np.zeros((500, 800, 3), dtype=np.uint8)
+            cv2.rectangle(pixels, (20, 40), (780, 160), (0, 255, 255), -1)
+            self.assertTrue(cv2.imwrite(str(image), pixels))
+            template.write_text(
+                '''<?xml version="1.0" encoding="utf-8"?>
+<XmlState><ScreenSetup><CurrentCompositionTextureSize width="1000" height="500"/><screens>
+<Screen name="Screen"><Params name="Params"/><OutputDevice><OutputDeviceVirtual name="Display" deviceId="Display" width="1920" height="1080"/></OutputDevice><layers>
+<Slice><Params name="Common"><Param name="Name" value="MAIN_SURFACE"/></Params><InputRect><v x="0" y="0"/><v x="1" y="0"/><v x="1" y="1"/><v x="0" y="1"/></InputRect><OutputRect><v x="200" y="300"/><v x="600" y="300"/><v x="600" y="500"/><v x="200" y="500"/></OutputRect></Slice>
+</layers></Screen></screens></ScreenSetup></XmlState>''',
+                encoding="utf-8",
+            )
+
+            report = apply_raster_image_to_template(template, image, output, canvas_size=(1000, 500))
+            parsed = extract_advanced_output_map(output)
+            item = parsed["slices"][0]
+
+            self.assertEqual(report["validation"]["status"], "PASS")
+            self.assertEqual(report["source"]["input_kind"], "raster")
+            self.assertEqual(report["source"]["input_image"], str(image.resolve()))
+            self.assertEqual(item["input"]["bounds"], {"x": 0.0, "y": 0.0, "width": 1000.0, "height": 500.0})
+            self.assertEqual(item["output"]["bounds"], {"x": 200.0, "y": 300.0, "width": 400.0, "height": 200.0})

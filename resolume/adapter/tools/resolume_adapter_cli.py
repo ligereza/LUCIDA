@@ -37,7 +37,7 @@ from resolume_adapter.incidents import INCIDENT_CATEGORIES, build_incident_plan,
 from resolume_adapter.instar import run_instar, text_report as instar_text_report, write_report
 from resolume_adapter.instar_image import build_raster_mapping, raster_mapping_text_report, write_raster_mapping_report
 from resolume_adapter.instar_svg import build_svg_mapping, svg_mapping_text_report, write_svg_mapping_report
-from resolume_adapter.instar_template import apply_input_svg_to_template, input_template_text_report, write_input_template_report
+from resolume_adapter.instar_template import apply_input_svg_to_template, apply_raster_image_to_template, input_template_text_report, write_input_template_report
 from resolume_adapter.manifest import write_manifest
 from resolume_adapter.media import ResolumeAdapterError
 from resolume_adapter.nayade import (
@@ -276,6 +276,21 @@ def build_parser() -> argparse.ArgumentParser:
     template_mapping.add_argument("--aliases", help="JSON con aliases {nombre_input: nombre_template} para coincidencias explícitas.")
     template_mapping.add_argument("--xml", required=True, help="Ruta del XML candidato resultante.")
     template_mapping.add_argument("--report", help="Ruta opcional para guardar el reporte JSON.")
+
+    image_template_mapping = commands.add_parser(
+        "instar-apply-image-map",
+        help="Detecta un mapa raster y actualiza solo InputRect en un template Advanced Output.",
+    )
+    image_template_mapping.add_argument("template_xml", help="Template XML existente de Advanced Output.")
+    image_template_mapping.add_argument("image", help="PNG/JPG/PDF con el layout de superficies.")
+    image_template_mapping.add_argument("--canvas-size", type=_resolution, help="Resolución del canvas; si falta, se intenta obtener del OCR.")
+    image_template_mapping.add_argument("--ocr-exe", help="OCR opcional compatible con OCR_LINE.")
+    image_template_mapping.add_argument("--pdf-renderer", help="Ruta opcional a pdftoppm para entradas PDF.")
+    image_template_mapping.add_argument("--pdf-page", type=int, default=1, help="Página PDF (default: 1).")
+    image_template_mapping.add_argument("--pdf-dpi", type=int, default=200, help="DPI PDF (default: 200).")
+    image_template_mapping.add_argument("--aliases", help="JSON {nombre_input: nombre_template} para coincidencias explícitas.")
+    image_template_mapping.add_argument("--xml", required=True, help="Ruta del XML candidato resultante.")
+    image_template_mapping.add_argument("--report", help="Ruta opcional para guardar el reporte JSON.")
 
     adapt = commands.add_parser(
         "instar-adapt",
@@ -709,6 +724,29 @@ def main(argv: list[str] | None = None) -> int:
                 args.input_svg,
                 args.xml,
                 composition_size=args.composition_size,
+                aliases=aliases,
+            )
+            print(input_template_text_report(report))
+            if args.report:
+                report_path = write_input_template_report(report, args.report)
+                print(f"\nReporte JSON: {report_path}")
+            return 0
+
+        if args.command == "instar-apply-image-map":
+            aliases = None
+            if args.aliases:
+                aliases = json.loads(Path(args.aliases).expanduser().resolve().read_text(encoding="utf-8"))
+                if not isinstance(aliases, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in aliases.items()):
+                    raise ResolumeAdapterError("--aliases debe ser un objeto JSON de nombre_input a nombre_template.")
+            report = apply_raster_image_to_template(
+                args.template_xml,
+                args.image,
+                args.xml,
+                canvas_size=args.canvas_size,
+                ocr_executable=args.ocr_exe,
+                pdf_renderer=args.pdf_renderer,
+                pdf_page=args.pdf_page,
+                pdf_dpi=args.pdf_dpi,
                 aliases=aliases,
             )
             print(input_template_text_report(report))
