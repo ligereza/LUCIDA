@@ -223,9 +223,11 @@ same Git blob produces the same manifest in Windows worktrees.
 The native Resolume unit is `resolume/plugin/INSTAR/INSTAR.cpp`. `INSTAR.dll`
 is an `FF_SOURCE` inspired by FLUJO's venue viewer: it reads a venue JSON with
 3D polylines, preserves each line's confidence colour, and provides the
-`AEREO`, `PISTA` and `LIBRE` camera modes. Without a venue file it shows the
-deterministic stage demo. The camera and scene core are local and do not need a
-network, model service or LED processor.
+`AEREO`, `PISTA` and `LIBRE` camera modes. Its `Mode` selector also provides
+`RASTER_PIXEL_MAP`, which displays a PNG/JPG with preserved proportions. Without
+a venue file in `VENUE_3D` mode it shows the deterministic stage demo; raster
+mode remains empty until a map is selected. The camera and scene core are local
+and do not need a network, model service or LED processor.
 
 INSTAR also exposes an explicit `ExportMapXML` event. The VJ supplies a raster
 pixel map through `MapFile` (PNG/JPG), sets `CanvasWidth` and `CanvasHeight`

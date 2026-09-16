@@ -1,6 +1,7 @@
 #pragma once
 
 #include <FFGLSDK.h>
+#include <ffglex/FFGLScreenQuad.h>
 
 #include "INSTAR_IMAGE.h"
 #include "INSTAR_RENDERER.h"
@@ -33,10 +34,16 @@ protected:
 private:
 	bool LoadVenue();
 	void UploadScene();
+	bool LoadRaster();
+	FFResult RenderRaster();
 	bool ExportMapXml();
 
 	INSTARSceneRenderer renderer;
+	ffglex::FFGLShader rasterShader;
+	ffglex::FFGLScreenQuad rasterQuad;
+	GLuint rasterTexture = 0;
 	INSTARScene scene;
+	INSTARImage rasterImage;
 	std::string venuePath;
 	std::string loadedPath;
 	std::string mapPath;
@@ -46,22 +53,25 @@ private:
 	float zoom = 0.55f;
 	float brightness = 0.85f;
 	bool sceneDirty = true;
+	bool rasterDirty = true;
+	bool rasterReady = false;
 	bool exportRequested = false;
 	unsigned int lastWidth = 1920;
 	unsigned int lastHeight = 1080;
 
 	enum Parameter : unsigned int
 	{
-		PARAM_VENUE_FILE = 0,
-		PARAM_MAP_FILE = 1,
-		PARAM_EXPORT_MAP_XML = 2,
-		PARAM_OUTPUT_XML = 3,
-		PARAM_VIEW = 4,
-		PARAM_YAW = 5,
-		PARAM_PITCH = 6,
-		PARAM_ZOOM = 7,
-		PARAM_BRIGHTNESS = 8,
-		PARAM_CANVAS_WIDTH = 9,
-		PARAM_CANVAS_HEIGHT = 10,
+		PARAM_MODE = 0,
+		PARAM_VENUE_FILE = 1,
+		PARAM_MAP_FILE = 2,
+		PARAM_EXPORT_MAP_XML = 3,
+		PARAM_OUTPUT_XML = 4,
+		PARAM_VIEW = 5,
+		PARAM_YAW = 6,
+		PARAM_PITCH = 7,
+		PARAM_ZOOM = 8,
+		PARAM_BRIGHTNESS = 9,
+		PARAM_CANVAS_WIDTH = 10,
+		PARAM_CANVAS_HEIGHT = 11,
 	};
 };

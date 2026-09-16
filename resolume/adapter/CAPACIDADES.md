@@ -74,8 +74,9 @@ y snapshot de procesador antes de tocar niveles o gamma.
 La implementación nativa vive en `resolume/plugin/INSTAR/`. `INSTAR.dll` es un
 `FF_SOURCE` de Capture de venues: lee el JSON de polilíneas de FLUJO, orbita la
 sala con AEREO/PISTA/LIBRE y dibuja sus líneas por nivel de confianza. Su
-`ExportMapXML` explícito genera `INSTAR_AdvancedOutput.xml` desde un `MapFile`
-raster (PNG/JPG); no convierte modelos 3D ni configura procesadores LED.
+modo `RASTER_PIXEL_MAP` muestra un `MapFile` raster conservando proporciones y
+su `ExportMapXML` explícito genera `INSTAR_AdvancedOutput.xml` desde ese mismo
+PNG/JPG; no convierte modelos 3D ni configura procesadores LED.
 `INSTAR_3D.dll` es el `FF_SOURCE` separado para cargar OBJ/MTL y visualizar
 modelos dentro de la composición.
 
