@@ -123,7 +123,41 @@ add_custom_command(TARGET INSTAR_3D POST_BUILD
 		"${CMAKE_CURRENT_BINARY_DIR}/Extra Effects"
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
 		"$<TARGET_FILE:INSTAR_3D>"
-		"${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/INSTAR_3D.dll"
+        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/INSTAR_3D.dll"
+)
+
+add_library(DEPTH_FX SHARED
+    DEPTH_FX/DEPTH_FX.cpp
+    DEPTH_FX/DEPTH_FX.h
+    INSTAR/INSTAR_IMAGE.cpp
+    INSTAR/INSTAR_IMAGE.h
+    ${FFGL_SOURCES}
+)
+target_include_directories(DEPTH_FX PRIVATE
+    "${FFGL_SOURCE_ROOT}"
+    "${FFGL_ROOT}/deps/glew-2.1.0/include"
+)
+target_compile_features(DEPTH_FX PRIVATE cxx_std_11)
+target_compile_definitions(DEPTH_FX PRIVATE GLEW_STATIC)
+set_property(TARGET DEPTH_FX PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)
+target_link_libraries(DEPTH_FX PRIVATE
+    OpenGL32
+    Gdiplus
+    "${FFGL_ROOT}/deps/glew-2.1.0/lib/Release/x64/glew32s.lib"
+)
+set_target_properties(DEPTH_FX PROPERTIES
+    OUTPUT_NAME "DEPTH_FX"
+    PREFIX ""
+    SUFFIX ".dll"
+)
+add_custom_command(TARGET DEPTH_FX POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:DEPTH_FX>"
+        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/DEPTH_FX.dll"
 )
 
 enable_testing()

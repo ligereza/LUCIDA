@@ -354,6 +354,7 @@ def build_parser() -> argparse.ArgumentParser:
     testcard.add_argument("-o", "--output", required=True, help="Salida .png, .mp4, .mov o .mkv.")
     testcard.add_argument("--duration", type=float, default=12.0, help="Duración del video en segundos (default: 12).")
     testcard.add_argument("--fps", type=float, default=30.0, help="FPS del video (default: 30).")
+    testcard.add_argument("--suite", choices=["geometry", "soundcheck"], default="geometry", help="Suite geometry o soundcheck (default: geometry).")
     testcard.add_argument("--report", help="Ruta opcional para guardar la especificación JSON.")
     testcard.add_argument("--ffmpeg", default="ffmpeg", help="Ruta o nombre de FFmpeg para salidas de video.")
 
@@ -835,6 +836,7 @@ def main(argv: list[str] | None = None) -> int:
                 duration_seconds=args.duration,
                 fps=args.fps,
                 ffmpeg=args.ffmpeg,
+                suite=args.suite,
             )
             print(testcard_text_report(report))
             if args.report:
