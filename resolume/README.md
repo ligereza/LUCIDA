@@ -249,3 +249,25 @@ The resulting DLL is copied to
 Resolume Preferences → Video → FFGL Directories and restart Resolume. The
 native build and XML contract are verified locally; live host loading still
 requires the final installation step on a machine with Resolume.
+
+## Native INSTAR CAPTURE source
+
+`resolume/plugin/INSTAR/INSTAR_CAPTURE.cpp` builds a second FFGL entry point,
+`INSTAR_CAPTURE.dll`, as an `FF_SOURCE`. It loads Wavefront OBJ geometry through
+the shared INSTAR scene core and renders a low-cost wireframe venue view inside
+the Resolume composition. Its view selector contains `AEREO`, `PISTA` and
+`LIBRE`; when no model is selected, it shows a deterministic stage/screen demo.
+
+This is the Capture-like visualization layer: it is not a NovaStar controller
+and it does not pretend that a 3D preview is a physical patch. OBJ geometry is
+the first importer; materials, textures and additional formats are deliberately
+not claimed yet. The next shared-core step is to identify named LED surfaces in
+the scene and project them into the same 2D surface model consumed by INSTAR's
+XML exporter.
+
+Both DLLs are produced by the same build:
+
+```text
+work/resolume-plugin-build/Extra Effects/INSTAR.dll
+work/resolume-plugin-build/Extra Effects/INSTAR_CAPTURE.dll
+```

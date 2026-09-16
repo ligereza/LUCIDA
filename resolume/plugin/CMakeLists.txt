@@ -47,6 +47,8 @@ set(FFGL_SOURCES
 add_library(INSTAR SHARED
     INSTAR/INSTAR.cpp
     INSTAR/INSTAR.h
+    INSTAR/INSTAR_SCENE.cpp
+    INSTAR/INSTAR_SCENE.h
     INSTAR/INSTAR_XML.cpp
     INSTAR/INSTAR_XML.h
     INSTAR/INSTAR_IMAGE.cpp
@@ -84,6 +86,39 @@ add_custom_command(TARGET INSTAR POST_BUILD
         "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/INSTAR.dll"
 )
 
+add_library(INSTAR_CAPTURE SHARED
+    INSTAR/INSTAR_CAPTURE.cpp
+    INSTAR/INSTAR_CAPTURE.h
+    INSTAR/INSTAR_SCENE.cpp
+    INSTAR/INSTAR_SCENE.h
+    ${FFGL_SOURCES}
+)
+target_include_directories(INSTAR_CAPTURE PRIVATE
+    "${FFGL_SOURCE_ROOT}"
+    "${FFGL_ROOT}/deps/glew-2.1.0/include"
+)
+target_compile_features(INSTAR_CAPTURE PRIVATE cxx_std_11)
+target_compile_definitions(INSTAR_CAPTURE PRIVATE GLEW_STATIC)
+set_property(TARGET INSTAR_CAPTURE PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)
+target_link_libraries(INSTAR_CAPTURE PRIVATE
+    OpenGL32
+    "${FFGL_ROOT}/deps/glew-2.1.0/lib/Release/x64/glew32s.lib"
+)
+set_target_properties(INSTAR_CAPTURE PROPERTIES
+    OUTPUT_NAME "INSTAR_CAPTURE"
+    PREFIX ""
+    SUFFIX ".dll"
+)
+add_custom_command(TARGET INSTAR_CAPTURE POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:INSTAR_CAPTURE>"
+        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/INSTAR_CAPTURE.dll"
+)
+
 enable_testing()
 add_executable(INSTAR_XML_CONTRACT
     INSTAR/INSTAR_XML.cpp
@@ -106,3 +141,11 @@ add_executable(INSTAR_IMAGE_CONTRACT
 target_compile_features(INSTAR_IMAGE_CONTRACT PRIVATE cxx_std_11)
 target_link_libraries(INSTAR_IMAGE_CONTRACT PRIVATE Gdiplus)
 add_test(NAME INSTAR_IMAGE_CONTRACT COMMAND INSTAR_IMAGE_CONTRACT)
+
+add_executable(INSTAR_SCENE_CONTRACT
+    INSTAR/INSTAR_SCENE.cpp
+    INSTAR/INSTAR_SCENE.h
+    INSTAR/INSTAR_SCENE_CONTRACT.cpp
+)
+target_compile_features(INSTAR_SCENE_CONTRACT PRIVATE cxx_std_11)
+add_test(NAME INSTAR_SCENE_CONTRACT COMMAND INSTAR_SCENE_CONTRACT)
