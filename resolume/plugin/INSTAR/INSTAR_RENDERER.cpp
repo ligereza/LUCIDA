@@ -10,12 +10,15 @@ FFResult INSTARSceneRenderer::Init()
 		uniform float u_pitch;
 		uniform float u_zoom;
 		uniform float u_aspect;
+		uniform vec3 u_scene_centre;
+		uniform float u_scene_scale;
 		out vec3 v_colour;
 		void main()
 		{
 			float cy = cos(u_yaw);
 			float sy = sin(u_yaw);
-			vec3 p = vec3(cy * position.x - sy * position.z, position.y, sy * position.x + cy * position.z);
+			vec3 fitted = (position - u_scene_centre) * u_scene_scale;
+			vec3 p = vec3(cy * fitted.x - sy * fitted.z, fitted.y, sy * fitted.x + cy * fitted.z);
 			float cp = cos(u_pitch);
 			float sp = sin(u_pitch);
 			p = vec3(p.x, cp * p.y - sp * p.z, sp * p.y + cp * p.z);
@@ -109,6 +112,8 @@ FFResult INSTARSceneRenderer::Render(
 	sceneShader.Set("u_pitch", camera.pitch);
 	sceneShader.Set("u_zoom", camera.zoom);
 	sceneShader.Set("u_aspect", aspect);
+	sceneShader.Set("u_scene_centre", scene.renderCentre.x, scene.renderCentre.y, scene.renderCentre.z);
+	sceneShader.Set("u_scene_scale", scene.renderScale);
 	sceneShader.Set("u_brightness", 0.2f + brightness * 1.2f);
 	glBindVertexArray(triangleVao);
 	if (!scene.triangleVertices.empty())

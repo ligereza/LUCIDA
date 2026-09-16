@@ -74,6 +74,32 @@ void Normalise(INSTARScene& scene)
 		surface.maximum.y = (surface.maximum.y - centre.y) * scale;
 		surface.maximum.z = (surface.maximum.z - centre.z) * scale;
 	}
+	scene.renderCentre = {};
+	scene.renderScale = 1.0f;
+}
+
+void SetRenderFit(INSTARScene& scene)
+{
+	if (scene.lineVertices.empty())
+		return;
+	INSTARVec3 minimum = scene.lineVertices.front().position;
+	INSTARVec3 maximum = minimum;
+	for (const INSTARVertex& vertex : scene.lineVertices)
+	{
+		minimum.x = std::min(minimum.x, vertex.position.x);
+		minimum.y = std::min(minimum.y, vertex.position.y);
+		minimum.z = std::min(minimum.z, vertex.position.z);
+		maximum.x = std::max(maximum.x, vertex.position.x);
+		maximum.y = std::max(maximum.y, vertex.position.y);
+		maximum.z = std::max(maximum.z, vertex.position.z);
+	}
+	scene.renderCentre = {
+		(minimum.x + maximum.x) * 0.5f,
+		(minimum.y + maximum.y) * 0.5f,
+		(minimum.z + maximum.z) * 0.5f,
+	};
+	const float extent = std::max(maximum.x - minimum.x, std::max(maximum.y - minimum.y, maximum.z - minimum.z));
+	scene.renderScale = extent > 0.000001f ? 2.0f / extent : 1.0f;
 }
 
 int ObjIndex(const std::string& token, int positionCount)
@@ -485,7 +511,7 @@ bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::strin
 		error = "venue JSON contains no renderable polilineas";
 		return false;
 	}
-	Normalise(scene);
+	SetRenderFit(scene);
 	scene.source = path;
 	return true;
 }

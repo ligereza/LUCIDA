@@ -48,6 +48,8 @@ struct INSTARScene
 	std::vector<INSTARSurface3D> surfaces;
 	unsigned int totalEdges = 0;
 	unsigned int omittedEdges = 0;
+	INSTARVec3 renderCentre;
+	float renderScale = 1.0f;
 	bool fromObj = false;
 	std::string source;
 };
