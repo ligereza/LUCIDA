@@ -8,6 +8,7 @@
 #endif
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
@@ -73,8 +74,8 @@ void AddEdgeTextured(
 	float blue
 )
 {
-	output.push_back({first, red, green, blue, firstUv.u, firstUv.v});
-	output.push_back({second, red, green, blue, secondUv.u, secondUv.v});
+	output.push_back({first, red, green, blue, firstUv.u, firstUv.v, 1.0f});
+	output.push_back({second, red, green, blue, secondUv.u, secondUv.v, 1.0f});
 }
 
 void AddTriangleTextured(
@@ -90,9 +91,9 @@ void AddTriangleTextured(
 	float blue
 )
 {
-	output.push_back({first, red, green, blue, firstUv.u, firstUv.v});
-	output.push_back({second, red, green, blue, secondUv.u, secondUv.v});
-	output.push_back({third, red, green, blue, thirdUv.u, thirdUv.v});
+	output.push_back({first, red, green, blue, firstUv.u, firstUv.v, 1.0f});
+	output.push_back({second, red, green, blue, secondUv.u, secondUv.v, 1.0f});
+	output.push_back({third, red, green, blue, thirdUv.u, thirdUv.v, 1.0f});
 }
 
 void Normalise(INSTARScene& scene)
@@ -402,6 +403,105 @@ int VenueConfidenceOrder(const std::string& confidence)
 		return 3;
 	return 4;
 }
+
+bool ParseUnsignedValue(const std::string& value, unsigned int& result)
+{
+	if (value.empty())
+		return false;
+	char* end = nullptr;
+	const unsigned long parsed = std::strtoul(value.c_str(), &end, 10);
+	if (end == value.c_str() || *end != '\0' || parsed == 0 || parsed > 4294967295UL)
+		return false;
+	result = static_cast<unsigned int>(parsed);
+	return true;
+}
+
+std::string XmlAttributeValue(const std::string& text, const char* name, size_t start = 0)
+{
+	const std::string marker = std::string(name) + "=\"";
+	const size_t valueStart = text.find(marker, start);
+	if (valueStart == std::string::npos)
+		return std::string();
+	const size_t contentStart = valueStart + marker.size();
+	const size_t contentEnd = text.find('"', contentStart);
+	return contentEnd == std::string::npos ? std::string() : text.substr(contentStart, contentEnd - contentStart);
+}
+
+bool ParseFloatValue(const std::string& value, float& result)
+{
+	if (value.empty())
+		return false;
+	char* end = nullptr;
+	result = std::strtof(value.c_str(), &end);
+	return end != value.c_str() && *end == '\0';
+}
+
+std::vector<INSTARVec3> ParseXmlRectPoints(const std::string& text, size_t start, size_t end)
+{
+	std::vector<INSTARVec3> points;
+	size_t cursor = start;
+	while (cursor < end)
+	{
+		const size_t vertex = text.find("<v ", cursor);
+		if (vertex == std::string::npos || vertex >= end)
+			break;
+		float x = 0.0f;
+		float y = 0.0f;
+		if (ParseFloatValue(XmlAttributeValue(text, "x", vertex), x) &&
+			ParseFloatValue(XmlAttributeValue(text, "y", vertex), y))
+			points.push_back({x, y, 0.0f});
+		cursor = vertex + 3;
+	}
+	return points;
+}
+
+void AddWireRectangle(
+	INSTARScene& scene,
+	float left,
+	float bottom,
+	float right,
+	float top,
+	float z,
+	float red,
+	float green,
+	float blue
+)
+{
+	const INSTARVec3 points[] = {
+		{left, top, z}, {right, top, z},
+		{right, top, z}, {right, bottom, z},
+		{right, bottom, z}, {left, bottom, z},
+		{left, bottom, z}, {left, top, z},
+	};
+	for (size_t index = 0; index < 8U; index += 2U)
+		AddEdge(scene.lineVertices, points[index], points[index + 1U], red, green, blue);
+}
+
+void AddTiltedWireRectangle(
+	INSTARScene& scene,
+	float left,
+	float bottom,
+	float right,
+	float top,
+	float z,
+	float tiltDegrees,
+	float red,
+	float green,
+	float blue
+)
+{
+	// FLUJO's tilt is an orientation control. A sine offset keeps the
+	// 0..90-degree range finite and avoids exploding the preview at 90 degrees.
+	const float topDepthOffset = std::sin(tiltDegrees * 3.1415926535f / 180.0f) * (top - bottom);
+	const INSTARVec3 bottomLeft{left, bottom, z};
+	const INSTARVec3 bottomRight{right, bottom, z};
+	const INSTARVec3 topLeft{left, top, z + topDepthOffset};
+	const INSTARVec3 topRight{right, top, z + topDepthOffset};
+	AddEdge(scene.lineVertices, topLeft, topRight, red, green, blue);
+	AddEdge(scene.lineVertices, topRight, bottomRight, red, green, blue);
+	AddEdge(scene.lineVertices, bottomRight, bottomLeft, red, green, blue);
+	AddEdge(scene.lineVertices, bottomLeft, topLeft, red, green, blue);
+}
 }
 
 bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& error)
@@ -638,6 +738,208 @@ bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::strin
 	return true;
 }
 
+void ApplyINSTARInputPlaneDepths(INSTARScene& scene, const std::vector<float>& depths)
+{
+	scene.lineVertices.clear();
+	scene.triangleVertices.clear();
+	scene.surfaces.clear();
+	scene.hasTextureCoordinates = true;
+	if (scene.inputCanvasWidth == 0 || scene.inputCanvasHeight == 0)
+		return;
+	const float canvasAspect = static_cast<float>(scene.inputCanvasHeight) / static_cast<float>(scene.inputCanvasWidth);
+	for (size_t index = 0; index < scene.inputPlanes.size(); ++index)
+	{
+		const INSTARInputPlane& plane = scene.inputPlanes[index];
+		const float depth = index < depths.size() ? depths[index] : 0.0f;
+		const float left = plane.x / static_cast<float>(scene.inputCanvasWidth) * 2.0f - 1.0f;
+		const float right = (plane.x + plane.width) / static_cast<float>(scene.inputCanvasWidth) * 2.0f - 1.0f;
+		const float top = (0.5f - plane.y / static_cast<float>(scene.inputCanvasHeight)) * 2.0f * canvasAspect;
+		const float bottom = (0.5f - (plane.y + plane.height) / static_cast<float>(scene.inputCanvasHeight)) * 2.0f * canvasAspect;
+		const INSTARVec3 topLeft{left, top, depth};
+		const INSTARVec3 topRight{right, top, depth};
+		const INSTARVec3 bottomRight{right, bottom, depth};
+		const INSTARVec3 bottomLeft{left, bottom, depth};
+		const INSTARVec2 topLeftUv{plane.x / static_cast<float>(scene.inputCanvasWidth), plane.y / static_cast<float>(scene.inputCanvasHeight)};
+		const INSTARVec2 topRightUv{(plane.x + plane.width) / static_cast<float>(scene.inputCanvasWidth), plane.y / static_cast<float>(scene.inputCanvasHeight)};
+		const INSTARVec2 bottomRightUv{(plane.x + plane.width) / static_cast<float>(scene.inputCanvasWidth), (plane.y + plane.height) / static_cast<float>(scene.inputCanvasHeight)};
+		const INSTARVec2 bottomLeftUv{plane.x / static_cast<float>(scene.inputCanvasWidth), (plane.y + plane.height) / static_cast<float>(scene.inputCanvasHeight)};
+		const float red = 0.20f + static_cast<float>((index * 37U) % 55U) / 100.0f;
+		const float green = 0.55f + static_cast<float>((index * 19U) % 35U) / 100.0f;
+		const float blue = 0.70f + static_cast<float>((index * 11U) % 25U) / 100.0f;
+		AddEdgeTextured(scene.lineVertices, topLeft, topRight, topLeftUv, topRightUv, red, green, blue);
+		AddEdgeTextured(scene.lineVertices, topRight, bottomRight, topRightUv, bottomRightUv, red, green, blue);
+		AddEdgeTextured(scene.lineVertices, bottomRight, bottomLeft, bottomRightUv, bottomLeftUv, red, green, blue);
+		AddEdgeTextured(scene.lineVertices, bottomLeft, topLeft, bottomLeftUv, topLeftUv, red, green, blue);
+		AddTriangleTextured(scene.triangleVertices, topLeft, topRight, bottomRight, topLeftUv, topRightUv, bottomRightUv, red, green, blue);
+		AddTriangleTextured(scene.triangleVertices, topLeft, bottomRight, bottomLeft, topLeftUv, bottomRightUv, bottomLeftUv, red, green, blue);
+	}
+	scene.renderCentre = {};
+	scene.renderScale = 1.0f;
+}
+
+void ApplyINSTARTarima(INSTARScene& scene, const INSTARTarimaConfig& config)
+{
+	if (scene.inputPlanes.empty() || scene.inputCanvasWidth == 0 || scene.inputCanvasHeight == 0)
+		return;
+
+	const float canvasAspect = static_cast<float>(scene.inputCanvasHeight) / static_cast<float>(scene.inputCanvasWidth);
+	const auto boundsOf = [canvasAspect, &scene](const INSTARInputPlane& plane) {
+		const float canvasWidth = static_cast<float>(scene.inputCanvasWidth);
+		const float canvasHeight = static_cast<float>(scene.inputCanvasHeight);
+		const float left = plane.x / canvasWidth * 2.0f - 1.0f;
+		const float right = (plane.x + plane.width) / canvasWidth * 2.0f - 1.0f;
+		const float top = (0.5f - plane.y / canvasHeight) * 2.0f * canvasAspect;
+		const float bottom = (0.5f - (plane.y + plane.height) / canvasHeight) * 2.0f * canvasAspect;
+		return std::array<float, 4>{left, bottom, right, top};
+	};
+
+	// The largest InputRect is the main screen. XML remains authoritative for
+	// every plane's XY position and order; this function only adds the stage
+	// context behind those planes.
+	size_t mainIndex = 0;
+	float mainArea = -1.0f;
+	for (size_t index = 0; index < scene.inputPlanes.size(); ++index)
+	{
+		const INSTARInputPlane& plane = scene.inputPlanes[index];
+		const float area = plane.width * plane.height;
+		if (area > mainArea)
+		{
+			mainArea = area;
+			mainIndex = index;
+		}
+	}
+	const std::array<float, 4> main = boundsOf(scene.inputPlanes[mainIndex]);
+	const float mainWidth = std::max(0.25f, main[2] - main[0]);
+	const float mainHeight = std::max(0.25f, main[3] - main[1]);
+	const float mainCentreX = (main[0] + main[2]) * 0.5f;
+	const float mainCentreY = (main[1] + main[3]) * 0.5f;
+	const float configuredScreenWidth = std::max(0.25f, static_cast<float>(std::max(1, config.screenColumns)) * config.moduleWidth);
+	const float worldPerMetre = mainWidth / configuredScreenWidth;
+	const float stageHeight = 0.60f * worldPerMetre;
+	const float stageDepth = std::max(0.10f, config.stageDepth * worldPerMetre);
+	const float stageZ = scene.lineVertices.empty() ? -config.stageDist * worldPerMetre :
+		scene.lineVertices.front().position.z - (config.stageDist * worldPerMetre + stageDepth * 0.5f);
+	const float floorY = main[1] - 0.35f * worldPerMetre;
+
+	AddBox(
+		scene,
+		{mainCentreX, floorY + stageHeight * 0.5f, stageZ},
+		{std::max(0.25f, config.stageWidth * worldPerMetre), stageHeight, stageDepth},
+		0.12f, 0.07f, 0.20f
+	);
+
+	// A thin backing and module grid make the largest screen readable as the
+	// main banner without replacing the actual textured InputRect plane.
+	const float backingZ = scene.lineVertices.empty() ? stageZ + stageDepth * 0.5f : scene.lineVertices.front().position.z - 0.08f * worldPerMetre;
+	AddBox(scene, {mainCentreX, mainCentreY, backingZ}, {mainWidth, mainHeight, 0.08f * worldPerMetre}, 0.04f, 0.35f, 0.55f);
+	AddWireRectangle(scene, main[0], main[1], main[2], main[3], backingZ + 0.05f * worldPerMetre, 0.20f, 0.75f, 1.0f);
+	const int screenColumns = std::max(1, config.screenColumns);
+	const int screenRows = std::max(1, config.screenRows);
+	for (int column = 1; column < screenColumns; ++column)
+	{
+		const float x = main[0] + mainWidth * static_cast<float>(column) / static_cast<float>(screenColumns);
+		AddEdge(scene.lineVertices, {x, main[1], backingZ + 0.06f * worldPerMetre}, {x, main[3], backingZ + 0.06f * worldPerMetre}, 0.15f, 0.55f, 0.85f);
+	}
+	for (int row = 1; row < screenRows; ++row)
+	{
+		const float y = main[1] + mainHeight * static_cast<float>(row) / static_cast<float>(screenRows);
+		AddEdge(scene.lineVertices, {main[0], y, backingZ + 0.06f * worldPerMetre}, {main[2], y, backingZ + 0.06f * worldPerMetre}, 0.15f, 0.55f, 0.85f);
+	}
+
+	const int totalTotems = std::max(0, config.totemCount);
+	const int pairs = totalTotems / 2;
+	const float totemWidth = std::max(0.10f, static_cast<float>(std::max(1, config.totemColumns)) * config.moduleWidth * worldPerMetre);
+	const float totemHeight = std::max(0.10f, static_cast<float>(std::max(1, config.totemRows)) * config.moduleHeight * worldPerMetre);
+	const float gap = std::max(0.0f, config.totemGap * worldPerMetre);
+	const float totemZ = backingZ - 0.16f * worldPerMetre;
+	for (int pair = 0; pair < pairs; ++pair)
+	{
+		const float offset = (static_cast<float>(pair) + 0.5f) * totemWidth + static_cast<float>(pair + 1) * gap;
+		const float leftX = main[0] - offset;
+		const float rightX = main[2] + offset;
+		const float centreY = main[1] + totemHeight * 0.5f;
+		AddBox(scene, {leftX, centreY, totemZ}, {totemWidth, totemHeight, 0.12f * worldPerMetre}, 0.75f, 0.35f, 0.05f);
+		AddBox(scene, {rightX, centreY, totemZ}, {totemWidth, totemHeight, 0.12f * worldPerMetre}, 0.75f, 0.35f, 0.05f);
+		AddTiltedWireRectangle(scene, leftX - totemWidth * 0.5f, main[1], leftX + totemWidth * 0.5f, main[1] + totemHeight, totemZ + 0.08f * worldPerMetre, config.tilt, 1.0f, 0.70f, 0.10f);
+		AddTiltedWireRectangle(scene, rightX - totemWidth * 0.5f, main[1], rightX + totemWidth * 0.5f, main[1] + totemHeight, totemZ + 0.08f * worldPerMetre, config.tilt, 1.0f, 0.70f, 0.10f);
+	}
+
+	SetRenderFit(scene);
+}
+
+bool LoadINSTARAdvancedOutputPlanes(const std::string& path, INSTARScene& scene, std::string& error)
+{
+	scene = INSTARScene();
+	std::ifstream file = OpenTextFile(path);
+	if (!file.is_open())
+	{
+		error = "Advanced Output XML could not be opened";
+		return false;
+	}
+	const std::string xml((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	const size_t texture = xml.find("<CurrentCompositionTextureSize");
+	if (texture == std::string::npos ||
+		!ParseUnsignedValue(XmlAttributeValue(xml, "width", texture), scene.inputCanvasWidth) ||
+		!ParseUnsignedValue(XmlAttributeValue(xml, "height", texture), scene.inputCanvasHeight))
+	{
+		error = "Advanced Output XML has no valid composition texture size";
+		return false;
+	}
+	size_t cursor = xml.find("<Slice");
+	while (cursor != std::string::npos)
+	{
+		const size_t close = xml.find("</Slice>", cursor);
+		if (close == std::string::npos)
+		{
+			error = "Advanced Output XML has an unterminated Slice";
+			return false;
+		}
+		const size_t inputRect = xml.find("<InputRect", cursor);
+		const size_t inputRectClose = inputRect == std::string::npos ? std::string::npos : xml.find("</InputRect>", inputRect);
+		if (inputRect == std::string::npos || inputRect >= close || inputRectClose == std::string::npos || inputRectClose > close)
+		{
+			cursor = xml.find("<Slice", close + 8);
+			continue;
+		}
+		const std::vector<INSTARVec3> points = ParseXmlRectPoints(xml, inputRect, inputRectClose);
+		if (points.size() >= 4U)
+		{
+			INSTARInputPlane plane;
+			const size_t nameParam = xml.find("<Param name=\"Name\"", cursor);
+			if (nameParam != std::string::npos && nameParam < close)
+				plane.name = XmlAttributeValue(xml, "value", nameParam);
+			if (plane.name.empty())
+				plane.name = "SLICE_" + std::to_string(scene.inputPlanes.size() + 1U);
+			float minX = points.front().x;
+			float maxX = points.front().x;
+			float minY = points.front().y;
+			float maxY = points.front().y;
+			for (const INSTARVec3& point : points)
+			{
+				minX = std::min(minX, point.x);
+				maxX = std::max(maxX, point.x);
+				minY = std::min(minY, point.y);
+				maxY = std::max(maxY, point.y);
+			}
+			plane.x = minX;
+			plane.y = minY;
+			plane.width = maxX - minX;
+			plane.height = maxY - minY;
+			if (plane.width > 0.0f && plane.height > 0.0f)
+				scene.inputPlanes.push_back(plane);
+		}
+		cursor = xml.find("<Slice", close + 8);
+	}
+	if (scene.inputPlanes.empty())
+	{
+		error = "Advanced Output XML contains no rectangular InputRect slices";
+		return false;
+	}
+	ApplyINSTARInputPlaneDepths(scene, std::vector<float>());
+	scene.source = path;
+	return true;
+}
+
 INSTARScene BuildINSTARDemoScene()
 {
 	INSTARScene scene;
@@ -653,6 +955,23 @@ INSTARScene BuildINSTARDemoScene()
 	return scene;
 }
 
+INSTARScene BuildINSTARFlatPlaneDemoScene()
+{
+	INSTARScene scene;
+	scene.inputCanvasWidth = 1920;
+	scene.inputCanvasHeight = 1080;
+	INSTARInputPlane plane;
+	plane.name = "INPUT_PLANE_DEMO";
+	plane.x = 0.0f;
+	plane.y = 0.0f;
+	plane.width = 1920.0f;
+	plane.height = 1080.0f;
+	scene.inputPlanes.push_back(plane);
+	ApplyINSTARInputPlaneDepths(scene, std::vector<float>());
+	scene.source = "INSTAR flat plane demo";
+	return scene;
+}
+
 INSTARScene BuildINSTARModelDemoScene()
 {
 	INSTARScene scene;
@@ -662,12 +981,13 @@ INSTARScene BuildINSTARModelDemoScene()
 	return scene;
 }
 
-INSTARCamera SelectINSTARCamera(int view, float yaw, float pitch, float zoom)
+INSTARCamera SelectINSTARCamera(int view, float yaw, float pitch, float zoom, float distance)
 {
 	INSTARCamera camera;
 	camera.yaw = (yaw - 0.5f) * 6.2831853f;
 	camera.pitch = (pitch - 0.5f) * 2.2f;
 	camera.zoom = 0.8f + zoom * 1.8f;
+	camera.distance = std::max(0.5f, distance);
 	if (view == 0)
 	{
 		camera.yaw = 0.75f;

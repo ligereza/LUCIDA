@@ -26,15 +26,24 @@ int main(int argc, char** argv)
 		INSTARScene scene;
 		std::string error;
 		const std::string path = argv[1];
-		const bool loaded = HasSuffix(path, ".json") ? LoadINSTARVenueJson(path, scene, error) : LoadINSTARObj(path, scene, error);
+		const bool isVenue = HasSuffix(path, ".json");
+		const bool isTemplate = HasSuffix(path, ".xml");
+		const bool loaded = isVenue ? LoadINSTARVenueJson(path, scene, error) :
+			(isTemplate ? LoadINSTARAdvancedOutputPlanes(path, scene, error) : LoadINSTARObj(path, scene, error));
 		if (!loaded)
 		{
 			std::cerr << error << "\n";
 			return 1;
 		}
-		std::cout << (HasSuffix(path, ".json") ? "venue_lines=" : "obj_lines=") << scene.lineVertices.size()
+		std::cout << (isVenue ? "venue_lines=" : (isTemplate ? "xml_lines=" : "obj_lines=")) << scene.lineVertices.size()
 			      << " surfaces=" << scene.surfaces.size()
 			      << " triangles=" << scene.triangleVertices.size() << "\n";
+		if (isTemplate)
+		{
+			ApplyINSTARInputPlaneDepths(scene, std::vector<float>{2.5f});
+			if (scene.inputPlanes.empty() || scene.lineVertices.empty() || std::fabs(scene.lineVertices.front().position.z - 2.5f) > 0.0001f)
+				return 1;
+		}
 		return scene.lineVertices.empty() ? 1 : 0;
 	}
 	if (argc > 2)
@@ -108,6 +117,36 @@ int main(int argc, char** argv)
 	const INSTARScene modelDemo = BuildINSTARModelDemoScene();
 	if (modelDemo.surfaces.size() != 1U || modelDemo.surfaces[0].name != "MODEL_DEMO" || modelDemo.triangleVertices.empty())
 		return 1;
+	INSTARScene tarima;
+	tarima.inputCanvasWidth = 1920;
+	tarima.inputCanvasHeight = 1080;
+	tarima.inputPlanes = {
+		{"MAIN_BANNER", 100.0f, 100.0f, 1600.0f, 700.0f},
+		{"TOTEM_L", 20.0f, 120.0f, 60.0f, 420.0f},
+		{"TOTEM_R", 1840.0f, 120.0f, 60.0f, 420.0f},
+	};
+	ApplyINSTARInputPlaneDepths(tarima, std::vector<float>{0.0f, 0.2f, -0.2f});
+	const size_t tarimaPlaneLineCount = tarima.lineVertices.size();
+	const auto tarimaPlanesBefore = tarima.inputPlanes;
+	INSTARTarimaConfig tarimaConfig;
+	tarimaConfig.tilt = 90.0f;
+	tarimaConfig.totemCount = 4;
+	ApplyINSTARTarima(tarima, tarimaConfig);
+	bool inputPlanesPreserved = tarima.inputPlanes.size() == tarimaPlanesBefore.size();
+	for (size_t index = 0; inputPlanesPreserved && index < tarima.inputPlanes.size(); ++index)
+	{
+		const INSTARInputPlane& before = tarimaPlanesBefore[index];
+		const INSTARInputPlane& after = tarima.inputPlanes[index];
+		inputPlanesPreserved = before.name == after.name && before.x == after.x && before.y == after.y &&
+			before.width == after.width && before.height == after.height;
+	}
+	if (tarima.lineVertices.size() <= tarimaPlaneLineCount || tarima.triangleVertices.empty() || !inputPlanesPreserved)
+		return 1;
+	for (const INSTARVertex& vertex : tarima.lineVertices)
+	{
+		if (!std::isfinite(vertex.position.x) || !std::isfinite(vertex.position.y) || !std::isfinite(vertex.position.z))
+			return 1;
+	}
 	const INSTARCamera aerial = SelectINSTARCamera(0, 0.5f, 0.5f, 0.55f);
 	const INSTARCamera track = SelectINSTARCamera(1, 0.5f, 0.5f, 0.55f);
 	const INSTARCamera free = SelectINSTARCamera(2, 0.25f, 0.75f, 0.4f);

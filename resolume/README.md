@@ -221,17 +221,30 @@ same Git blob produces the same manifest in Windows worktrees.
 ## Native INSTAR Capture source
 
 The native Resolume unit is `resolume/plugin/INSTAR/INSTAR.cpp`. `INSTAR.dll`
-is an `FF_SOURCE` inspired by FLUJO's venue viewer: it reads a venue JSON with
-3D polylines, preserves each line's confidence colour, and provides the
-`AEREO`, `PISTA` and `LIBRE` camera modes. Its `Mode` selector also provides
-`RASTER_PIXEL_MAP`, which displays a PNG/JPG with preserved proportions. Without
-a venue file in `VENUE_3D` mode it shows the deterministic stage demo; raster
-mode remains empty until a map is selected. The camera and scene core are local
-and do not need a network, model service or LED processor. `EdgeBudget` keeps
-the highest-confidence polylines first and reports omitted edges rather than
-trimming a line silently. `ConfidenceCeiling` can exclude unverified tiers
-explicitly. In raster mode, detected slices are outlined in the source before
-`ExportMapXML`, so the XML-producing regions are visible.
+is an `FF_SOURCE` inspired by FLUJO's venue viewer. Its primary
+`XML_PLANES` mode reads the `InputRect` planes of an Advanced Output XML and
+uses them as the authoritative front-view arrangement. The largest `InputRect`
+is treated as the main banner; its XY position and the order of all other
+planes are preserved. `SliceDepth01` through `SliceDepth32` add independent Z
+offsets without changing the XML layout. `MapFile` can texture those planes
+with the source pixel-map image, while `TemplateXML` remains the real routing
+template and `OutputRect` is never used to invent the front-view composition.
+
+The XML preview adds a traditional stage, a backing/grid for the main screen,
+and configurable side totems. The `StageDist`, `StageWidth`, `StageDepth`,
+`TotemGap`, `TotemCount`, `TotemColumns`, `TotemRows`, `ModuleWidth`,
+`ModuleHeight`, `ScreenColumns`, `ScreenRows`, and `Tilt` parameters are real
+numeric controls modelled on FLUJO's tarima tool. They change only the stage
+context; they do not rewrite the source mapping. `CameraDistance` complements
+the existing `AEREO`, `PISTA` and `LIBRE` camera controls.
+
+The same source retains `VENUE_3D` for confidence-coloured venue JSON and
+`RASTER_PIXEL_MAP` for a flat PNG/JPG inspection with detected surface
+outlines. The camera and scene core are local and do not need a network, model
+service or LED processor. `EdgeBudget` keeps the highest-confidence polylines
+first and reports omitted edges rather than trimming a line silently;
+`ConfidenceCeiling` can exclude unverified tiers explicitly. `ExportMapXML`
+remains a separate explicit action from the preview.
 
 INSTAR also exposes an explicit `ExportMapXML` event. The VJ supplies a raster
 pixel map through `MapFile` (PNG/JPG) and a real Resolume Advanced Output file

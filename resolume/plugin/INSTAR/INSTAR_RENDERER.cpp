@@ -1,5 +1,7 @@
 #include "INSTAR_RENDERER.h"
 
+#include <algorithm>
+
 FFResult INSTARSceneRenderer::Init()
 {
 	const char* vertexShader = R"(
@@ -7,14 +9,17 @@ FFResult INSTARSceneRenderer::Init()
 		layout(location = 0) in vec3 position;
 		layout(location = 1) in vec3 colour;
 		layout(location = 2) in vec2 texCoord;
+		layout(location = 3) in float textureEnabled;
 		uniform float u_yaw;
 		uniform float u_pitch;
 		uniform float u_zoom;
+		uniform float u_distance;
 		uniform float u_aspect;
 		uniform vec3 u_scene_centre;
 		uniform float u_scene_scale;
 		out vec3 v_colour;
 		out vec2 v_texcoord;
+		out float v_texture_enabled;
 		void main()
 		{
 			float cy = cos(u_yaw);
@@ -24,18 +29,20 @@ FFResult INSTARSceneRenderer::Init()
 			float cp = cos(u_pitch);
 			float sp = sin(u_pitch);
 			p = vec3(p.x, cp * p.y - sp * p.z, sp * p.y + cp * p.z);
-			p.z += 3.5;
+			p.z += u_distance;
 			float perspective = u_zoom / max(0.5, p.z);
 			float depth = clamp((p.z - 0.5) / 6.0 * 2.0 - 1.0, -1.0, 1.0);
 			gl_Position = vec4(p.x * perspective / max(0.1, u_aspect), p.y * perspective, depth, 1.0);
 			v_colour = colour;
 			v_texcoord = texCoord;
+			v_texture_enabled = textureEnabled;
 		}
 	)";
 	const char* fragmentShader = R"(
 		#version 410 core
 		in vec3 v_colour;
 		in vec2 v_texcoord;
+		in float v_texture_enabled;
 		uniform float u_brightness;
 		uniform sampler2D modelTexture;
 		uniform float u_texture_enabled;
@@ -43,8 +50,9 @@ FFResult INSTARSceneRenderer::Init()
 		void main()
 		{
 			vec4 textured = texture(modelTexture, vec2(v_texcoord.x, 1.0 - v_texcoord.y));
-			vec3 base = u_texture_enabled > 0.5 ? textured.rgb : v_colour;
-			float alpha = u_texture_enabled > 0.5 ? textured.a : 1.0;
+			bool sampleTexture = u_texture_enabled > 0.5 && v_texture_enabled > 0.5;
+			vec3 base = sampleTexture ? textured.rgb : v_colour;
+			float alpha = sampleTexture ? textured.a : 1.0;
 			fragColor = vec4(base * u_brightness, alpha);
 		}
 	)";
@@ -90,6 +98,8 @@ void INSTARSceneRenderer::Upload(const INSTARScene& scene)
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(sizeof(INSTARVec3)));
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(sizeof(INSTARVec3) + 3 * sizeof(float)));
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(sizeof(INSTARVec3) + 5 * sizeof(float)));
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
@@ -102,6 +112,8 @@ void INSTARSceneRenderer::Upload(const INSTARScene& scene)
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(sizeof(INSTARVec3)));
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(sizeof(INSTARVec3) + 3 * sizeof(float)));
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(sizeof(INSTARVec3) + 5 * sizeof(float)));
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
@@ -128,6 +140,7 @@ FFResult INSTARSceneRenderer::Render(
 	sceneShader.Set("u_yaw", camera.yaw);
 	sceneShader.Set("u_pitch", camera.pitch);
 	sceneShader.Set("u_zoom", camera.zoom);
+	sceneShader.Set("u_distance", std::max(0.5f, camera.distance));
 	sceneShader.Set("u_aspect", aspect);
 	sceneShader.Set("u_scene_centre", scene.renderCentre.x, scene.renderCentre.y, scene.renderCentre.z);
 	sceneShader.Set("u_scene_scale", scene.renderScale);

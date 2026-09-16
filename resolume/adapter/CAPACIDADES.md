@@ -72,15 +72,23 @@ y snapshot de procesador antes de tocar niveles o gamma.
 ## INSTAR — plugin de mapping VJ y preparación del material
 
 La implementación nativa vive en `resolume/plugin/INSTAR/`. `INSTAR.dll` es un
-`FF_SOURCE` de Capture de venues: lee el JSON de polilíneas de FLUJO, orbita la
-sala con AEREO/PISTA/LIBRE y dibuja sus líneas por nivel de confianza. Su
-modo `RASTER_PIXEL_MAP` muestra un `MapFile` raster conservando proporciones y
-su `ExportMapXML` explícito genera `INSTAR_AdvancedOutput.xml` desde ese mismo
-PNG/JPG usando `TemplateXML` real como autoridad de composición, pantalla,
-dispositivo e IDs. `EdgeBudget` prioriza polilíneas por confianza, `ConfidenceCeiling`
-permite excluir niveles y ambos contabilizan las omitidas. El modo raster
-dibuja los rectángulos detectados antes de exportar. No convierte modelos 3D
-ni configura procesadores LED.
+`FF_SOURCE` de Capture de venues. En `XML_PLANES` lee los `InputRect` del
+Advanced Output como disposición frontal autoritativa: el `InputRect` de mayor
+área es el banner principal, los demás conservan su posición y orden, y
+`SliceDepth01`–`SliceDepth32` permiten ajustar profundidad por slice. `MapFile`
+puede texturizar esas superficies. Los controles numéricos de tarima
+(`StageDist`, `StageWidth`, `StageDepth`, `TotemGap`, módulos, columnas/filas,
+`TotemCount` y `Tilt`) agregan el contexto de escenario tradicional con
+backing, retícula y tótems; no sustituyen ni reordenan el mapping del XML.
+
+También conserva `VENUE_3D`, que lee el JSON de polilíneas de FLUJO, y
+`RASTER_PIXEL_MAP`, que muestra un `MapFile` raster conservando proporciones.
+`ExportMapXML` sigue siendo explícito y genera desde el PNG/JPG usando
+`TemplateXML` real como autoridad de composición, pantalla, dispositivo e IDs.
+`OutputRect`, warpers y routing no se inventan desde la imagen. `EdgeBudget`
+prioriza polilíneas por confianza y `ConfidenceCeiling` permite excluir niveles;
+ambos contabilizan las omitidas. No convierte modelos 3D ni configura
+procesadores LED.
 `INSTAR_3D.dll` es el `FF_SOURCE` separado para cargar OBJ/MTL y visualizar
 modelos dentro de la composición, con fondo alfa y `TextureFile` opcional para
 PNG/JPG; conserva UV del OBJ y genera UV plana si faltan.

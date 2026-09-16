@@ -22,8 +22,9 @@ static CFFGLPluginInfo PluginInfo(
 INSTAR::INSTAR()
 {
 	AddParam(ParamOption::Create("Mode", {
-		{"VENUE_3D", 0.0f},
-		{"RASTER_PIXEL_MAP", 1.0f},
+		{"XML_PLANES", 0.0f},
+		{"VENUE_3D", 1.0f},
+		{"RASTER_PIXEL_MAP", 2.0f},
 	}, 0));
 	AddParam(Param::Create("VenueFile", FF_TYPE_FILE, 0.0f));
 	AddParam(Param::Create("EdgeBudget", FF_TYPE_INTEGER, 800.0f));
@@ -48,6 +49,38 @@ INSTAR::INSTAR()
 	AddParam(Param::Create("Zoom", zoom));
 	AddParam(Param::Create("Brightness", brightness));
 	SetParamRange(PARAM_EDGE_BUDGET, 1.0f, 1000000.0f);
+	for (unsigned int index = 0; index < 32U; ++index)
+	{
+		const std::string name = std::string("SliceDepth") + (index < 9U ? "0" : "") + std::to_string(index + 1U);
+		AddParam(Param::Create(name, 0.0f));
+		SetParamRange(PARAM_SLICE_DEPTH_01 + index, -10.0f, 10.0f);
+	}
+	AddParam(Param::Create("StageDist", 3.5f));
+	SetParamRange(PARAM_STAGE_DIST, 1.0f, 8.0f);
+	AddParam(Param::Create("StageWidth", 9.0f));
+	SetParamRange(PARAM_STAGE_WIDTH, 6.0f, 14.0f);
+	AddParam(Param::Create("StageDepth", 4.0f));
+	SetParamRange(PARAM_STAGE_DEPTH, 2.0f, 8.0f);
+	AddParam(Param::Create("TotemGap", 0.5f));
+	SetParamRange(PARAM_TOTEM_GAP, 0.2f, 1.5f);
+	AddParam(Param::Create("Tilt", 0.0f));
+	SetParamRange(PARAM_TILT, 0.0f, 90.0f);
+	AddParam(Param::Create("ModuleWidth", 1.0f));
+	SetParamRange(PARAM_MODULE_WIDTH, 0.25f, 3.0f);
+	AddParam(Param::Create("ModuleHeight", 0.5f));
+	SetParamRange(PARAM_MODULE_HEIGHT, 0.25f, 3.0f);
+	AddParam(Param::Create("ScreenColumns", FF_TYPE_INTEGER, 4.0f));
+	SetParamRange(PARAM_SCREEN_COLUMNS, 1.0f, 16.0f);
+	AddParam(Param::Create("ScreenRows", FF_TYPE_INTEGER, 6.0f));
+	SetParamRange(PARAM_SCREEN_ROWS, 1.0f, 16.0f);
+	AddParam(Param::Create("TotemCount", FF_TYPE_INTEGER, 4.0f));
+	SetParamRange(PARAM_TOTEM_COUNT, 0.0f, 8.0f);
+	AddParam(Param::Create("TotemColumns", FF_TYPE_INTEGER, 1.0f));
+	SetParamRange(PARAM_TOTEM_COLUMNS, 1.0f, 4.0f);
+	AddParam(Param::Create("TotemRows", FF_TYPE_INTEGER, 6.0f));
+	SetParamRange(PARAM_TOTEM_ROWS, 1.0f, 16.0f);
+	AddParam(Param::Create("CameraDistance", cameraDistance));
+	SetParamRange(PARAM_CAMERA_DISTANCE, 1.0f, 20.0f);
 }
 
 FFResult INSTAR::Init()
@@ -131,8 +164,58 @@ void INSTAR::Clean()
 	renderer.Clean();
 }
 
+INSTARTarimaConfig INSTAR::GetTarimaConfig()
+{
+	INSTARTarimaConfig config;
+	config.stageDist = GetFloatParameter(PARAM_STAGE_DIST);
+	config.stageWidth = GetFloatParameter(PARAM_STAGE_WIDTH);
+	config.stageDepth = GetFloatParameter(PARAM_STAGE_DEPTH);
+	config.totemGap = GetFloatParameter(PARAM_TOTEM_GAP);
+	config.tilt = GetFloatParameter(PARAM_TILT);
+	config.moduleWidth = GetFloatParameter(PARAM_MODULE_WIDTH);
+	config.moduleHeight = GetFloatParameter(PARAM_MODULE_HEIGHT);
+	config.screenColumns = static_cast<int>(GetFloatParameter(PARAM_SCREEN_COLUMNS));
+	config.screenRows = static_cast<int>(GetFloatParameter(PARAM_SCREEN_ROWS));
+	config.totemCount = static_cast<int>(GetFloatParameter(PARAM_TOTEM_COUNT));
+	config.totemColumns = static_cast<int>(GetFloatParameter(PARAM_TOTEM_COLUMNS));
+	config.totemRows = static_cast<int>(GetFloatParameter(PARAM_TOTEM_ROWS));
+	return config;
+}
+
 bool INSTAR::LoadVenue()
 {
+	const int mode = static_cast<int>(GetFloatParameter(PARAM_MODE));
+	const INSTARTarimaConfig tarima = GetTarimaConfig();
+	if (mode == 0)
+	{
+		if (templatePath.empty())
+		{
+			scene = BuildINSTARFlatPlaneDemoScene();
+			ApplyINSTARTarima(scene, tarima);
+			loadedPath.clear();
+			sceneDirty = false;
+			return true;
+		}
+		std::string error;
+		INSTARScene loaded;
+		if (!LoadINSTARAdvancedOutputPlanes(templatePath, loaded, error))
+		{
+			const std::string message = "INSTAR: TemplateXML inválido para XML_PLANES: " + error;
+			FFGLLog::LogToHost(message.c_str());
+			scene = BuildINSTARFlatPlaneDemoScene();
+			ApplyINSTARTarima(scene, tarima);
+			loadedPath.clear();
+			sceneDirty = false;
+			return false;
+		}
+		std::vector<float> depths(sliceDepths, sliceDepths + 32U);
+		ApplyINSTARInputPlaneDepths(loaded, depths);
+		ApplyINSTARTarima(loaded, tarima);
+		scene = loaded;
+		loadedPath = templatePath;
+		sceneDirty = false;
+		return true;
+	}
 	if (venuePath.empty())
 	{
 		scene = BuildINSTARDemoScene();
@@ -283,12 +366,14 @@ FFResult INSTAR::RenderRaster()
 
 void INSTAR::Update()
 {
-	if (sceneDirty || loadedPath != venuePath)
+	const int mode = static_cast<int>(GetFloatParameter(PARAM_MODE));
+	const std::string desiredPath = mode == 0 ? templatePath : (mode == 1 ? venuePath : std::string());
+	if (sceneDirty || loadedPath != desiredPath)
 	{
 		LoadVenue();
 		UploadScene();
 	}
-	if (rasterDirty && static_cast<int>(GetFloatParameter(PARAM_MODE)) == 1)
+	if (rasterDirty && (mode == 0 || mode == 2))
 		LoadRaster();
 	if (exportRequested)
 	{
@@ -362,16 +447,18 @@ bool INSTAR::ExportMapXml()
 
 FFResult INSTAR::Render(ProcessOpenGLStruct*)
 {
-	if (static_cast<int>(GetFloatParameter(PARAM_MODE)) == 1)
+	if (static_cast<int>(GetFloatParameter(PARAM_MODE)) == 2)
 		return RenderRaster();
 	const int view = static_cast<int>(GetFloatParameter(PARAM_VIEW));
-	const INSTARCamera camera = SelectINSTARCamera(view, yaw, pitch, zoom);
+	const INSTARCamera camera = SelectINSTARCamera(view, yaw, pitch, zoom, cameraDistance);
 	return renderer.Render(
 		scene,
 		camera,
 		brightness,
 		currentViewport.width,
-		currentViewport.height
+		currentViewport.height,
+		rasterTexture,
+		static_cast<int>(GetFloatParameter(PARAM_MODE)) == 0 && rasterReady
 	);
 }
 
@@ -384,11 +471,17 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 	}
 	else if (index == PARAM_MODE)
 	{
-		if (static_cast<int>(value) == 1)
+		sceneDirty = true;
+		if (static_cast<int>(value) == 0 || static_cast<int>(value) == 2)
 			rasterDirty = true;
 	}
 	else if (index == PARAM_EDGE_BUDGET || index == PARAM_CONFIDENCE_CEILING)
 	{
+		sceneDirty = true;
+	}
+	else if (index >= PARAM_SLICE_DEPTH_01 && index <= PARAM_SLICE_DEPTH_32)
+	{
+		sliceDepths[index - PARAM_SLICE_DEPTH_01] = value;
 		sceneDirty = true;
 	}
 	else if (index == PARAM_YAW)
@@ -399,6 +492,10 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 		zoom = value;
 	else if (index == PARAM_BRIGHTNESS)
 		brightness = value;
+	else if (index == PARAM_CAMERA_DISTANCE)
+		cameraDistance = value;
+	else if (index >= PARAM_STAGE_DIST && index <= PARAM_TOTEM_ROWS)
+		sceneDirty = true;
 	return Source::SetFloatParameter(index, value);
 }
 
@@ -420,6 +517,7 @@ FFResult INSTAR::SetTextParameter(unsigned int index, const char* value)
 	if (index == PARAM_TEMPLATE_XML)
 	{
 		templatePath = safeValue;
+		sceneDirty = true;
 		return FF_SUCCESS;
 	}
 	if (index == PARAM_OUTPUT_XML)

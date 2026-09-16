@@ -43,12 +43,17 @@ Las etapas de uso quedan como una taxonomía independiente:
 | `IMAGO` | SHOW: operación real en vivo dentro de Resolume |
 
 INSTAR tiene dos superficies coordinadas: el plugin FFGL Capture de venues y el
-parser offline que prepara entradas PDF/PNG/SVG. `INSTAR.dll` recibe el JSON de
-polilíneas de FLUJO y un `MapFile` raster más `TemplateXML` real para
-exportación explícita; `INSTAR_3D.dll` recibe OBJ/MTL para visualización de
-modelos. La exportación raster de INSTAR usa la plantilla real y es
-independiente del visualizador 3D; ambos comparten escena/render/cámara donde
-corresponde.
+parser offline que prepara entradas PDF/PNG/SVG. En el plugin, `XML_PLANES`
+lee los `InputRect` del Advanced Output como la composición frontal de la
+tarima: el mayor es el banner principal y los controles de profundidad solo
+añaden Z. El contexto de escenario tradicional (stage, backing, retícula y
+tótems) se genera detrás sin reordenar esos planos. `VENUE_3D` conserva el
+recorrido JSON de FLUJO y `RASTER_PIXEL_MAP` conserva la inspección plana.
+`MapFile` puede texturizar los planos XML y `TemplateXML` continúa siendo la
+autoridad de routing para la exportación explícita; `INSTAR_3D.dll` recibe
+OBJ/MTL para visualización de modelos y no genera XML. La exportación raster de
+INSTAR es independiente del visualizador 3D; ambos comparten escena/render/cámara
+donde corresponde.
 Los
 reportes y estadísticas son evidencia transversal, no una cuarta etapa.
 
