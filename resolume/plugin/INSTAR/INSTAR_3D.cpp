@@ -1,6 +1,54 @@
 #include "INSTAR_3D.h"
 
 #include <algorithm>
+#include <cctype>
+
+namespace
+{
+int HexDigit(char value)
+{
+	if (value >= '0' && value <= '9')
+		return value - '0';
+	if (value >= 'a' && value <= 'f')
+		return value - 'a' + 10;
+	if (value >= 'A' && value <= 'F')
+		return value - 'A' + 10;
+	return -1;
+}
+
+std::string DecodeFileUri(std::string value)
+{
+	while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())))
+		value.erase(value.begin());
+	while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())))
+		value.pop_back();
+	if (value.size() >= 2 && value.front() == '"' && value.back() == '"')
+		value = value.substr(1, value.size() - 2);
+	if (value.compare(0, 7, "file://") == 0)
+	{
+		value.erase(0, 7);
+		if (value.size() >= 3 && value[0] == '/' && value[2] == ':')
+			value.erase(0, 1);
+	}
+	std::string decoded;
+	for (size_t index = 0; index < value.size(); ++index)
+	{
+		if (value[index] == '%' && index + 2 < value.size())
+		{
+			const int high = HexDigit(value[index + 1]);
+			const int low = HexDigit(value[index + 2]);
+			if (high >= 0 && low >= 0)
+			{
+				decoded.push_back(static_cast<char>((high << 4) | low));
+				index += 2;
+				continue;
+			}
+		}
+		decoded.push_back(value[index]);
+	}
+	return decoded;
+}
+}
 
 using namespace ffglqs;
 
@@ -115,7 +163,7 @@ FFResult INSTAR3D::SetTextParameter(unsigned int index, const char* value)
 {
 	if (index == PARAM_MODEL_FILE)
 	{
-		modelPath = value == nullptr ? "" : value;
+		modelPath = DecodeFileUri(value == nullptr ? "" : value);
 		const std::string message = "INSTAR 3D: ModelFile recibido: " + modelPath;
 		FFGLLog::LogToHost(message.c_str());
 		sceneDirty = true;

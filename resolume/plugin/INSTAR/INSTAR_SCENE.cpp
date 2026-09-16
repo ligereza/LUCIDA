@@ -1,5 +1,12 @@
 #include "INSTAR_SCENE.h"
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -11,6 +18,24 @@
 
 namespace
 {
+std::ifstream OpenTextFile(const std::string& path)
+{
+#ifdef _WIN32
+	const int wideLength = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path.c_str(), -1, nullptr, 0);
+	if (wideLength > 0)
+	{
+		std::wstring widePath(static_cast<size_t>(wideLength), L'\0');
+		if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path.c_str(), -1, &widePath[0], wideLength) > 0)
+		{
+			std::ifstream unicodeFile(widePath.c_str());
+			if (unicodeFile.is_open())
+				return unicodeFile;
+		}
+	}
+#endif
+	return std::ifstream(path.c_str());
+}
+
 struct INSTARMaterialColour
 {
 	float red = 1.0f;
@@ -128,7 +153,7 @@ void LoadMtlFile(
 	std::map<std::string, INSTARMaterialColour>& materials
 )
 {
-	std::ifstream file((DirectoryOf(objPath) + mtlName).c_str());
+	std::ifstream file = OpenTextFile(DirectoryOf(objPath) + mtlName);
 	if (!file.is_open())
 		return;
 	std::string currentMaterial;
@@ -314,7 +339,7 @@ int VenueConfidenceOrder(const std::string& confidence)
 bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& error)
 {
 	scene = INSTARScene();
-	std::ifstream file(path.c_str());
+	std::ifstream file = OpenTextFile(path);
 	if (!file.is_open())
 	{
 		error = "OBJ file could not be opened";
@@ -435,7 +460,7 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::string& error, unsigned int edgeBudget, int confidenceCeiling)
 {
 	scene = INSTARScene();
-	std::ifstream file(path.c_str());
+	std::ifstream file = OpenTextFile(path);
 	if (!file.is_open())
 	{
 		error = "venue JSON could not be opened";
