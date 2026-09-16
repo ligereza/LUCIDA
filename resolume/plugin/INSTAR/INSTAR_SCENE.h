@@ -63,6 +63,7 @@ bool LoadINSTARVenueJson(
 	int confidenceCeiling = 4
 );
 INSTARScene BuildINSTARDemoScene();
+INSTARScene BuildINSTARModelDemoScene();
 
 INSTARCamera SelectINSTARCamera(
 	int view,

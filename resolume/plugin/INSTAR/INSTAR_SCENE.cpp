@@ -536,6 +536,15 @@ INSTARScene BuildINSTARDemoScene()
 	return scene;
 }
 
+INSTARScene BuildINSTARModelDemoScene()
+{
+	INSTARScene scene;
+	AddNamedBox(scene, "MODEL_DEMO", {0.0f, 0.0f, 0.0f}, {1.4f, 1.4f, 1.4f}, 0.95f, 0.20f, 0.75f);
+	Normalise(scene);
+	scene.source = "INSTAR 3D model demo";
+	return scene;
+}
+
 INSTARCamera SelectINSTARCamera(int view, float yaw, float pitch, float zoom)
 {
 	INSTARCamera camera;

@@ -105,6 +105,9 @@ int main(int argc, char** argv)
 	const INSTARScene demo = BuildINSTARDemoScene();
 	if (demo.surfaces.size() != 3U || demo.triangleVertices.empty())
 		return 1;
+	const INSTARScene modelDemo = BuildINSTARModelDemoScene();
+	if (modelDemo.surfaces.size() != 1U || modelDemo.surfaces[0].name != "MODEL_DEMO" || modelDemo.triangleVertices.empty())
+		return 1;
 	const INSTARCamera aerial = SelectINSTARCamera(0, 0.5f, 0.5f, 0.55f);
 	const INSTARCamera track = SelectINSTARCamera(1, 0.5f, 0.5f, 0.55f);
 	const INSTARCamera free = SelectINSTARCamera(2, 0.25f, 0.75f, 0.4f);

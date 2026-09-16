@@ -49,7 +49,7 @@ bool INSTAR3D::LoadScene()
 {
 	if (modelPath.empty())
 	{
-		scene = BuildINSTARDemoScene();
+		scene = BuildINSTARModelDemoScene();
 		loadedPath.clear();
 		sceneDirty = false;
 		return true;
@@ -58,8 +58,9 @@ bool INSTAR3D::LoadScene()
 	INSTARScene loaded;
 	if (!LoadINSTARObj(modelPath, loaded, error))
 	{
-		FFGLLog::LogToHost("INSTAR 3D: OBJ inválido; se usa escena demo");
-		scene = BuildINSTARDemoScene();
+		const std::string message = "INSTAR 3D: no se pudo cargar ModelFile: " + modelPath + " (" + error + ")";
+		FFGLLog::LogToHost(message.c_str());
+		scene = BuildINSTARModelDemoScene();
 		loadedPath.clear();
 		sceneDirty = false;
 		return false;
@@ -115,6 +116,8 @@ FFResult INSTAR3D::SetTextParameter(unsigned int index, const char* value)
 	if (index == PARAM_MODEL_FILE)
 	{
 		modelPath = value == nullptr ? "" : value;
+		const std::string message = "INSTAR 3D: ModelFile recibido: " + modelPath;
+		FFGLLog::LogToHost(message.c_str());
 		sceneDirty = true;
 		return FF_SUCCESS;
 	}
