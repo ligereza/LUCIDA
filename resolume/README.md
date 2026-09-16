@@ -257,13 +257,16 @@ requires the final installation step on a machine with Resolume.
 the shared INSTAR scene core and renders a low-cost wireframe venue view inside
 the Resolume composition. Its view selector contains `AEREO`, `PISTA` and
 `LIBRE`; when no model is selected, it shows a deterministic stage/screen demo.
+An `ExportXML` event projects named OBJ groups containing `screen`, `led`,
+`banner`, `cctv`, `display`, `surface` or `panel` into the same
+`AdvancedOutput.xml` serializer used by INSTAR MAP.
 
 This is the Capture-like visualization layer: it is not a NovaStar controller
 and it does not pretend that a 3D preview is a physical patch. OBJ geometry is
 the first importer; materials, textures and additional formats are deliberately
-not claimed yet. The next shared-core step is to identify named LED surfaces in
-the scene and project them into the same 2D surface model consumed by INSTAR's
-XML exporter.
+not claimed yet. Unnamed geometry remains visible in the 3D preview but does not
+become a slice; this prevents truss or scenery from being mistaken for an LED
+surface.
 
 Both DLLs are produced by the same build:
 

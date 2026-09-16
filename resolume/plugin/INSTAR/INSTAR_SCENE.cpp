@@ -1,9 +1,11 @@
 #include "INSTAR_SCENE.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
+#include <map>
 #include <sstream>
 
 namespace
@@ -42,6 +44,15 @@ void Normalise(INSTARScene& scene)
 		vertex.position.y = (vertex.position.y - centre.y) * scale;
 		vertex.position.z = (vertex.position.z - centre.z) * scale;
 	}
+	for (INSTARSurface3D& surface : scene.surfaces)
+	{
+		surface.minimum.x = (surface.minimum.x - centre.x) * scale;
+		surface.minimum.y = (surface.minimum.y - centre.y) * scale;
+		surface.minimum.z = (surface.minimum.z - centre.z) * scale;
+		surface.maximum.x = (surface.maximum.x - centre.x) * scale;
+		surface.maximum.y = (surface.maximum.y - centre.y) * scale;
+		surface.maximum.z = (surface.maximum.z - centre.z) * scale;
+	}
 }
 
 int ObjIndex(const std::string& token, int positionCount)
@@ -73,6 +84,29 @@ void AddBox(INSTARScene& scene, const INSTARVec3& centre, const INSTARVec3& size
 	for (const auto& edge : edges)
 		AddEdge(scene.lineVertices, p[edge[0]], p[edge[1]], red, green, blue);
 }
+
+void AddNamedBox(INSTARScene& scene, const std::string& name, const INSTARVec3& centre, const INSTARVec3& size, float red, float green, float blue)
+{
+	INSTARSurface3D surface;
+	surface.name = name;
+	surface.minimum = {centre.x - size.x * 0.5f, centre.y - size.y * 0.5f, centre.z - size.z * 0.5f};
+	surface.maximum = {centre.x + size.x * 0.5f, centre.y + size.y * 0.5f, centre.z + size.z * 0.5f};
+	scene.surfaces.push_back(surface);
+	AddBox(scene, centre, size, red, green, blue);
+}
+
+bool IsSurfaceGroup(const std::string& value)
+{
+	std::string lower;
+	for (const char character : value)
+		lower += static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+	for (const char* token : {"screen", "led", "banner", "cctv", "display", "surface", "panel"})
+	{
+		if (lower.find(token) != std::string::npos)
+			return true;
+	}
+	return false;
+}
 }
 
 bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& error)
@@ -85,6 +119,8 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 		return false;
 	}
 	std::vector<INSTARVec3> positions;
+	std::map<std::string, std::vector<int>> groupPositions;
+	std::string currentGroup = "OBJ";
 	std::string line;
 	unsigned int faceNumber = 0;
 	while (std::getline(file, line))
@@ -101,6 +137,13 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 				positions.push_back(position);
 			continue;
 		}
+		if (command == "o" || command == "g")
+		{
+			input >> currentGroup;
+			if (currentGroup.empty())
+				currentGroup = "OBJ";
+			continue;
+		}
 		if (command != "f")
 			continue;
 
@@ -114,6 +157,7 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 		}
 		if (face.size() < 3)
 			continue;
+		groupPositions[currentGroup].insert(groupPositions[currentGroup].end(), face.begin(), face.end());
 		const float red = 0.35f + static_cast<float>((faceNumber * 37U) % 55U) / 100.0f;
 		const float green = 0.45f + static_cast<float>((faceNumber * 19U) % 45U) / 100.0f;
 		const float blue = 0.55f + static_cast<float>((faceNumber * 11U) % 35U) / 100.0f;
@@ -133,6 +177,31 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 		error = "OBJ contains no renderable faces";
 		return false;
 	}
+	for (const auto& group : groupPositions)
+	{
+		if (!IsSurfaceGroup(group.first))
+			continue;
+		std::vector<int> indices = group.second;
+		std::sort(indices.begin(), indices.end());
+		indices.erase(std::unique(indices.begin(), indices.end()), indices.end());
+		if (indices.empty())
+			continue;
+		INSTARSurface3D surface;
+		surface.name = group.first;
+		surface.minimum = positions[indices.front()];
+		surface.maximum = positions[indices.front()];
+		for (const int index : indices)
+		{
+			const INSTARVec3& position = positions[index];
+			surface.minimum.x = std::min(surface.minimum.x, position.x);
+			surface.minimum.y = std::min(surface.minimum.y, position.y);
+			surface.minimum.z = std::min(surface.minimum.z, position.z);
+			surface.maximum.x = std::max(surface.maximum.x, position.x);
+			surface.maximum.y = std::max(surface.maximum.y, position.y);
+			surface.maximum.z = std::max(surface.maximum.z, position.z);
+		}
+		scene.surfaces.push_back(surface);
+	}
 	Normalise(scene);
 	scene.fromObj = true;
 	scene.source = path;
@@ -144,12 +213,71 @@ INSTARScene BuildINSTARDemoScene()
 	INSTARScene scene;
 	// Central screen, side screens, floor and overhead truss: a deterministic
 	// venue preview that also makes the camera modes useful before an OBJ exists.
-	AddBox(scene, {0.0f, 0.0f, 0.0f}, {6.0f, 2.5f, 0.15f}, 0.15f, 0.75f, 1.0f);
-	AddBox(scene, {-4.0f, 0.4f, 0.25f}, {1.2f, 3.2f, 0.15f}, 0.25f, 1.0f, 0.35f);
-	AddBox(scene, {4.0f, 0.4f, 0.25f}, {1.2f, 3.2f, 0.15f}, 0.25f, 1.0f, 0.35f);
+	AddNamedBox(scene, "CENTRAL", {0.0f, 0.0f, 0.0f}, {6.0f, 2.5f, 0.15f}, 0.15f, 0.75f, 1.0f);
+	AddNamedBox(scene, "CCTV_L", {-4.0f, 0.4f, 0.25f}, {1.2f, 3.2f, 0.15f}, 0.25f, 1.0f, 0.35f);
+	AddNamedBox(scene, "CCTV_R", {4.0f, 0.4f, 0.25f}, {1.2f, 3.2f, 0.15f}, 0.25f, 1.0f, 0.35f);
 	AddBox(scene, {0.0f, 2.7f, 0.1f}, {9.5f, 0.15f, 0.15f}, 1.0f, 0.65f, 0.15f);
 	AddBox(scene, {0.0f, -1.6f, 0.0f}, {9.5f, 0.15f, 4.0f}, 0.55f, 0.55f, 0.65f);
 	Normalise(scene);
 	scene.source = "INSTAR demo scene";
 	return scene;
+}
+
+std::vector<INSTARProjectedSurface> ProjectINSTARSurfaces(
+	const INSTARScene& scene,
+	float yaw,
+	float pitch,
+	float zoom,
+	unsigned int canvasWidth,
+	unsigned int canvasHeight
+)
+{
+	std::vector<INSTARProjectedSurface> result;
+	if (canvasWidth == 0 || canvasHeight == 0)
+		return result;
+	const float aspect = static_cast<float>(canvasWidth) / static_cast<float>(canvasHeight);
+	for (const INSTARSurface3D& surface : scene.surfaces)
+	{
+		float minX = 1.0f, maxX = -1.0f, minY = 1.0f, maxY = -1.0f;
+		bool visible = false;
+		for (int corner = 0; corner < 8; ++corner)
+		{
+			const float x = (corner & 1) ? surface.maximum.x : surface.minimum.x;
+			const float y = (corner & 2) ? surface.maximum.y : surface.minimum.y;
+			const float z = (corner & 4) ? surface.maximum.z : surface.minimum.z;
+			const float cy = std::cos(yaw);
+			const float sy = std::sin(yaw);
+			INSTARVec3 p{cy * x - sy * z, y, sy * x + cy * z};
+			const float cp = std::cos(pitch);
+			const float sp = std::sin(pitch);
+			p = {p.x, cp * p.y - sp * p.z, sp * p.y + cp * p.z};
+			p.z += 3.5f;
+			if (p.z <= 0.1f)
+				continue;
+			const float perspective = zoom / p.z;
+			const float projectedX = p.x * perspective / std::max(0.1f, aspect);
+			const float projectedY = p.y * perspective;
+			minX = std::min(minX, projectedX);
+			maxX = std::max(maxX, projectedX);
+			minY = std::min(minY, projectedY);
+			maxY = std::max(maxY, projectedY);
+			visible = true;
+		}
+		if (!visible)
+			continue;
+		const float left = std::max(0.0f, std::min(1.0f, (minX + 1.0f) * 0.5f));
+		const float right = std::max(0.0f, std::min(1.0f, (maxX + 1.0f) * 0.5f));
+		const float top = std::max(0.0f, std::min(1.0f, (1.0f - maxY) * 0.5f));
+		const float bottom = std::max(0.0f, std::min(1.0f, (1.0f - minY) * 0.5f));
+		if (right - left <= 0.0001f || bottom - top <= 0.0001f)
+			continue;
+		INSTARProjectedSurface projected;
+		projected.name = surface.name;
+		projected.x = left * canvasWidth;
+		projected.y = top * canvasHeight;
+		projected.width = (right - left) * canvasWidth;
+		projected.height = (bottom - top) * canvasHeight;
+		result.push_back(projected);
+	}
+	return result;
 }

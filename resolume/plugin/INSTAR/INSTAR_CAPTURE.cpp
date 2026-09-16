@@ -1,6 +1,7 @@
 #include "INSTAR_CAPTURE.h"
 
 #include <algorithm>
+#include <fstream>
 
 using namespace ffglqs;
 
@@ -26,6 +27,8 @@ INSTARCapture::INSTARCapture()
 		}
 	)");
 	AddParam(Param::Create("ModelFile", FF_TYPE_FILE, 0.0f));
+	AddParam(ParamEvent::Create("ExportXML"));
+	AddParam(ParamText::create("OutputXML", outputPath));
 	AddParam(ParamOption::Create("View", {
 		{"AEREO", 0.0f},
 		{"PISTA", 1.0f},
@@ -35,6 +38,10 @@ INSTARCapture::INSTARCapture()
 	AddParam(Param::Create("Pitch", pitch));
 	AddParam(Param::Create("Zoom", zoom));
 	AddParam(Param::Create("Brightness", brightness));
+	AddParam(Param::Create("CanvasWidth", FF_TYPE_INTEGER, 0.0f));
+	AddParam(Param::Create("CanvasHeight", FF_TYPE_INTEGER, 0.0f));
+	SetParamRange(PARAM_CANVAS_WIDTH, 0.0f, 16384.0f);
+	SetParamRange(PARAM_CANVAS_HEIGHT, 0.0f, 16384.0f);
 }
 
 FFResult INSTARCapture::Init()
@@ -142,6 +149,79 @@ void INSTARCapture::Update()
 		LoadScene();
 		UploadScene();
 	}
+	if (exportRequested)
+	{
+		exportRequested = false;
+		ExportSceneXml();
+	}
+}
+
+bool INSTARCapture::ExportSceneXml()
+{
+	unsigned int canvasWidth = currentViewport.width > 0 ? currentViewport.width : 1920;
+	unsigned int canvasHeight = currentViewport.height > 0 ? currentViewport.height : 1080;
+	const float configuredWidth = GetFloatParameter(PARAM_CANVAS_WIDTH);
+	const float configuredHeight = GetFloatParameter(PARAM_CANVAS_HEIGHT);
+	if (configuredWidth >= 1.0f)
+		canvasWidth = static_cast<unsigned int>(configuredWidth);
+	if (configuredHeight >= 1.0f)
+		canvasHeight = static_cast<unsigned int>(configuredHeight);
+
+	float selectedYaw = (yaw - 0.5f) * 6.2831853f;
+	float selectedPitch = (pitch - 0.5f) * 2.2f;
+	const int view = static_cast<int>(GetFloatParameter(PARAM_VIEW));
+	if (view == 0)
+	{
+		selectedYaw = 0.75f;
+		selectedPitch = -0.75f;
+	}
+	else if (view == 1)
+	{
+		selectedYaw = 0.0f;
+		selectedPitch = -0.15f;
+	}
+
+	const std::vector<INSTARProjectedSurface> projected = ProjectINSTARSurfaces(
+		scene,
+		selectedYaw,
+		selectedPitch,
+		0.8f + zoom * 1.8f,
+		canvasWidth,
+		canvasHeight
+	);
+	std::vector<INSTARSurface> surfaces;
+	for (const INSTARProjectedSurface& source : projected)
+	{
+		INSTARSurface surface;
+		surface.name = source.name;
+		surface.x = source.x;
+		surface.y = source.y;
+		surface.width = source.width;
+		surface.height = source.height;
+		surfaces.push_back(surface);
+	}
+	if (surfaces.empty())
+	{
+		INSTARSurface fallback;
+		fallback.name = "FULL_CANVAS";
+		fallback.width = static_cast<float>(canvasWidth);
+		fallback.height = static_cast<float>(canvasHeight);
+		surfaces.push_back(fallback);
+		FFGLLog::LogToHost("INSTAR CAPTURE: no hay superficies 3D visibles; se genera canvas completo");
+	}
+
+	const std::string xml = BuildINSTARAdvancedOutputXml(canvasWidth, canvasHeight, surfaces);
+	std::ofstream file(outputPath.c_str(), std::ios::out | std::ios::trunc);
+	if (!file.is_open())
+	{
+		FFGLLog::LogToHost("INSTAR CAPTURE: no se pudo escribir OutputXML");
+		return false;
+	}
+	file << xml;
+	const bool written = file.good();
+	file.close();
+	FFGLLog::LogToHost(written ? "INSTAR CAPTURE: AdvancedOutput.xml generado" : "INSTAR CAPTURE: error al escribir AdvancedOutput.xml");
+	return written;
 }
 
 FFResult INSTARCapture::Render(ProcessOpenGLStruct*)
@@ -179,7 +259,12 @@ FFResult INSTARCapture::Render(ProcessOpenGLStruct*)
 
 FFResult INSTARCapture::SetFloatParameter(unsigned int index, float value)
 {
-	if (index == PARAM_YAW)
+	if (index == PARAM_EXPORT_XML)
+	{
+		if (value != 0.0f)
+			exportRequested = true;
+	}
+	else if (index == PARAM_YAW)
 		yaw = value;
 	else if (index == PARAM_PITCH)
 		pitch = value;
@@ -198,16 +283,26 @@ FFResult INSTARCapture::SetTextParameter(unsigned int index, const char* value)
 		sceneDirty = true;
 		return FF_SUCCESS;
 	}
+	if (index == PARAM_OUTPUT_XML)
+	{
+		outputPath = value == nullptr || value[0] == '\0' ? "INSTAR_CAPTURE_AdvancedOutput.xml" : value;
+		return FF_SUCCESS;
+	}
 	return Source::SetTextParameter(index, value);
 }
 
 char* INSTARCapture::GetTextParameter(unsigned int index)
 {
 	static char buffer[4096];
-	if (index != PARAM_MODEL_FILE)
+	const std::string* value = nullptr;
+	if (index == PARAM_MODEL_FILE)
+		value = &modelPath;
+	else if (index == PARAM_OUTPUT_XML)
+		value = &outputPath;
+	if (value == nullptr)
 		return Source::GetTextParameter(index);
 	std::fill(buffer, buffer + sizeof(buffer), '\0');
-	const size_t length = std::min(modelPath.size(), sizeof(buffer) - 1);
-	std::copy(modelPath.begin(), modelPath.begin() + length, buffer);
+	const size_t length = std::min(value->size(), sizeof(buffer) - 1);
+	std::copy(value->begin(), value->begin() + length, buffer);
 	return buffer;
 }

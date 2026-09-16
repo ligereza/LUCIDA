@@ -8,7 +8,8 @@ int main()
 	const char* path = "INSTAR_SCENE_CONTRACT.obj";
 	{
 		std::ofstream fixture(path, std::ios::out | std::ios::trunc);
-		fixture << "v 0 0 0\n"
+		fixture << "o screen_central\n"
+			       "v 0 0 0\n"
 			       "v 2 0 0\n"
 			       "v 2 1 0\n"
 			       "v 0 1 0\n"
@@ -19,7 +20,7 @@ int main()
 	std::string error;
 	const bool loaded = LoadINSTARObj(path, scene, error);
 	std::remove(path);
-	if (!loaded || !scene.fromObj || scene.lineVertices.size() != 12U)
+	if (!loaded || !scene.fromObj || scene.lineVertices.size() != 12U || scene.surfaces.size() != 1U || scene.surfaces[0].name != "screen_central")
 		return 1;
 	for (const INSTARVertex& vertex : scene.lineVertices)
 	{
@@ -28,5 +29,9 @@ int main()
 			vertex.position.z < -1.001f || vertex.position.z > 1.001f)
 			return 1;
 	}
+	if (ProjectINSTARSurfaces(scene, 0.0f, -0.15f, 1.5f, 1920, 1080).empty())
+		return 1;
+	if (BuildINSTARDemoScene().surfaces.size() != 3U)
+		return 1;
 	return 0;
 }
