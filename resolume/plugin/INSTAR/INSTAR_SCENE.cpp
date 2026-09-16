@@ -349,6 +349,265 @@ std::vector<INSTARVec3> ParseXmlRectPoints(const std::string& text, size_t start
 
 }
 
+namespace
+{
+std::string PlanLocalName(const std::string& tag)
+{
+	const size_t separator = tag.find_last_of(':');
+	return separator == std::string::npos ? tag : tag.substr(separator + 1U);
+}
+
+size_t FindPlanSvgRoot(const std::string& xml)
+{
+	size_t cursor = 0;
+	while (cursor < xml.size())
+	{
+		const size_t open = xml.find('<', cursor);
+		if (open == std::string::npos || open + 1U >= xml.size())
+			return std::string::npos;
+		if (xml[open + 1U] == '/' || xml[open + 1U] == '!' || xml[open + 1U] == '?')
+		{
+			cursor = open + 1U;
+			continue;
+		}
+		size_t nameEnd = open + 1U;
+		while (nameEnd < xml.size() && !std::isspace(static_cast<unsigned char>(xml[nameEnd])) && xml[nameEnd] != '>' && xml[nameEnd] != '/')
+			++nameEnd;
+		if (PlanLocalName(xml.substr(open + 1U, nameEnd - open - 1U)) == "svg")
+			return open;
+		cursor = nameEnd;
+	}
+	return std::string::npos;
+}
+
+std::vector<float> PlanSvgNumbers(const std::string& value)
+{
+	std::vector<float> numbers;
+	const char* cursor = value.c_str();
+	while (*cursor != '\0')
+	{
+		while (*cursor != '\0' && (std::isspace(static_cast<unsigned char>(*cursor)) || *cursor == ','))
+			++cursor;
+		if (*cursor == '\0')
+			break;
+		char* end = nullptr;
+		const float number = std::strtof(cursor, &end);
+		if (end == cursor)
+			return std::vector<float>();
+		numbers.push_back(number);
+		cursor = end;
+	}
+	return numbers;
+}
+
+std::string PlanXmlAttributeValue(const std::string& text, const char* name, size_t start)
+{
+	const size_t tagEnd = text.find('>', start);
+	if (tagEnd == std::string::npos)
+		return std::string();
+	const std::string attribute(name);
+	size_t cursor = start + 1U;
+	while (cursor < tagEnd)
+	{
+		const size_t valueStart = text.find(attribute, cursor);
+		if (valueStart == std::string::npos || valueStart >= tagEnd)
+			return std::string();
+		const bool boundary = valueStart == start + 1U ||
+			std::isspace(static_cast<unsigned char>(text[valueStart - 1U])) != 0;
+		if (!boundary)
+		{
+			cursor = valueStart + attribute.size();
+			continue;
+		}
+		size_t equal = valueStart + attribute.size();
+		while (equal < tagEnd && std::isspace(static_cast<unsigned char>(text[equal])) != 0)
+			++equal;
+		if (equal >= tagEnd || text[equal] != '=')
+		{
+			cursor = valueStart + attribute.size();
+			continue;
+		}
+		++equal;
+		while (equal < tagEnd && std::isspace(static_cast<unsigned char>(text[equal])) != 0)
+			++equal;
+		if (equal >= tagEnd || (text[equal] != '"' && text[equal] != '\''))
+			return std::string();
+		const char quote = text[equal++];
+		const size_t contentEnd = text.find(quote, equal);
+		if (contentEnd == std::string::npos || contentEnd > tagEnd)
+			return std::string();
+		return text.substr(equal, contentEnd - equal);
+	}
+	return std::string();
+}
+
+bool ParsePlanSvgPath(const std::string& value, std::vector<INSTARVec3>& points, bool& closed, std::string& error)
+{
+	points.clear();
+	closed = false;
+	const char* cursor = value.c_str();
+	char command = 0;
+	INSTARVec3 current;
+	INSTARVec3 start;
+	while (*cursor != '\0')
+	{
+		while (*cursor != '\0' && (std::isspace(static_cast<unsigned char>(*cursor)) || *cursor == ','))
+			++cursor;
+		if (*cursor == '\0')
+			break;
+		if (std::isalpha(static_cast<unsigned char>(*cursor)))
+		{
+			command = *cursor++;
+			if (std::toupper(static_cast<unsigned char>(command)) == 'Z')
+			{
+				closed = true;
+				current = start;
+				command = 0;
+			}
+			continue;
+		}
+		if (command == 0)
+		{
+			error = "SVG path has coordinates without a command";
+			return false;
+		}
+		const bool relative = std::islower(static_cast<unsigned char>(command)) != 0;
+		const char operation = static_cast<char>(std::toupper(static_cast<unsigned char>(command)));
+		if (operation != 'M' && operation != 'L' && operation != 'H' && operation != 'V')
+		{
+			error = "SVG path uses an unsupported command; convert curves to polygons first";
+			return false;
+		}
+		const size_t required = operation == 'H' || operation == 'V' ? 1U : 2U;
+		std::vector<float> group;
+		while (group.size() < required)
+		{
+			while (*cursor != '\0' && (std::isspace(static_cast<unsigned char>(*cursor)) || *cursor == ','))
+				++cursor;
+			if (*cursor == '\0' || std::isalpha(static_cast<unsigned char>(*cursor)))
+			{
+				error = "SVG path has an incomplete coordinate group";
+				return false;
+			}
+			char* end = nullptr;
+			const float number = std::strtof(cursor, &end);
+			if (end == cursor)
+			{
+				error = "SVG path contains invalid coordinates";
+				return false;
+			}
+			group.push_back(number);
+			cursor = end;
+		}
+		INSTARVec3 next = current;
+		if (operation == 'H')
+			next.x = relative ? current.x + group[0] : group[0];
+		else if (operation == 'V')
+			next.y = relative ? current.y + group[0] : group[0];
+		else
+		{
+			next.x = relative ? current.x + group[0] : group[0];
+			next.y = relative ? current.y + group[1] : group[1];
+		}
+		if (operation == 'M')
+		{
+			start = next;
+			command = relative ? 'l' : 'L';
+		}
+		points.push_back(next);
+		current = next;
+	}
+	if (points.size() < 2U)
+	{
+		error = "SVG path has fewer than two points";
+		return false;
+	}
+	return true;
+}
+
+float PlanShapeHeight(const std::string& xml, size_t start, float fallback)
+{
+	float result = fallback;
+	float parsed = 0.0f;
+	if (ParseFloatValue(PlanXmlAttributeValue(xml, "data-height", start), parsed) ||
+		ParseFloatValue(PlanXmlAttributeValue(xml, "data-extrusion-height", start), parsed))
+		result = parsed;
+	return std::max(0.0f, result);
+}
+
+std::string PlanShapeName(const std::string& xml, size_t start, const std::string& tag, unsigned int index)
+{
+	for (const char* attribute : {"id", "data-name", "aria-label"})
+	{
+		const std::string value = PlanXmlAttributeValue(xml, attribute, start);
+		if (!value.empty())
+			return value;
+	}
+	return tag + "_" + std::to_string(index);
+}
+
+void PlanShapeColour(const std::string& name, float& red, float& green, float& blue)
+{
+	std::string lower;
+	for (const char character : name)
+		lower += static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+	if (lower.find("muro") != std::string::npos || lower.find("wall") != std::string::npos || lower.find("pared") != std::string::npos)
+		red = 0.70f, green = 0.70f, blue = 0.72f;
+	else if (lower.find("tarima") != std::string::npos || lower.find("stage") != std::string::npos || lower.find("escenario") != std::string::npos)
+		red = 0.12f, green = 0.78f, blue = 0.86f;
+	else if (lower.find("grader") != std::string::npos || lower.find("butaca") != std::string::npos)
+		red = 0.90f, green = 0.42f, blue = 0.12f;
+	else
+		red = 0.30f, green = 0.58f, blue = 0.82f;
+}
+
+INSTARVec3 PlanPointToWorld(const INSTARVec3& point, float width, float height, float scale, float vertical)
+{
+	return {
+		(point.x - static_cast<float>(width) * 0.5f) * scale,
+		vertical,
+		(static_cast<float>(height) * 0.5f - point.y) * scale,
+	};
+}
+
+void AddPlanWall(INSTARScene& scene, const INSTARVec3& first, const INSTARVec3& second, float height, float red, float green, float blue)
+{
+	const INSTARVec3 bottomFirst{first.x, 0.0f, first.z};
+	const INSTARVec3 bottomSecond{second.x, 0.0f, second.z};
+	const INSTARVec3 topFirst{first.x, height, first.z};
+	const INSTARVec3 topSecond{second.x, height, second.z};
+	AddEdge(scene.lineVertices, bottomFirst, bottomSecond, red, green, blue);
+	AddEdge(scene.lineVertices, topFirst, topSecond, red, green, blue);
+	AddEdge(scene.lineVertices, bottomFirst, topFirst, red, green, blue);
+	AddEdge(scene.lineVertices, bottomSecond, topSecond, red, green, blue);
+	AddTriangle(scene.triangleVertices, bottomFirst, bottomSecond, topSecond, red * 0.55f, green * 0.55f, blue * 0.55f);
+	AddTriangle(scene.triangleVertices, bottomFirst, topSecond, topFirst, red, green, blue);
+}
+
+bool IsPlanConvex(const std::vector<INSTARVec3>& points)
+{
+	if (points.size() < 3U)
+		return false;
+	int sign = 0;
+	for (size_t index = 0; index < points.size(); ++index)
+	{
+		const INSTARVec3& first = points[index];
+		const INSTARVec3& second = points[(index + 1U) % points.size()];
+		const INSTARVec3& third = points[(index + 2U) % points.size()];
+		const float cross = (second.x - first.x) * (third.y - second.y) -
+			(second.y - first.y) * (third.x - second.x);
+		if (std::fabs(cross) < 0.000001f)
+			continue;
+		const int currentSign = cross > 0.0f ? 1 : -1;
+		if (sign == 0)
+			sign = currentSign;
+		else if (sign != currentSign)
+			return false;
+	}
+	return sign != 0;
+}
+}
+
 bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& error)
 {
 	scene = INSTARScene();
@@ -623,6 +882,189 @@ bool LoadINSTARAdvancedOutputPlanes(const std::string& path, INSTARScene& scene,
 		return false;
 	}
 	ApplyINSTARInputPlaneDepths(scene, std::vector<float>());
+	scene.source = path;
+	return true;
+}
+
+bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string& error, float extrusionHeight, float planScale)
+{
+	scene = INSTARScene();
+	std::ifstream file = OpenTextFile(path);
+	if (!file.is_open())
+	{
+		error = "plan SVG could not be opened";
+		return false;
+	}
+	const std::string xml((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	const size_t root = FindPlanSvgRoot(xml);
+	if (root == std::string::npos)
+	{
+		error = "plan file has no SVG root";
+		return false;
+	}
+	const std::vector<float> viewBox = PlanSvgNumbers(XmlAttributeValue(xml, "viewBox", root));
+	float viewMinX = 0.0f;
+	float viewMinY = 0.0f;
+	float viewWidth = 0.0f;
+	float viewHeight = 0.0f;
+	if (viewBox.size() == 4U && viewBox[2] > 0.0f && viewBox[3] > 0.0f)
+	{
+		viewMinX = viewBox[0];
+		viewMinY = viewBox[1];
+		viewWidth = viewBox[2];
+		viewHeight = viewBox[3];
+	}
+	else
+	{
+		const auto scalarAttribute = [&xml, root](const char* name) {
+			const std::string value = PlanXmlAttributeValue(xml, name, root);
+			char* end = nullptr;
+			const float parsed = std::strtof(value.c_str(), &end);
+			return end != value.c_str() ? parsed : 0.0f;
+		};
+		viewWidth = scalarAttribute("width");
+		viewHeight = scalarAttribute("height");
+	}
+	if (!(viewWidth > 0.0f && viewHeight > 0.0f))
+	{
+		error = "plan SVG needs a positive viewBox or width/height";
+		return false;
+	}
+	scene.inputCanvasWidth = static_cast<unsigned int>(std::max(1.0f, viewWidth));
+	scene.inputCanvasHeight = static_cast<unsigned int>(std::max(1.0f, viewHeight));
+	const float safeHeight = std::isfinite(extrusionHeight) ? std::max(0.0f, extrusionHeight) : 3.0f;
+	const float safeScale = std::isfinite(planScale) ? std::max(0.000001f, planScale) : 1.0f;
+
+	const auto isShapeTag = [](const std::string& tag) {
+		const std::string localName = PlanLocalName(tag);
+		return localName == "rect" || localName == "polygon" || localName == "polyline" || localName == "line" || localName == "path";
+	};
+	size_t cursor = root;
+	unsigned int shapeIndex = 1;
+	bool unsupportedPathFound = false;
+	while (cursor < xml.size())
+	{
+		const size_t open = xml.find('<', cursor);
+		if (open == std::string::npos)
+			break;
+		if (open + 1U >= xml.size() || xml[open + 1U] == '/' || xml[open + 1U] == '!' || xml[open + 1U] == '?')
+		{
+			cursor = open + 1U;
+			continue;
+		}
+		size_t nameEnd = open + 1U;
+		while (nameEnd < xml.size() && !std::isspace(static_cast<unsigned char>(xml[nameEnd])) && xml[nameEnd] != '>' && xml[nameEnd] != '/')
+			++nameEnd;
+		const std::string tag = xml.substr(open + 1U, nameEnd - open - 1U);
+		const size_t close = xml.find('>', nameEnd);
+		if (close == std::string::npos)
+		{
+			error = "plan SVG has an unterminated element";
+			return false;
+		}
+		if (isShapeTag(tag))
+		{
+			const std::string localTag = PlanLocalName(tag);
+			INSTARPlanShape shape;
+			shape.name = PlanShapeName(xml, open, tag, shapeIndex++);
+			shape.height = PlanShapeHeight(xml, open, safeHeight);
+			if (localTag == "rect")
+			{
+				float x = 0.0f, y = 0.0f, width = 0.0f, height = 0.0f;
+				if (ParseFloatValue(PlanXmlAttributeValue(xml, "x", open), x) &&
+					ParseFloatValue(PlanXmlAttributeValue(xml, "y", open), y) &&
+					ParseFloatValue(PlanXmlAttributeValue(xml, "width", open), width) &&
+					ParseFloatValue(PlanXmlAttributeValue(xml, "height", open), height) &&
+					width > 0.0f && height > 0.0f)
+				{
+					shape.points = {{x, y, 0.0f}, {x + width, y, 0.0f}, {x + width, y + height, 0.0f}, {x, y + height, 0.0f}};
+					shape.closed = true;
+				}
+			}
+			else if (localTag == "line")
+			{
+				float x1 = 0.0f, y1 = 0.0f, x2 = 0.0f, y2 = 0.0f;
+				if (ParseFloatValue(PlanXmlAttributeValue(xml, "x1", open), x1) &&
+					ParseFloatValue(PlanXmlAttributeValue(xml, "y1", open), y1) &&
+					ParseFloatValue(PlanXmlAttributeValue(xml, "x2", open), x2) &&
+					ParseFloatValue(PlanXmlAttributeValue(xml, "y2", open), y2))
+					shape.points = {{x1, y1, 0.0f}, {x2, y2, 0.0f}};
+			}
+			else if (localTag == "polygon" || localTag == "polyline")
+			{
+				const std::vector<float> values = PlanSvgNumbers(PlanXmlAttributeValue(xml, "points", open));
+				if (values.size() >= 4U && values.size() % 2U == 0U)
+				{
+					for (size_t index = 0; index < values.size(); index += 2U)
+						shape.points.push_back({values[index], values[index + 1U], 0.0f});
+					shape.closed = localTag == "polygon";
+				}
+			}
+			else if (localTag == "path")
+			{
+				std::string pathError;
+				if (!ParsePlanSvgPath(PlanXmlAttributeValue(xml, "d", open), shape.points, shape.closed, pathError))
+				{
+					// SVG exports commonly include decorative/text paths with Bézier
+					// curves. They are not plan geometry; ignore them and keep
+					// reading the line/polygon geometry that can be extruded.
+					unsupportedPathFound = true;
+					shape.points.clear();
+				}
+			}
+			if (shape.points.size() >= 2U)
+			{
+				for (INSTARVec3& point : shape.points)
+				{
+					point.x = (point.x - viewMinX) * safeScale;
+					point.y = (point.y - viewMinY) * safeScale;
+				}
+				scene.planShapes.push_back(shape);
+			}
+		}
+		cursor = close + 1U;
+	}
+	if (scene.planShapes.empty())
+	{
+		error = unsupportedPathFound ?
+			"plan SVG contains no supported geometry; convert paths with curves to polygons" :
+			"plan SVG contains no supported geometry";
+		return false;
+	}
+	for (const INSTARPlanShape& shape : scene.planShapes)
+	{
+		float red = 0.0f, green = 0.0f, blue = 0.0f;
+		PlanShapeColour(shape.name, red, green, blue);
+		std::vector<INSTARVec3> world;
+		for (const INSTARVec3& point : shape.points)
+			world.push_back(PlanPointToWorld(point, viewWidth * safeScale, viewHeight * safeScale, 1.0f, 0.0f));
+		INSTARSurface3D surface;
+		surface.name = shape.name;
+		surface.minimum = {world.front().x, 0.0f, world.front().z};
+		surface.maximum = {world.front().x, shape.height, world.front().z};
+		for (const INSTARVec3& point : world)
+		{
+			surface.minimum.x = std::min(surface.minimum.x, point.x);
+			surface.minimum.z = std::min(surface.minimum.z, point.z);
+			surface.maximum.x = std::max(surface.maximum.x, point.x);
+			surface.maximum.z = std::max(surface.maximum.z, point.z);
+		}
+		scene.surfaces.push_back(surface);
+		const size_t segmentCount = shape.closed ? world.size() : world.size() - 1U;
+		for (size_t index = 0; index < segmentCount; ++index)
+			AddPlanWall(scene, world[index], world[(index + 1U) % world.size()], shape.height, red, green, blue);
+		if (shape.closed && world.size() >= 3U && IsPlanConvex(shape.points))
+		{
+			const INSTARVec3 topOrigin{world[0].x, shape.height, world[0].z};
+			for (size_t index = 1; index + 1U < world.size(); ++index)
+			{
+				const INSTARVec3 topFirst{world[index].x, shape.height, world[index].z};
+				const INSTARVec3 topSecond{world[index + 1U].x, shape.height, world[index + 1U].z};
+				AddTriangle(scene.triangleVertices, topOrigin, topFirst, topSecond, red, green, blue);
+			}
+		}
+	}
+	Normalise(scene);
 	scene.source = path;
 	return true;
 }

@@ -27,15 +27,18 @@ int main(int argc, char** argv)
 		std::string error;
 		const std::string path = argv[1];
 		const bool isTemplate = HasSuffix(path, ".xml");
-		const bool loaded = isTemplate ? LoadINSTARAdvancedOutputPlanes(path, scene, error) : LoadINSTARObj(path, scene, error);
+		const bool isPlan = HasSuffix(path, ".svg");
+		const bool loaded = isTemplate ? LoadINSTARAdvancedOutputPlanes(path, scene, error) :
+			(isPlan ? LoadINSTARPlanSvg(path, scene, error) : LoadINSTARObj(path, scene, error));
 		if (!loaded)
 		{
 			std::cerr << error << "\n";
 			return 1;
 		}
-		std::cout << (isTemplate ? "xml_lines=" : "obj_lines=") << scene.lineVertices.size()
-			      << " surfaces=" << scene.surfaces.size()
-			      << " triangles=" << scene.triangleVertices.size() << "\n";
+		std::cout << (isTemplate ? "xml_lines=" : (isPlan ? "plan_lines=" : "obj_lines=")) << scene.lineVertices.size()
+		              << " surfaces=" << scene.surfaces.size()
+		              << " triangles=" << scene.triangleVertices.size()
+		              << " plan_shapes=" << scene.planShapes.size() << "\n";
 		if (isTemplate)
 		{
 			ApplyINSTARInputPlaneDepths(scene, std::vector<float>{2.5f});
@@ -63,6 +66,14 @@ int main(int argc, char** argv)
 		       "usemtl central_red\n"
 		       "f 1 2 3 4\n";
 	}
+	const char* planPath = "INSTAR_SCENE_CONTRACT_PLAN.svg";
+	{
+		std::ofstream fixture(planPath, std::ios::out | std::ios::trunc);
+		fixture << "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 60\">\n"
+		       << "  <rect id=\"TARIMA\" x=\"10\" y=\"20\" width=\"80\" height=\"30\" data-height=\"1.5\"/>\n"
+		       << "  <polyline id=\"MURO\" points=\"5,5 95,5\" data-extrusion-height=\"4\"/>\n"
+		       << "</svg>\n";
+	}
 
 	INSTARScene scene;
 	std::string error;
@@ -73,6 +84,23 @@ int main(int argc, char** argv)
 	{
 		std::fprintf(stderr, "load=%d fromObj=%d lines=%zu triangles=%zu surfaces=%zu name=%s\\n", loaded, scene.fromObj, scene.lineVertices.size(), scene.triangleVertices.size(), scene.surfaces.size(), scene.surfaces.empty() ? "" : scene.surfaces[0].name.c_str());
 		return 1;
+	}
+	INSTARScene plan;
+	std::string planError;
+	const bool planLoaded = LoadINSTARPlanSvg(planPath, plan, planError, 3.0f, 1.0f);
+	std::remove(planPath);
+	if (!planLoaded || plan.planShapes.size() != 2U || plan.lineVertices.empty() || plan.triangleVertices.empty())
+	{
+		std::fprintf(stderr, "plan load=%d shapes=%zu lines=%zu triangles=%zu error=%s\n", planLoaded, plan.planShapes.size(), plan.lineVertices.size(), plan.triangleVertices.size(), planError.c_str());
+		return 1;
+	}
+	if (std::fabs(plan.planShapes[0].height - 1.5f) > 0.0001f ||
+		std::fabs(plan.planShapes[1].height - 4.0f) > 0.0001f)
+		return 1;
+	for (const INSTARVertex& vertex : plan.lineVertices)
+	{
+		if (!std::isfinite(vertex.position.x) || !std::isfinite(vertex.position.y) || !std::isfinite(vertex.position.z))
+			return 1;
 	}
 	if (scene.triangleVertices[0].red < 0.79f || scene.triangleVertices[0].green > 0.21f || scene.triangleVertices[0].blue > 0.11f)
 		return 1;

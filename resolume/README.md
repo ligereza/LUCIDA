@@ -243,6 +243,25 @@ model is outside this source; FLUJO's tarima sliders are not silently copied
 into an unrelated Advanced Output XML. `CameraDistance` complements the
 existing `AEREO`, `PISTA` and `LIBRE` camera controls.
 
+`PLANO_3D` is the second, independent geometric input. It consumes the SVG
+exported from a 2D plan/rider and uses the plan's own X/Y arrangement as the
+ground footprint: `rect`, `polygon`, `polyline`, `line` and basic `path`
+geometry are raised into walls, stages or bleachers. The SVG element `id`,
+`data-name` or `aria-label` becomes the shape name. `data-height` or
+`data-extrusion-height` supplies a shape-specific height; otherwise the
+`ExtrusionHeight` control is used. `PlanScale` changes the plan-to-height
+proportion, and both controls rebuild the scene immediately. Closed convex
+polygons receive a top surface; concave polygons remain safely as extruded
+edges instead of receiving an incorrect triangle fan.
+
+This mode is a visual reconstruction of the supplied 2D geometry. It does
+not claim that an unlabeled drawing contains measured physical heights, nor
+does it use `OutputRect` or a JSON venue description to invent routing. For a
+reliable result, the plan must be exported as clean SVG with named geometry;
+decorative text/Bezier paths are ignored when line or polygon geometry is
+available. A PDF or raster image still needs the offline vectorisation step
+before it can become a plan SVG.
+
 The same source retains `RASTER_PIXEL_MAP` for a flat PNG/JPG inspection with
 detected surface outlines. The camera and scene core are local and do not need
 a network, model service or LED processor. `ExportMapXML` remains a separate
@@ -262,8 +281,11 @@ After a successful export, `OutputXML` becomes the active XML preview source
 automatically; the original `TemplateXML` remains the export source and can be
 restored by selecting it again. INSTAR rejects an output path that would
 overwrite the template.
-PDF and SVG inputs remain with the offline adapter, which can rasterize or
-vector-map them before an explicit export.
+PDF input remains with the offline adapter, which can rasterize or vector-map
+it before an explicit export. A clean plan SVG can be loaded directly into
+`PLANO_3D`; the offline SVG adapter remains responsible for Advanced Output
+mapping/export when the desired result is an XML preset rather than a 3D
+preview.
 
 Build from this repository with the official FFGL checkout available at
 `C:/IA/vendor/resolume-ffgl`:

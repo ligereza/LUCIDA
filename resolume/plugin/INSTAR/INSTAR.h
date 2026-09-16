@@ -56,6 +56,7 @@ private:
 	std::string loadedPath;
 	std::string mapPath;
 	std::string templatePath;
+	std::string planPath;
 	std::string previewTemplatePath;
 	std::string outputPath = "INSTAR_AdvancedOutput.xml";
 	std::pair<long long, long long> loadedFileSignature = {0, 0};
@@ -66,6 +67,8 @@ private:
 	float cameraDistance = 3.5f;
 	float brightness = 0.85f;
 	float depth = 0.0f;
+	float planScale = 1.0f;
+	float extrusionHeight = 3.0f;
 	float sliceDepths[32] = {};
 	bool sceneDirty = true;
 	bool rasterDirty = true;
@@ -88,5 +91,8 @@ private:
 		PARAM_SLICE_DEPTH_01 = 11,
 		PARAM_SLICE_DEPTH_32 = 42,
 		PARAM_CAMERA_DISTANCE = 43,
+		PARAM_PLAN_FILE = 44,
+		PARAM_PLAN_SCALE = 45,
+		PARAM_EXTRUSION_HEIGHT = 46,
 	};
 };

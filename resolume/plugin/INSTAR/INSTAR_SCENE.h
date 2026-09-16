@@ -39,6 +39,14 @@ struct INSTARInputPlane
 	std::vector<INSTARVec3> corners;
 };
 
+struct INSTARPlanShape
+{
+	std::string name;
+	std::vector<INSTARVec3> points;
+	bool closed = false;
+	float height = 0.0f;
+};
+
 struct INSTARProjectedSurface
 {
 	std::string name;
@@ -62,6 +70,7 @@ struct INSTARScene
 	std::vector<INSTARVertex> triangleVertices;
 	std::vector<INSTARSurface3D> surfaces;
 	std::vector<INSTARInputPlane> inputPlanes;
+	std::vector<INSTARPlanShape> planShapes;
 	unsigned int inputCanvasWidth = 0;
 	unsigned int inputCanvasHeight = 0;
 	INSTARVec3 renderCentre;
@@ -73,6 +82,13 @@ struct INSTARScene
 
 bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& error);
 bool LoadINSTARAdvancedOutputPlanes(const std::string& path, INSTARScene& scene, std::string& error);
+bool LoadINSTARPlanSvg(
+	const std::string& path,
+	INSTARScene& scene,
+	std::string& error,
+	float extrusionHeight = 3.0f,
+	float planScale = 1.0f
+);
 void ApplyINSTARInputPlaneDepths(INSTARScene& scene, const std::vector<float>& depths);
 INSTARScene BuildINSTARFlatPlaneDemoScene();
 INSTARScene BuildINSTARModelDemoScene();

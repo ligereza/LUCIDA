@@ -22,6 +22,7 @@ namespace
 {
 constexpr int MODE_RASTER_PIXEL_MAP = 0;
 constexpr int MODE_XML_PLANES = 1;
+constexpr int MODE_PLANO_3D = 2;
 
 float BoundedFloat(float value, float fallback, float minimum, float maximum)
 {
@@ -79,7 +80,7 @@ static CFFGLPluginInfo PluginInfo(
 	1,
 	0,
 	FF_SOURCE,
-	"Raster mapping export and Advanced Output plane preview for Resolume.",
+	"Raster mapping, Advanced Output planes and plan extrusion preview for Resolume.",
 	"LUCIDA RESOLUME"
 );
 
@@ -88,6 +89,7 @@ INSTAR::INSTAR()
 	AddParam(ParamOption::Create("Mode", {
 		{"RASTER_PIXEL_MAP", static_cast<float>(MODE_RASTER_PIXEL_MAP)},
 		{"XML_PLANES", static_cast<float>(MODE_XML_PLANES)},
+		{"PLANO_3D", static_cast<float>(MODE_PLANO_3D)},
 	}, MODE_XML_PLANES));
 	AddParam(Param::Create("MapFile", FF_TYPE_FILE, 0.0f));
 	AddParam(Param::Create("TemplateXML", FF_TYPE_FILE, 0.0f));
@@ -110,6 +112,9 @@ INSTAR::INSTAR()
 		SetParamVisibility(PARAM_SLICE_DEPTH_01 + index, false, false);
 	}
 	AddParam(ParamRange::Create("CameraDistance", cameraDistance, ParamRange::Range(1.0f, 20.0f)));
+	AddParam(Param::Create("PlanFile", FF_TYPE_FILE, 0.0f));
+	AddParam(ParamRange::Create("PlanScale", planScale, ParamRange::Range(0.001f, 10.0f)));
+	AddParam(ParamRange::Create("ExtrusionHeight", extrusionHeight, ParamRange::Range(0.0f, 20.0f)));
 }
 
 void INSTAR::ConfigureSliceDepthParams(size_t sliceCount)
@@ -238,6 +243,40 @@ bool INSTAR::LoadScene()
 		scene = loaded;
 		loadedFileSignature = GetFileSignature(activeTemplatePath);
 		loadedPath = activeTemplatePath;
+		sceneDirty = false;
+		return true;
+	}
+	if (mode == MODE_PLANO_3D)
+	{
+		// A plan is a separate input contract: its 2D SVG geometry becomes
+		// the front-view footprint and the plugin extrudes that geometry. It
+		// must never fall back to XML slices or to a fictional venue shell.
+		if (planPath.empty())
+		{
+			scene = INSTARScene();
+			ConfigureSliceDepthParams(0);
+			loadedFileSignature = {0, 0};
+			loadedPath.clear();
+			sceneDirty = false;
+			return true;
+		}
+		std::string error;
+		INSTARScene loaded;
+		if (!LoadINSTARPlanSvg(planPath, loaded, error, extrusionHeight, planScale))
+		{
+			const std::string message = "INSTAR: PlanFile inválido para PLANO_3D: " + error;
+			FFGLLog::LogToHost(message.c_str());
+			scene = INSTARScene();
+			ConfigureSliceDepthParams(0);
+			loadedFileSignature = GetFileSignature(planPath);
+			loadedPath = planPath;
+			sceneDirty = false;
+			return false;
+		}
+		ConfigureSliceDepthParams(0);
+		scene = loaded;
+		loadedFileSignature = GetFileSignature(planPath);
+		loadedPath = planPath;
 		sceneDirty = false;
 		return true;
 	}
@@ -381,10 +420,12 @@ FFResult INSTAR::RenderRaster()
 void INSTAR::Update()
 {
 	const int mode = static_cast<int>(GetFloatParameter(PARAM_MODE));
+	const bool sceneFileMode = mode == MODE_XML_PLANES || mode == MODE_PLANO_3D;
 	const std::string desiredPath = mode == MODE_XML_PLANES ?
-		(previewTemplatePath.empty() ? templatePath : previewTemplatePath) : std::string();
-	const std::pair<long long, long long> desiredSignature = mode == MODE_XML_PLANES ? GetFileSignature(desiredPath) : std::pair<long long, long long>{0, 0};
-	if (sceneDirty || loadedPath != desiredPath || (mode == MODE_XML_PLANES && desiredSignature != loadedFileSignature))
+		(previewTemplatePath.empty() ? templatePath : previewTemplatePath) :
+		(mode == MODE_PLANO_3D ? planPath : std::string());
+	const std::pair<long long, long long> desiredSignature = sceneFileMode ? GetFileSignature(desiredPath) : std::pair<long long, long long>{0, 0};
+	if (sceneDirty || loadedPath != desiredPath || (sceneFileMode && desiredSignature != loadedFileSignature))
 	{
 		LoadScene();
 		UploadScene();
@@ -535,6 +576,21 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 		brightness = BoundedFloat(value, 0.85f, 0.0f, 1.0f);
 	else if (index == PARAM_CAMERA_DISTANCE)
 		cameraDistance = BoundedFloat(value, 3.5f, 1.0f, 20.0f);
+	else if (index == PARAM_PLAN_SCALE)
+	{
+		planScale = BoundedFloat(value, 1.0f, 0.001f, 10.0f);
+		sceneDirty = true;
+	}
+	else if (index == PARAM_EXTRUSION_HEIGHT)
+	{
+		extrusionHeight = BoundedFloat(value, 3.0f, 0.0f, 20.0f);
+		sceneDirty = true;
+	}
+	else if (index >= PARAM_SLICE_DEPTH_01 && index <= PARAM_SLICE_DEPTH_32)
+	{
+		sliceDepths[index - PARAM_SLICE_DEPTH_01] = BoundedFloat(value, 0.0f, -10.0f, 10.0f);
+		sceneDirty = true;
+	}
 	return Source::SetFloatParameter(index, value);
 }
 
@@ -561,6 +617,12 @@ FFResult INSTAR::SetTextParameter(unsigned int index, const char* value)
 		sceneDirty = true;
 		return FF_SUCCESS;
 	}
+	if (index == PARAM_PLAN_FILE)
+	{
+		planPath = safeValue;
+		sceneDirty = true;
+		return FF_SUCCESS;
+	}
 	return Source::SetTextParameter(index, value);
 }
 
@@ -574,6 +636,8 @@ char* INSTAR::GetTextParameter(unsigned int index)
 		value = &templatePath;
 	else if (index == PARAM_OUTPUT_XML)
 		value = &outputPath;
+	else if (index == PARAM_PLAN_FILE)
+		value = &planPath;
 	if (value == nullptr)
 		return Source::GetTextParameter(index);
 	std::fill(buffer, buffer + sizeof(buffer), '\0');

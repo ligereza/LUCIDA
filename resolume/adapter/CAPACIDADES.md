@@ -96,6 +96,22 @@ preview XML; el template original no se sobrescribe.
 `OutputRect`, warpers y routing no se inventan desde la imagen. El modelado de
 venue o tarima pertenece a una fuente explícita separada. No convierte modelos
 3D ni configura procesadores LED.
+
+`PLANO_3D` es esa fuente explícita para un plano/rider vectorial: recibe un SVG
+limpio y conserva su disposición 2D como huella frontal antes de extruir cada
+`rect`, `polygon`, `polyline`, `line` o `path` básico en el eje vertical. Los
+nombres provienen de `id`, `data-name` o `aria-label`; la altura puede venir de
+`data-height`/`data-extrusion-height` o del control global `ExtrusionHeight`.
+`PlanScale` permite ajustar la proporción entre huella y altura. El modo
+recarga al cambiar el SVG o cualquiera de esos controles. No usa `MapFile`, no
+lee `OutputRect` y no transforma un JSON en una escena: el SVG es la
+representación visual que conecta el plano 2D con la extrusión 3D. Polígonos
+convexos reciben tapa; polígonos cóncavos conservan sus aristas extruidas para
+evitar una triangulación visualmente falsa.
+
+El resultado es una reconstrucción visual normalizada, no una medición física.
+Un PDF o raster requiere primero la vectorización offline y debe producir
+geometría nombrada antes de cargarla en `PLANO_3D`.
 `INSTAR_3D.dll` es el `FF_SOURCE` separado para cargar OBJ/MTL y visualizar
 modelos dentro de la composición, con fondo alfa y `TextureFile` opcional para
 PNG/JPG; conserva UV del OBJ y genera UV plana si faltan.
