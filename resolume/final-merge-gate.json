@@ -1,0 +1,144 @@
+{
+  "base_commit": "e2f2cb15a51b0b82be72973de40e96f40675ab23",
+  "blockers": [],
+  "candidate_commit": "a155762d946cff2cf41f2cc68c721ad77f3b4445",
+  "candidate_parent_commit": "7722ce7ae5c619c63e7587b8f08854bb403fed4a",
+  "changed_file_classes": {
+    "contamination": [],
+    "contract": [
+      "lucida/contracts/surface-projection-v1.schema.json",
+      "lucida/replay/contracts/signal-envelope-v1.schema.json",
+      "lucida/surface_projection.py"
+    ],
+    "documentation": [
+      "resolume/README.md",
+      "resolume/evidence-manifest.json"
+    ],
+    "runtime": [
+      "lucida/__init__.py",
+      "lucida/evidence_bundle.py",
+      "lucida/replay/__init__.py",
+      "lucida/replay/session.py",
+      "lucida/signals/__init__.py",
+      "lucida/signals/boundary.py",
+      "lucida/signals/replay.py",
+      "lucida/signals/semantic_light_field.py",
+      "lucida/signals/smoke.py",
+      "lucida/surface_conformance.py"
+    ],
+    "test": [
+      "lucida/replay/fixtures/session-signal-envelope-v1-fictional.json",
+      "tests/lucida/fixtures/fictional-surface-projection-v1.json",
+      "tests/lucida/fixtures/mosaik-semantic-light-field-report.json",
+      "tests/lucida/fixtures/resolume-surface-projection-v1.json",
+      "tests/lucida/test_evidence_bundle.py",
+      "tests/lucida/test_resolume_runtime_semantic_light_field.py",
+      "tests/lucida/test_resolume_semantic_light_field.py",
+      "tests/lucida/test_resolume_smoke.py",
+      "tests/lucida/test_signal_envelope_v1.py",
+      "tests/lucida/test_surface_conformance.py",
+      "tests/lucida/test_surface_projection.py"
+    ]
+  },
+  "changed_file_count": 26,
+  "contamination_checks": {
+    "adobe_in_candidate_diff": false,
+    "adobe_untracked_in_main": true,
+    "asset_paths_in_candidate_diff": false,
+    "credential_paths_in_candidate_diff": false,
+    "dependency_drift": false,
+    "forbidden_paths": [],
+    "generated_assets_in_candidate_diff": false,
+    "main_checkout_status": "RESOLUME...origin/RESOLUME; ?? adobe/",
+    "network_used": false,
+    "private_media_in_candidate_diff": false,
+    "unexpected_subprocess_behavior": false
+  },
+  "decision": "READY_FOR_EXPLICIT_MERGE",
+  "main_checkout_untouched": true,
+  "merge_command": "git merge --ff-only a155762d946cff2cf41f2cc68c721ad77f3b4445",
+  "next_action": "Offer a155762d946cff2cf41f2cc68c721ad77f3b4445 for explicit operator merge from the clean C:\\IA\\LUCIDA checkout; do not execute automatically.",
+  "proposed_merge_targets": [
+    "a155762d946cff2cf41f2cc68c721ad77f3b4445"
+  ],
+  "regression_checks": {
+    "ascii_guard": true,
+    "base_head_exact": true,
+    "bundle_consistent": true,
+    "candidate_only_merge_target": true,
+    "candidate_parent_expected": true,
+    "compileall": true,
+    "deterministic_replay": true,
+    "diff_check": true,
+    "explicit_approval": true,
+    "fail_closed_malformed_input": true,
+    "fast_forward_applied": true,
+    "no_external_side_effects": true,
+    "proposal_only": true,
+    "reversible": true,
+    "surface_conformance": true,
+    "unknown_optional_fields_ignored": true
+  },
+  "replay_hashes": {
+    "semantic_report_fixture_sha256": "c0939a24b4b80850b30a351bc497323dad8dd7aaa7d9e8bfa57e6d64f1db2286",
+    "signal_envelope_fixture_sha256": "0b806342e2d51dd6dce4bf330579aec6bf60b494c50bb2196357eee736c5023f",
+    "surface_projection_schema_sha256": "3bca2f33944f062acfbb9aef6444e4b84d5977bb7eede7f31673d7360e7a356e",
+    "tape_sha256": "f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec"
+  },
+  "schema_version": "1.0",
+  "side_effects": {
+    "automatic_actions": false,
+    "camera_used": false,
+    "external_side_effects": false,
+    "gpu_used": false,
+    "hardware_used": false,
+    "live_resolume": false,
+    "network_used": false,
+    "resolume_opened": false,
+    "socket_transport_opened": false,
+    "subprocess_host_execution": false
+  },
+  "test_counts": {
+    "bundle": {
+      "collected": 119,
+      "errors": 0,
+      "failed": 0,
+      "passed": 119,
+      "skipped": 0
+    },
+    "delta": {
+      "collected": 53,
+      "explained": true,
+      "gate_tests": 3,
+      "passed": 53
+    },
+    "focused_boundary": {
+      "collected": 49,
+      "errors": 0,
+      "failed": 0,
+      "passed": 49,
+      "skipped": 0
+    },
+    "gate_worktree": {
+      "collected": 119,
+      "errors": 0,
+      "failed": 0,
+      "passed": 119,
+      "skipped": 0
+    },
+    "post_merge_candidate": {
+      "collected": 116,
+      "errors": 0,
+      "failed": 0,
+      "passed": 116,
+      "skipped": 0
+    },
+    "pre_merge": {
+      "collected": 63,
+      "errors": 0,
+      "failed": 0,
+      "passed": 63,
+      "skipped": 0
+    }
+  }
+}
