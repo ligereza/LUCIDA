@@ -20,9 +20,8 @@ using namespace ffglqs;
 
 namespace
 {
-constexpr int MODE_VENUE_3D = 0;
-constexpr int MODE_RASTER_PIXEL_MAP = 1;
-constexpr int MODE_XML_PLANES = 2;
+constexpr int MODE_RASTER_PIXEL_MAP = 0;
+constexpr int MODE_XML_PLANES = 1;
 
 float BoundedFloat(float value, float fallback, float minimum, float maximum)
 {
@@ -87,19 +86,9 @@ static CFFGLPluginInfo PluginInfo(
 INSTAR::INSTAR()
 {
 	AddParam(ParamOption::Create("Mode", {
-		{"VENUE_3D", static_cast<float>(MODE_VENUE_3D)},
 		{"RASTER_PIXEL_MAP", static_cast<float>(MODE_RASTER_PIXEL_MAP)},
 		{"XML_PLANES", static_cast<float>(MODE_XML_PLANES)},
 	}, MODE_XML_PLANES));
-	AddParam(Param::Create("VenueFile", FF_TYPE_FILE, 0.0f));
-	AddParam(Param::Create("EdgeBudget", FF_TYPE_INTEGER, 800.0f));
-	AddParam(ParamOption::Create("ConfidenceCeiling", {
-		{"MEDIDO", 0.0f},
-		{"CITADO", 1.0f},
-		{"AJUSTADO", 2.0f},
-		{"APORTADO", 3.0f},
-		{"TODOS", 4.0f},
-	}, 4));
 	AddParam(Param::Create("MapFile", FF_TYPE_FILE, 0.0f));
 	AddParam(Param::Create("TemplateXML", FF_TYPE_FILE, 0.0f));
 	AddParam(ParamEvent::Create("ExportMapXML"));
@@ -113,7 +102,6 @@ INSTAR::INSTAR()
 	AddParam(Param::Create("Pitch", pitch));
 	AddParam(Param::Create("Zoom", zoom));
 	AddParam(Param::Create("Brightness", brightness));
-	SetParamRange(PARAM_EDGE_BUDGET, 1.0f, 1000000.0f);
 	AddParam(ParamRange::Create("Depth", depth, ParamRange::Range(-10.0f, 10.0f)));
 	for (unsigned int index = 0; index < 32U; ++index)
 	{
@@ -191,7 +179,7 @@ FFResult INSTAR::Init()
 	glGenBuffers(1, &rasterOverlayVbo);
 	if (rasterTexture == 0 || rasterOverlayVao == 0 || rasterOverlayVbo == 0)
 		return FF_FAIL;
-	LoadVenue();
+	LoadScene();
 	UploadScene();
 	LoadRaster();
 	return FF_SUCCESS;
@@ -214,7 +202,7 @@ void INSTAR::Clean()
 	renderer.Clean();
 }
 
-bool INSTAR::LoadVenue()
+bool INSTAR::LoadScene()
 {
 	const int mode = static_cast<int>(GetFloatParameter(PARAM_MODE));
 	if (mode == MODE_XML_PLANES)
@@ -256,7 +244,7 @@ bool INSTAR::LoadVenue()
 	if (mode == MODE_RASTER_PIXEL_MAP)
 	{
 		// RASTER_PIXEL_MAP owns the frame. Keep a small scene available for a
-		// later mode switch, but never reload VenueFile while raster is active.
+		// later mode switch, but does not load XML while raster is active.
 		scene = BuildINSTARFlatPlaneDemoScene();
 		ConfigureSliceDepthParams(0);
 		loadedRasterSignature = {0, 0};
@@ -265,42 +253,7 @@ bool INSTAR::LoadVenue()
 		sceneDirty = false;
 		return true;
 	}
-	if (venuePath.empty())
-	{
-		scene = BuildINSTARDemoScene();
-		ConfigureSliceDepthParams(0);
-		loadedRasterSignature = {0, 0};
-		loadedFileSignature = {0, 0};
-		loadedPath.clear();
-		sceneDirty = false;
-		return true;
-	}
-	std::string error;
-	INSTARScene loaded;
-	const unsigned int edgeBudget = static_cast<unsigned int>(std::max(1.0f, GetFloatParameter(PARAM_EDGE_BUDGET)));
-	const int confidenceCeiling = static_cast<int>(std::max(0.0f, std::min(4.0f, GetFloatParameter(PARAM_CONFIDENCE_CEILING))));
-	if (!LoadINSTARVenueJson(venuePath, loaded, error, edgeBudget, confidenceCeiling))
-	{
-		FFGLLog::LogToHost("INSTAR: VenueFile inválido; se usa escena demo");
-		scene = BuildINSTARDemoScene();
-		ConfigureSliceDepthParams(0);
-		loadedFileSignature = GetFileSignature(venuePath);
-		loadedPath = venuePath;
-		sceneDirty = false;
-		return false;
-	}
-	scene = loaded;
-	ConfigureSliceDepthParams(0);
-	loadedFileSignature = GetFileSignature(venuePath);
-	if (scene.omittedEdges > 0)
-	{
-		const std::string message = "INSTAR: EdgeBudget omitió " + std::to_string(scene.omittedEdges) +
-			" de " + std::to_string(scene.totalEdges) + " aristas";
-		FFGLLog::LogToHost(message.c_str());
-	}
-	loadedPath = venuePath;
-	sceneDirty = false;
-	return true;
+	return false;
 }
 
 void INSTAR::UploadScene()
@@ -429,12 +382,11 @@ void INSTAR::Update()
 {
 	const int mode = static_cast<int>(GetFloatParameter(PARAM_MODE));
 	const std::string desiredPath = mode == MODE_XML_PLANES ?
-		(previewTemplatePath.empty() ? templatePath : previewTemplatePath) :
-		(mode == MODE_VENUE_3D ? venuePath : std::string());
-	const std::pair<long long, long long> desiredSignature = (mode == MODE_XML_PLANES || mode == MODE_VENUE_3D) ? GetFileSignature(desiredPath) : std::pair<long long, long long>{0, 0};
-	if (sceneDirty || loadedPath != desiredPath || ((mode == MODE_XML_PLANES || mode == MODE_VENUE_3D) && desiredSignature != loadedFileSignature))
+		(previewTemplatePath.empty() ? templatePath : previewTemplatePath) : std::string();
+	const std::pair<long long, long long> desiredSignature = mode == MODE_XML_PLANES ? GetFileSignature(desiredPath) : std::pair<long long, long long>{0, 0};
+	if (sceneDirty || loadedPath != desiredPath || (mode == MODE_XML_PLANES && desiredSignature != loadedFileSignature))
 	{
-		LoadVenue();
+		LoadScene();
 		UploadScene();
 	}
 	const std::pair<long long, long long> desiredRasterSignature = (mode == MODE_XML_PLANES || mode == MODE_RASTER_PIXEL_MAP) ? GetFileSignature(mapPath) : std::pair<long long, long long>{0, 0};
@@ -568,10 +520,6 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 		if (static_cast<int>(value) == MODE_XML_PLANES || static_cast<int>(value) == MODE_RASTER_PIXEL_MAP)
 			rasterDirty = true;
 	}
-	else if (index == PARAM_EDGE_BUDGET || index == PARAM_CONFIDENCE_CEILING)
-	{
-		sceneDirty = true;
-	}
 	else if (index == PARAM_DEPTH)
 	{
 		depth = BoundedFloat(value, 0.0f, -10.0f, 10.0f);
@@ -593,12 +541,6 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 FFResult INSTAR::SetTextParameter(unsigned int index, const char* value)
 {
 	const std::string safeValue = value == nullptr ? "" : value;
-	if (index == PARAM_VENUE_FILE)
-	{
-		venuePath = safeValue;
-		sceneDirty = true;
-		return FF_SUCCESS;
-	}
 	if (index == PARAM_MAP_FILE)
 	{
 		mapPath = safeValue;
@@ -626,9 +568,7 @@ char* INSTAR::GetTextParameter(unsigned int index)
 {
 	static char buffer[4096];
 	const std::string* value = nullptr;
-	if (index == PARAM_VENUE_FILE)
-		value = &venuePath;
-	else if (index == PARAM_MAP_FILE)
+	if (index == PARAM_MAP_FILE)
 		value = &mapPath;
 	else if (index == PARAM_TEMPLATE_XML)
 		value = &templatePath;

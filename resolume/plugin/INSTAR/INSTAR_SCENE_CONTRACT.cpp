@@ -26,16 +26,14 @@ int main(int argc, char** argv)
 		INSTARScene scene;
 		std::string error;
 		const std::string path = argv[1];
-		const bool isVenue = HasSuffix(path, ".json");
 		const bool isTemplate = HasSuffix(path, ".xml");
-		const bool loaded = isVenue ? LoadINSTARVenueJson(path, scene, error) :
-			(isTemplate ? LoadINSTARAdvancedOutputPlanes(path, scene, error) : LoadINSTARObj(path, scene, error));
+		const bool loaded = isTemplate ? LoadINSTARAdvancedOutputPlanes(path, scene, error) : LoadINSTARObj(path, scene, error);
 		if (!loaded)
 		{
 			std::cerr << error << "\n";
 			return 1;
 		}
-		std::cout << (isVenue ? "venue_lines=" : (isTemplate ? "xml_lines=" : "obj_lines=")) << scene.lineVertices.size()
+		std::cout << (isTemplate ? "xml_lines=" : "obj_lines=") << scene.lineVertices.size()
 			      << " surfaces=" << scene.surfaces.size()
 			      << " triangles=" << scene.triangleVertices.size() << "\n";
 		if (isTemplate)
@@ -111,9 +109,6 @@ int main(int argc, char** argv)
 		std::fprintf(stderr, "xml checks failed: name=%d input=%d output=%d\\n", xml.find("screen_central") != std::string::npos, xml.find("<InputRect ") != std::string::npos, xml.find("<OutputRect ") != std::string::npos);
 		return 1;
 	}
-	const INSTARScene demo = BuildINSTARDemoScene();
-	if (demo.surfaces.size() != 3U || demo.triangleVertices.empty())
-		return 1;
 	const INSTARScene modelDemo = BuildINSTARModelDemoScene();
 	if (modelDemo.surfaces.size() != 1U || modelDemo.surfaces[0].name != "MODEL_DEMO" || modelDemo.triangleVertices.empty())
 		return 1;
@@ -149,31 +144,6 @@ int main(int argc, char** argv)
 	if (std::fabs(aerial.yaw - track.yaw) < 0.0001f ||
 		std::fabs(track.pitch - free.pitch) < 0.0001f ||
 		std::fabs(free.zoom - 1.52f) > 0.0001f)
-		return 1;
-	const char* venuePath = "INSTAR_SCENE_CONTRACT_VENUE.json";
-	{
-		std::ofstream venue(venuePath, std::ios::out | std::ios::trunc);
-		venue << "{\"geometria\":{\"polilineas\":["
-		      << "{\"puntos\":[[0,0,0],[2,0,0],[2,1,0]],\"confianza\":\"medido\"},"
-		      << "{\"puntos\":[[0,0,0],[0,2,0]],\"confianza\":\"no_verificado\"}]}}";
-	}
-	INSTARScene venue;
-	std::string venueError;
-	const bool venueLoaded = LoadINSTARVenueJson(venuePath, venue, venueError);
-	if (!venueLoaded || venue.fromObj || !venue.surfaces.empty() || venue.lineVertices.size() != 6U ||
-		venue.totalEdges != 3U || venue.omittedEdges != 0U ||
-		venue.lineVertices[0].red < 0.90f || venue.lineVertices.back().red > 0.26f)
-		return 1;
-	INSTARScene budgetedVenue;
-	std::string budgetError;
-	const bool budgetLoaded = LoadINSTARVenueJson(venuePath, budgetedVenue, budgetError, 2);
-	INSTARScene measuredOnlyVenue;
-	std::string confidenceError;
-	const bool confidenceLoaded = LoadINSTARVenueJson(venuePath, measuredOnlyVenue, confidenceError, 0, 0);
-	std::remove(venuePath);
-	if (!budgetLoaded || budgetedVenue.totalEdges != 3U || budgetedVenue.omittedEdges != 1U || budgetedVenue.lineVertices.size() != 4U)
-		return 1;
-	if (!confidenceLoaded || measuredOnlyVenue.totalEdges != 3U || measuredOnlyVenue.omittedEdges != 1U || measuredOnlyVenue.lineVertices.size() != 4U)
 		return 1;
 	return 0;
 }

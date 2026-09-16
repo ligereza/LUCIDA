@@ -82,8 +82,8 @@ texturizar esas superficies solo cuando pertenece a la misma composición.
 Si cambia el XML en disco, el plugin recarga la geometría y sus controles en
 vivo sin quitar y volver a agregar la fuente.
 
-También conserva `VENUE_3D`, que lee el JSON de polilíneas de FLUJO, y
-`RASTER_PIXEL_MAP`, que muestra un `MapFile` raster conservando proporciones.
+También conserva `RASTER_PIXEL_MAP`, que muestra un `MapFile` raster
+conservando proporciones.
 `ExportMapXML` sigue siendo explícito y genera desde el PNG/JPG. Con un
 `TemplateXML` real, este es la autoridad de composición, pantalla, dispositivo,
 IDs, `OutputRect`, warpers y routing: solo se reemplazan los `InputRect`
@@ -93,11 +93,9 @@ físico. Sin template, INSTAR produce un XML virtual estructuralmente válido
 para preview, pero lo marca como sin routing físico confirmado.
 Después de escribirlo, `OutputXML` pasa a ser automáticamente la fuente del
 preview XML; el template original no se sobrescribe.
-`OutputRect`, warpers y routing no se inventan desde la imagen. Un escenario
-adicional debe venir de un `VenueFile` o modelo explícito. `EdgeBudget`
-prioriza polilíneas por confianza y `ConfidenceCeiling` permite excluir niveles;
-ambos contabilizan las omitidas. No convierte modelos 3D ni configura
-procesadores LED.
+`OutputRect`, warpers y routing no se inventan desde la imagen. El modelado de
+venue o tarima pertenece a una fuente explícita separada. No convierte modelos
+3D ni configura procesadores LED.
 `INSTAR_3D.dll` es el `FF_SOURCE` separado para cargar OBJ/MTL y visualizar
 modelos dentro de la composición, con fondo alfa y `TextureFile` opcional para
 PNG/JPG; conserva UV del OBJ y genera UV plana si faltan.

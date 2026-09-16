@@ -34,7 +34,7 @@ protected:
 	void Clean() override;
 
 private:
-	bool LoadVenue();
+	bool LoadScene();
 	void ConfigureSliceDepthParams(size_t sliceCount);
 	void UploadScene();
 	bool LoadRaster();
@@ -53,7 +53,6 @@ private:
 	INSTARImage rasterImage;
 	std::vector<INSTARSurface> rasterSurfaces;
 	std::vector<INSTARVertex> rasterOverlayVertices;
-	std::string venuePath;
 	std::string loadedPath;
 	std::string mapPath;
 	std::string templatePath;
@@ -76,21 +75,18 @@ private:
 	enum Parameter : unsigned int
 	{
 		PARAM_MODE = 0,
-		PARAM_VENUE_FILE = 1,
-		PARAM_EDGE_BUDGET = 2,
-		PARAM_CONFIDENCE_CEILING = 3,
-		PARAM_MAP_FILE = 4,
-		PARAM_TEMPLATE_XML = 5,
-		PARAM_EXPORT_MAP_XML = 6,
-		PARAM_OUTPUT_XML = 7,
-		PARAM_VIEW = 8,
-		PARAM_YAW = 9,
-		PARAM_PITCH = 10,
-		PARAM_ZOOM = 11,
-		PARAM_BRIGHTNESS = 12,
-		PARAM_DEPTH = 13,
-		PARAM_SLICE_DEPTH_01 = 14,
-		PARAM_SLICE_DEPTH_32 = 45,
-		PARAM_CAMERA_DISTANCE = 46,
+		PARAM_MAP_FILE = 1,
+		PARAM_TEMPLATE_XML = 2,
+		PARAM_EXPORT_MAP_XML = 3,
+		PARAM_OUTPUT_XML = 4,
+		PARAM_VIEW = 5,
+		PARAM_YAW = 6,
+		PARAM_PITCH = 7,
+		PARAM_ZOOM = 8,
+		PARAM_BRIGHTNESS = 9,
+		PARAM_DEPTH = 10,
+		PARAM_SLICE_DEPTH_01 = 11,
+		PARAM_SLICE_DEPTH_32 = 42,
+		PARAM_CAMERA_DISTANCE = 43,
 	};
 };

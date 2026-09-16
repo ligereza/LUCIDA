@@ -49,9 +49,7 @@ exactamente un plano por `Slice`. No deduce una pantalla principal, banners,
 tótems o tarima desde el XML. `Depth` es un valor global y los controles
 `SliceDepth01`–`SliceDepthNN` aparecen solo para los slices reales, alineados
 con su orden. Los cambios guardados en el XML se detectan y recargan en vivo.
-`VENUE_3D`
-conserva el recorrido JSON de FLUJO y `RASTER_PIXEL_MAP` conserva la
-inspección plana. `MapFile` puede texturizar los planos XML si corresponde a
+`RASTER_PIXEL_MAP` conserva la inspección plana. `MapFile` puede texturizar los planos XML si corresponde a
 la misma composición y `TemplateXML` continúa siendo la autoridad de routing
 para la exportación explícita: con template real solo actualiza los `InputRect`
 existentes uno a uno y rechaza diferencias de cantidad; sin template genera un

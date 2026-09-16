@@ -64,8 +64,6 @@ struct INSTARScene
 	std::vector<INSTARInputPlane> inputPlanes;
 	unsigned int inputCanvasWidth = 0;
 	unsigned int inputCanvasHeight = 0;
-	unsigned int totalEdges = 0;
-	unsigned int omittedEdges = 0;
 	INSTARVec3 renderCentre;
 	float renderScale = 1.0f;
 	bool hasTextureCoordinates = false;
@@ -74,16 +72,8 @@ struct INSTARScene
 };
 
 bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& error);
-bool LoadINSTARVenueJson(
-	const std::string& path,
-	INSTARScene& scene,
-	std::string& error,
-	unsigned int edgeBudget = 0,
-	int confidenceCeiling = 4
-);
 bool LoadINSTARAdvancedOutputPlanes(const std::string& path, INSTARScene& scene, std::string& error);
 void ApplyINSTARInputPlaneDepths(INSTARScene& scene, const std::vector<float>& depths);
-INSTARScene BuildINSTARDemoScene();
 INSTARScene BuildINSTARFlatPlaneDemoScene();
 INSTARScene BuildINSTARModelDemoScene();
 

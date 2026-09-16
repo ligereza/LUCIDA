@@ -239,18 +239,14 @@ reloads the planes and visible depth controls on the next frame; the source
 does not need to be removed and re-added.
 
 The XML preview contains only mapping geometry. A venue shell or a tarima
-model must come from an explicit `VenueFile`/model source; FLUJO's tarima
-sliders are not silently copied into an unrelated Advanced Output XML.
-`CameraDistance` complements the existing `AEREO`, `PISTA` and `LIBRE` camera
-controls.
+model is outside this source; FLUJO's tarima sliders are not silently copied
+into an unrelated Advanced Output XML. `CameraDistance` complements the
+existing `AEREO`, `PISTA` and `LIBRE` camera controls.
 
-The same source retains `VENUE_3D` for confidence-coloured venue JSON and
-`RASTER_PIXEL_MAP` for a flat PNG/JPG inspection with detected surface
-outlines. The camera and scene core are local and do not need a network, model
-service or LED processor. `EdgeBudget` keeps the highest-confidence polylines
-first and reports omitted edges rather than trimming a line silently;
-`ConfidenceCeiling` can exclude unverified tiers explicitly. `ExportMapXML`
-remains a separate explicit action from the preview.
+The same source retains `RASTER_PIXEL_MAP` for a flat PNG/JPG inspection with
+detected surface outlines. The camera and scene core are local and do not need
+a network, model service or LED processor. `ExportMapXML` remains a separate
+explicit action from the preview.
 
 INSTAR also exposes an explicit `ExportMapXML` event. The VJ supplies a raster
 pixel map through `MapFile` (PNG/JPG). If `TemplateXML` is provided, INSTAR
