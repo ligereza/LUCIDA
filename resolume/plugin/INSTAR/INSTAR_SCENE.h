@@ -51,6 +51,7 @@ struct INSTARScene
 };
 
 bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& error);
+bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::string& error);
 INSTARScene BuildINSTARDemoScene();
 
 INSTARCamera SelectINSTARCamera(

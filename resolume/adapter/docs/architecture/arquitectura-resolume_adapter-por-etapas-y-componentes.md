@@ -42,10 +42,12 @@ Las etapas de uso quedan como una taxonomía independiente:
 | `NAYADE` | SOUNDCHEK: prueba estable, handoff y routing con el house |
 | `IMAGO` | SHOW: operación real en vivo dentro de Resolume |
 
-INSTAR tiene dos superficies coordinadas: el plugin FFGL que trabaja dentro de
-Resolume y el parser offline que prepara entradas PDF/PNG/SVG. El plugin recibe
-un pixel-map raster u OBJ con grupos de superficie, no solicita un
-`AdvancedOutput.xml` real y genera uno; OBJ y CAPTURE comparten proyección 3D.
+INSTAR tiene dos superficies coordinadas: el plugin FFGL Capture de venues y el
+parser offline que prepara entradas PDF/PNG/SVG. `INSTAR.dll` recibe el JSON de
+polilíneas de FLUJO y un `MapFile` raster opcional para exportación explícita;
+`INSTAR_3D.dll` recibe OBJ/MTL para visualización de modelos. Ninguno solicita
+un `AdvancedOutput.xml` real; la exportación raster de INSTAR es independiente
+del visualizador 3D y ambos comparten escena/render/cámara donde corresponde.
 Los
 reportes y estadísticas son evidencia transversal, no una cuarta etapa.
 

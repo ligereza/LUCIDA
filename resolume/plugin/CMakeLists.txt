@@ -47,6 +47,8 @@ set(FFGL_SOURCES
 add_library(INSTAR SHARED
     INSTAR/INSTAR.cpp
     INSTAR/INSTAR.h
+    INSTAR/INSTAR_RENDERER.cpp
+    INSTAR/INSTAR_RENDERER.h
     INSTAR/INSTAR_SCENE.cpp
     INSTAR/INSTAR_SCENE.h
     INSTAR/INSTAR_XML.cpp
@@ -86,39 +88,39 @@ add_custom_command(TARGET INSTAR POST_BUILD
         "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/INSTAR.dll"
 )
 
-add_library(INSTAR_CAPTURE SHARED
-    INSTAR/INSTAR_CAPTURE.cpp
-    INSTAR/INSTAR_CAPTURE.h
-    INSTAR/INSTAR_SCENE.cpp
-    INSTAR/INSTAR_SCENE.h
-    INSTAR/INSTAR_XML.cpp
-    INSTAR/INSTAR_XML.h
-    ${FFGL_SOURCES}
+add_library(INSTAR_3D SHARED
+	INSTAR/INSTAR_3D.cpp
+	INSTAR/INSTAR_3D.h
+	INSTAR/INSTAR_RENDERER.cpp
+	INSTAR/INSTAR_RENDERER.h
+	INSTAR/INSTAR_SCENE.cpp
+	INSTAR/INSTAR_SCENE.h
+	${FFGL_SOURCES}
 )
-target_include_directories(INSTAR_CAPTURE PRIVATE
-    "${FFGL_SOURCE_ROOT}"
-    "${FFGL_ROOT}/deps/glew-2.1.0/include"
+target_include_directories(INSTAR_3D PRIVATE
+	"${FFGL_SOURCE_ROOT}"
+	"${FFGL_ROOT}/deps/glew-2.1.0/include"
 )
-target_compile_features(INSTAR_CAPTURE PRIVATE cxx_std_11)
-target_compile_definitions(INSTAR_CAPTURE PRIVATE GLEW_STATIC)
-set_property(TARGET INSTAR_CAPTURE PROPERTY
-    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+target_compile_features(INSTAR_3D PRIVATE cxx_std_11)
+target_compile_definitions(INSTAR_3D PRIVATE GLEW_STATIC)
+set_property(TARGET INSTAR_3D PROPERTY
+	MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
 )
-target_link_libraries(INSTAR_CAPTURE PRIVATE
-    OpenGL32
-    "${FFGL_ROOT}/deps/glew-2.1.0/lib/Release/x64/glew32s.lib"
+target_link_libraries(INSTAR_3D PRIVATE
+	OpenGL32
+	"${FFGL_ROOT}/deps/glew-2.1.0/lib/Release/x64/glew32s.lib"
 )
-set_target_properties(INSTAR_CAPTURE PROPERTIES
-    OUTPUT_NAME "INSTAR_CAPTURE"
-    PREFIX ""
-    SUFFIX ".dll"
+set_target_properties(INSTAR_3D PROPERTIES
+	OUTPUT_NAME "INSTAR_3D"
+	PREFIX ""
+	SUFFIX ".dll"
 )
-add_custom_command(TARGET INSTAR_CAPTURE POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "$<TARGET_FILE:INSTAR_CAPTURE>"
-        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/INSTAR_CAPTURE.dll"
+add_custom_command(TARGET INSTAR_3D POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E make_directory
+		"${CMAKE_CURRENT_BINARY_DIR}/Extra Effects"
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		"$<TARGET_FILE:INSTAR_3D>"
+		"${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/INSTAR_3D.dll"
 )
 
 enable_testing()

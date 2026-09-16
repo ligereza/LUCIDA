@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
+#include <iterator>
 #include <map>
 #include <sstream>
 
@@ -175,6 +176,94 @@ bool IsSurfaceGroup(const std::string& value)
 	}
 	return false;
 }
+
+void SkipJsonSpace(const std::string& text, size_t& cursor)
+{
+	while (cursor < text.size() && std::isspace(static_cast<unsigned char>(text[cursor])))
+		++cursor;
+}
+
+size_t MatchingBracket(const std::string& text, size_t opening, char open, char close)
+{
+	int depth = 0;
+	bool quoted = false;
+	bool escaped = false;
+	for (size_t cursor = opening; cursor < text.size(); ++cursor)
+	{
+		const char character = text[cursor];
+		if (quoted)
+		{
+			if (escaped)
+				escaped = false;
+			else if (character == '\\')
+				escaped = true;
+			else if (character == '"')
+				quoted = false;
+			continue;
+		}
+		if (character == '"')
+		{
+			quoted = true;
+			continue;
+		}
+		if (character == open)
+			++depth;
+		else if (character == close && --depth == 0)
+			return cursor;
+	}
+	return std::string::npos;
+}
+
+std::vector<INSTARVec3> ParseVenuePoints(const std::string& text, size_t opening, size_t closing)
+{
+	std::vector<INSTARVec3> points;
+	for (size_t cursor = opening + 1; cursor < closing; ++cursor)
+	{
+		if (text[cursor] != '[')
+			continue;
+		size_t valueCursor = cursor + 1;
+		float values[3] = {};
+		bool valid = true;
+		for (float& value : values)
+		{
+			SkipJsonSpace(text, valueCursor);
+			if (valueCursor < text.size() && text[valueCursor] == ',')
+				++valueCursor;
+			SkipJsonSpace(text, valueCursor);
+			char* end = nullptr;
+			value = std::strtof(text.c_str() + valueCursor, &end);
+			if (end == text.c_str() + valueCursor)
+			{
+				valid = false;
+				break;
+			}
+			valueCursor = static_cast<size_t>(end - text.c_str());
+		}
+		SkipJsonSpace(text, valueCursor);
+		if (valid && valueCursor < text.size() && text[valueCursor] == ']')
+		{
+			// FLUJO stores [x, depth, height]; the native renderer uses
+			// [x, height, depth], so height remains the vertical axis.
+			points.push_back({values[0], values[2], values[1]});
+			cursor = valueCursor;
+		}
+	}
+	return points;
+}
+
+void VenueConfidenceColour(const std::string& confidence, float& red, float& green, float& blue)
+{
+	if (confidence == "medido")
+		red = 0.91f, green = 0.89f, blue = 0.85f;
+	else if (confidence == "citado")
+		red = 0.56f, green = 0.66f, blue = 0.70f;
+	else if (confidence == "ajustado")
+		red = 0.73f, green = 0.70f, blue = 0.66f;
+	else if (confidence == "aportado")
+		red = 0.54f, green = 0.52f, blue = 0.48f;
+	else
+		red = 0.25f, green = 0.24f, blue = 0.21f;
+}
 }
 
 bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& error)
@@ -294,6 +383,69 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 	}
 	Normalise(scene);
 	scene.fromObj = true;
+	scene.source = path;
+	return true;
+}
+
+bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::string& error)
+{
+	scene = INSTARScene();
+	std::ifstream file(path.c_str());
+	if (!file.is_open())
+	{
+		error = "venue JSON could not be opened";
+		return false;
+	}
+	const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	const size_t polylinesKey = text.find("\"polilineas\"");
+	if (polylinesKey == std::string::npos)
+	{
+		error = "venue JSON has no geometria.polilineas";
+		return false;
+	}
+	const size_t opening = text.find('[', polylinesKey);
+	const size_t closing = opening == std::string::npos ? std::string::npos : MatchingBracket(text, opening, '[', ']');
+	if (opening == std::string::npos || closing == std::string::npos)
+	{
+		error = "venue JSON has an invalid polilineas array";
+		return false;
+	}
+
+	size_t cursor = opening + 1;
+	while (cursor < closing)
+	{
+		const size_t pointsKey = text.find("\"puntos\"", cursor);
+		if (pointsKey == std::string::npos || pointsKey >= closing)
+			break;
+		const size_t pointsOpening = text.find('[', pointsKey);
+		const size_t pointsClosing = pointsOpening == std::string::npos ? std::string::npos : MatchingBracket(text, pointsOpening, '[', ']');
+		if (pointsOpening == std::string::npos || pointsClosing == std::string::npos || pointsClosing > closing)
+		{
+			error = "venue JSON has an invalid puntos array";
+			return false;
+		}
+		const size_t confidenceKey = text.find("\"confianza\"", pointsClosing);
+		std::string confidence = "no_verificado";
+		if (confidenceKey != std::string::npos && confidenceKey < closing)
+		{
+			const size_t quote = text.find('"', text.find(':', confidenceKey) + 1);
+			const size_t endQuote = quote == std::string::npos ? std::string::npos : text.find('"', quote + 1);
+			if (quote != std::string::npos && endQuote != std::string::npos)
+				confidence = text.substr(quote + 1, endQuote - quote - 1);
+		}
+		float red = 0.0f, green = 0.0f, blue = 0.0f;
+		VenueConfidenceColour(confidence, red, green, blue);
+		const std::vector<INSTARVec3> points = ParseVenuePoints(text, pointsOpening, pointsClosing);
+		for (size_t point = 1; point < points.size(); ++point)
+			AddEdge(scene.lineVertices, points[point - 1], points[point], red, green, blue);
+		cursor = pointsClosing + 1;
+	}
+	if (scene.lineVertices.empty())
+	{
+		error = "venue JSON contains no renderable polilineas";
+		return false;
+	}
+	Normalise(scene);
 	scene.source = path;
 	return true;
 }

@@ -218,25 +218,21 @@ the artifact does not claim live Resolume, audio, venue, timing, calibration,
 or hardware validation. Evidence file hashes canonicalize CRLF to LF so the
 same Git blob produces the same manifest in Windows worktrees.
 
-## Native INSTAR FFGL plugin
+## Native INSTAR Capture source
 
-The native Resolume unit is `resolume/plugin/INSTAR/`. It is an `FF_EFFECT`
-plugin built against the official Resolume FFGL SDK. It preserves the current
-layer texture and provides a low-GPU composition guide for the VJ.
+The native Resolume unit is `resolume/plugin/INSTAR/INSTAR.cpp`. `INSTAR.dll`
+is an `FF_SOURCE` inspired by FLUJO's venue viewer: it reads a venue JSON with
+3D polylines, preserves each line's confidence colour, and provides the
+`AEREO`, `PISTA` and `LIBRE` camera modes. Without a venue file it shows the
+deterministic stage demo. The camera and scene core are local and do not need a
+network, model service or LED processor.
 
-INSTAR exposes an `ExportXML` event. The VJ supplies a raster pixel-map path
-through `MapFile` (PNG/JPG) or a Wavefront OBJ containing named LED/screen
-groups, sets `CanvasWidth` and `CanvasHeight` when the map's canvas differs
-from the current composition, and receives a generated
-`INSTAR_AdvancedOutput.xml`. Raster inputs are segmented into candidate
-surfaces; OBJ inputs use the shared 3D projection core. The document contains
-a virtual screen, named slices, `InputRect`, `OutputRect` and identity
-warpers. No existing Advanced Output XML is requested.
-
-The plugin remains local and has no network, camera, model or processor
-dependency in its render path. Its XML describes the VJ's composition mapping;
-it does not configure NovaStar/Brompton hardware. PDF pages are handled by the
-offline INSTAR adapter, which can rasterize them before the native export path.
+INSTAR also exposes an explicit `ExportMapXML` event. The VJ supplies a raster
+pixel map through `MapFile` (PNG/JPG), sets `CanvasWidth` and `CanvasHeight`
+when needed, and receives `INSTAR_AdvancedOutput.xml`. This path is separate
+from the 3D model viewer: an OBJ is never converted to XML by default. PDF and
+SVG inputs remain with the offline adapter, which can rasterize or vector-map
+them before an explicit export.
 
 Build from this repository with the official FFGL checkout available at
 `C:/IA/vendor/resolume-ffgl`:
@@ -246,41 +242,31 @@ cmake -S resolume/plugin -B work/resolume-plugin-build -DFFGL_ROOT=C:/IA/vendor/
 cmake --build work/resolume-plugin-build --config Release
 ```
 
-The resulting DLL is copied to
-`work/resolume-plugin-build/Extra Effects/INSTAR.dll`. Add that folder in
+The resulting DLLs are copied to
+`work/resolume-plugin-build/Extra Effects/`. Add that folder in
 Resolume Preferences → Video → FFGL Directories and restart Resolume. The
-native build and XML contract are verified locally; live host loading still
+native build and contracts are verified locally; live host loading still
 requires the final installation step on a machine with Resolume.
 
-## Native INSTAR CAPTURE source
+## Native INSTAR 3D source
 
-`resolume/plugin/INSTAR/INSTAR_CAPTURE.cpp` builds a second FFGL entry point,
-`INSTAR_CAPTURE.dll`, as an `FF_SOURCE`. It loads Wavefront OBJ geometry through
-the shared INSTAR scene core and renders a low-cost filled-mesh plus wireframe
-venue view inside the Resolume composition. Its view selector contains
-`AEREO`, `PISTA` and `LIBRE`; when no model is selected, it shows a deterministic
-stage/screen demo.
-An `ExportXML` event projects named OBJ groups containing `screen`, `led`,
-`banner`, `cctv`, `display`, `surface` or `panel` into the same
-`AdvancedOutput.xml` serializer used by INSTAR MAP.
+`resolume/plugin/INSTAR/INSTAR_3D.cpp` builds `INSTAR_3D.dll` as an independent
+`FF_SOURCE`. It loads Wavefront OBJ geometry into the composition and renders
+a filled mesh plus wireframe. It is for arbitrary 3D models; it does not
+create Advanced Output XML.
 
 OBJ `mtllib`/`usemtl` records are read for diffuse material colours; when no
 material is available, deterministic fallback colours keep the scene legible.
 
-The three view modes use one shared camera selector in the native scene core,
-so the preview and the exported projection use the same AEREO/PISTA/LIBRE
-interpretation.
-
-This is the Capture-like visualization layer: it is not a NovaStar controller
-and it does not pretend that a 3D preview is a physical patch. OBJ geometry is
-the first importer; image textures and additional formats are deliberately not
-claimed yet. Unnamed geometry remains visible in the 3D preview but does not
-become a slice; this prevents truss or scenery from being mistaken for an LED
-surface.
+Both sources share the scene renderer and camera selector. INSTAR's venue
+geometry and the model viewer remain distinct data paths: venue polylines are
+for Capture-like spatial context, while OBJ geometry is for importing a model
+as visual content. Unnamed OBJ geometry remains visible but has no mapping
+meaning.
 
 Both DLLs are produced by the same build:
 
 ```text
 work/resolume-plugin-build/Extra Effects/INSTAR.dll
-work/resolume-plugin-build/Extra Effects/INSTAR_CAPTURE.dll
+work/resolume-plugin-build/Extra Effects/INSTAR_3D.dll
 ```

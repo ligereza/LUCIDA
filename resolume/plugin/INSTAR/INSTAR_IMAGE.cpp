@@ -209,7 +209,7 @@ std::vector<INSTARSurface> DetectINSTARSurfaces(
 	std::vector<INSTARSurface> result;
 	if (image.width == 0 || image.height == 0 || image.rgba.size() < static_cast<size_t>(image.width) * image.height * 4U)
 		return result;
-	// The plugin runs this only on ExportXML, but maps can be several megapixels.
+	// The plugin runs this only on ExportMapXML, but maps can be several megapixels.
 	// A 320-cell long side preserves venue-scale regions while keeping the
 	// morphology bounded and responsive on the VJ machine.
 	const unsigned int maxSamples = 320;

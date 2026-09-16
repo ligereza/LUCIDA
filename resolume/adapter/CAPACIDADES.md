@@ -71,12 +71,13 @@ y snapshot de procesador antes de tocar niveles o gamma.
 
 ## INSTAR — plugin de mapping VJ y preparación del material
 
-La implementación nativa vive en `resolume/plugin/INSTAR/`. El plugin trabaja
-en Resolume, conserva la textura de entrada, muestra una guía de composición y
-genera `INSTAR_AdvancedOutput.xml` directamente desde `MapFile` (PNG/JPG/OBJ) y
-el canvas configurado. Un OBJ usa grupos nombrados de superficies y el mismo
-núcleo de proyección 3D que INSTAR CAPTURE. No pide un XML real a otra persona
-y no configura procesadores LED.
+La implementación nativa vive en `resolume/plugin/INSTAR/`. `INSTAR.dll` es un
+`FF_SOURCE` de Capture de venues: lee el JSON de polilíneas de FLUJO, orbita la
+sala con AEREO/PISTA/LIBRE y dibuja sus líneas por nivel de confianza. Su
+`ExportMapXML` explícito genera `INSTAR_AdvancedOutput.xml` desde un `MapFile`
+raster (PNG/JPG); no convierte modelos 3D ni configura procesadores LED.
+`INSTAR_3D.dll` es el `FF_SOURCE` separado para cargar OBJ/MTL y visualizar
+modelos dentro de la composición.
 
 El resto de esta sección describe el acompañante offline que prepara los
 perfiles antes del show; no debe confundirse con el plugin FFGL.

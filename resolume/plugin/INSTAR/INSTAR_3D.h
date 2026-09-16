@@ -2,20 +2,19 @@
 
 #include <FFGLSDK.h>
 
-#include "INSTAR_SCENE.h"
-#include "INSTAR_XML.h"
+#include "INSTAR_RENDERER.h"
 
 #include <string>
 
-class INSTARCapture final : public ffglqs::Source
+class INSTAR3D final : public ffglqs::Source
 {
 public:
-	INSTARCapture();
-	~INSTARCapture() override = default;
+	INSTAR3D();
+	~INSTAR3D() override = default;
 
 	const char* GetShortName() override
 	{
-		static const char* shortName = "INSTAR CAPTURE";
+		static const char* shortName = "INSTAR 3D";
 		return shortName;
 	}
 
@@ -29,38 +28,27 @@ protected:
 	void Update() override;
 	void Clean() override;
 
-private:
+	private:
 	bool LoadScene();
 	void UploadScene();
-	bool ExportSceneXml();
 
-	ffglex::FFGLShader sceneShader;
-	GLuint vao = 0;
-	GLuint vbo = 0;
-	GLuint triangleVao = 0;
-	GLuint triangleVbo = 0;
+	INSTARSceneRenderer renderer;
 	INSTARScene scene;
 	std::string modelPath;
 	std::string loadedPath;
-	std::string outputPath = "INSTAR_CAPTURE_AdvancedOutput.xml";
 	float yaw = 0.5f;
 	float pitch = 0.5f;
 	float zoom = 0.55f;
 	float brightness = 0.85f;
 	bool sceneDirty = true;
-	bool exportRequested = false;
 
 	enum Parameter : unsigned int
 	{
 		PARAM_MODEL_FILE = 0,
-		PARAM_EXPORT_XML = 1,
-		PARAM_OUTPUT_XML = 2,
-		PARAM_VIEW = 3,
-		PARAM_YAW = 4,
-		PARAM_PITCH = 5,
-		PARAM_ZOOM = 6,
-		PARAM_BRIGHTNESS = 7,
-		PARAM_CANVAS_WIDTH = 8,
-		PARAM_CANVAS_HEIGHT = 9,
+		PARAM_VIEW = 1,
+		PARAM_YAW = 2,
+		PARAM_PITCH = 3,
+		PARAM_ZOOM = 4,
+		PARAM_BRIGHTNESS = 5,
 	};
 };

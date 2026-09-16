@@ -4,11 +4,28 @@
 #include <cstdio>
 #include <cmath>
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <vector>
 
-int main()
+int main(int argc, char** argv)
 {
+	if (argc == 2)
+	{
+		INSTARScene venue;
+		std::string error;
+		if (!LoadINSTARVenueJson(argv[1], venue, error))
+		{
+			std::cerr << error << "\n";
+			return 1;
+		}
+		std::cout << "venue_lines=" << venue.lineVertices.size()
+			      << " surfaces=" << venue.surfaces.size()
+			      << " triangles=" << venue.triangleVertices.size() << "\n";
+		return venue.lineVertices.empty() || !venue.surfaces.empty() || !venue.triangleVertices.empty() ? 1 : 0;
+	}
+	if (argc > 2)
+		return 2;
 	const char* path = "INSTAR_SCENE_CONTRACT.obj";
 	const char* materialPath = "INSTAR_SCENE_CONTRACT.mtl";
 	{
@@ -81,6 +98,20 @@ int main()
 	if (std::fabs(aerial.yaw - track.yaw) < 0.0001f ||
 		std::fabs(track.pitch - free.pitch) < 0.0001f ||
 		std::fabs(free.zoom - 1.52f) > 0.0001f)
+		return 1;
+	const char* venuePath = "INSTAR_SCENE_CONTRACT_VENUE.json";
+	{
+		std::ofstream venue(venuePath, std::ios::out | std::ios::trunc);
+		venue << "{\"geometria\":{\"polilineas\":["
+		      << "{\"puntos\":[[0,0,0],[2,0,0],[2,1,0]],\"confianza\":\"medido\"},"
+		      << "{\"puntos\":[[0,0,0],[0,2,0]],\"confianza\":\"no_verificado\"}]}}";
+	}
+	INSTARScene venue;
+	std::string venueError;
+	const bool venueLoaded = LoadINSTARVenueJson(venuePath, venue, venueError);
+	std::remove(venuePath);
+	if (!venueLoaded || venue.fromObj || !venue.surfaces.empty() || venue.lineVertices.size() != 6U ||
+		venue.lineVertices[0].red < 0.90f || venue.lineVertices.back().red > 0.26f)
 		return 1;
 	return 0;
 }
