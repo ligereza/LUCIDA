@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 import tempfile
 import unicodedata
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -43,6 +45,48 @@ _ESTIMATED_SIZE = re.compile(r"\b(\d+(?:[.,]\d+)?)\s*M\s*[x×]\s*(\d+(?:[.,]\d+)
 def _require_backend() -> None:
     if cv2 is None or np is None:
         raise ResolumeAdapterError("El detector raster requiere OpenCV y NumPy disponibles en el entorno Python.")
+
+
+@contextmanager
+def _raster_source(
+    input_path: str | Path,
+    *,
+    pdf_renderer: str | Path | None = None,
+    pdf_page: int = 1,
+    pdf_dpi: int = 200,
+):
+    """Entrega una imagen decodificable; rasteriza solo la primera página solicitada de un PDF."""
+
+    source = Path(input_path).expanduser().resolve()
+    if source.suffix.casefold() != ".pdf":
+        yield source
+        return
+    if pdf_page <= 0 or pdf_dpi <= 0:
+        raise ResolumeAdapterError("La página y el DPI del PDF deben ser positivos.")
+    renderer = Path(pdf_renderer).expanduser().resolve() if pdf_renderer else None
+    if renderer is None:
+        found = shutil.which("pdftoppm")
+        renderer = Path(found).resolve() if found else None
+    if renderer is None or not renderer.is_file():
+        raise ResolumeAdapterError("No se encontró pdftoppm; entrega --pdf-renderer o instala un rasterizador PDF local.")
+    with tempfile.TemporaryDirectory(prefix="instar-pdf-") as directory:
+        output_base = Path(directory) / "page"
+        command = [
+            str(renderer),
+            "-f", str(pdf_page),
+            "-l", str(pdf_page),
+            "-r", str(pdf_dpi),
+            "-png",
+            "-singlefile",
+            str(source),
+            str(output_base),
+        ]
+        result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False)
+        rendered = output_base.with_suffix(".png")
+        if result.returncode != 0 or not rendered.is_file():
+            detail = result.stderr.strip()[:500] or "pdftoppm no produjo una imagen"
+            raise ResolumeAdapterError(f"No se pudo rasterizar el PDF {source}: {detail}")
+        yield rendered
 
 
 def _overlap(first: dict[str, Any], second: dict[str, Any]) -> float:
@@ -475,7 +519,15 @@ def _derive_panel_metrics(report: dict[str, Any]) -> None:
     report["metadata"] = metadata
 
 
-def detect_raster_surfaces(image_path: str | Path, *, canvas_size: tuple[int, int], min_area_ratio: float = 0.005) -> dict[str, Any]:
+def detect_raster_surfaces(
+    image_path: str | Path,
+    *,
+    canvas_size: tuple[int, int],
+    min_area_ratio: float = 0.005,
+    pdf_renderer: str | Path | None = None,
+    pdf_page: int = 1,
+    pdf_dpi: int = 200,
+) -> dict[str, Any]:
     """Detecta superficies grandes y las normaliza al canvas declarado.
 
     La normalización usa el bounding box de las regiones detectadas. Por eso el
@@ -487,13 +539,14 @@ def detect_raster_surfaces(image_path: str | Path, *, canvas_size: tuple[int, in
     source = Path(image_path).expanduser().resolve()
     if not source.is_file():
         raise ResolumeAdapterError(f"No se encontró la imagen de mapping: {source}")
-    image = cv2.imread(str(source), cv2.IMREAD_COLOR)
-    if image is None:
-        raise ResolumeAdapterError(f"No se pudo decodificar la imagen de mapping: {source}")
-    image_height, image_width = image.shape[:2]
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    detected = _detect_components(hsv, image_width, image_height, min_area_ratio)
-    regions = _normalise_regions(detected, canvas_size)
+    with _raster_source(source, pdf_renderer=pdf_renderer, pdf_page=pdf_page, pdf_dpi=pdf_dpi) as raster:
+        image = cv2.imread(str(raster), cv2.IMREAD_COLOR)
+        if image is None:
+            raise ResolumeAdapterError(f"No se pudo decodificar la imagen de mapping: {raster}")
+        image_height, image_width = image.shape[:2]
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        detected = _detect_components(hsv, image_width, image_height, min_area_ratio)
+        regions = _normalise_regions(detected, canvas_size)
     return {
         "schema_version": "0.1",
         "map_type": "InstarRasterMappingCandidate",
@@ -568,47 +621,54 @@ def build_raster_mapping(
     screen_name: str = "INSTAR Raster Map",
     min_area_ratio: float = 0.005,
     ocr_executable: str | Path | None = None,
+    pdf_renderer: str | Path | None = None,
+    pdf_page: int = 1,
+    pdf_dpi: int = 200,
 ) -> dict[str, Any]:
-    initial_ocr = run_ocr_command(image_path, ocr_executable) if canvas_size is None else None
-    if canvas_size is None:
-        inferred_canvas = _extract_ocr_metadata(initial_ocr or {}).get("canvas_size")
-        if not inferred_canvas:
-            raise ResolumeAdapterError("No se pudo obtener el canvas del OCR; entrega --canvas-size o un OCR compatible.")
-        canvas_size = (inferred_canvas["width"], inferred_canvas["height"])
-    report = detect_raster_surfaces(image_path, canvas_size=canvas_size, min_area_ratio=min_area_ratio)
-    report["ocr"] = run_ocr_command(
-        image_path,
-        ocr_executable,
-        region_boxes=[region["source_bounds"] for region in report.get("regions") or []],
-    )
-    resolved_names = _annotate_regions(report)
-    _infer_paired_banner_dimensions(report)
-    _reconcile_detected_layout(report)
-    report["metadata"] = _extract_ocr_metadata(report["ocr"])
-    _derive_panel_metrics(report)
-    if report["ocr"].get("available"):
-        report["validation"]["warnings"] = [
-            warning for warning in report["validation"]["warnings"] if warning.get("code") != "labels_not_read"
-        ]
-        if resolved_names == 0:
+    source = Path(image_path).expanduser().resolve()
+    with _raster_source(source, pdf_renderer=pdf_renderer, pdf_page=pdf_page, pdf_dpi=pdf_dpi) as raster:
+        initial_ocr = run_ocr_command(raster, ocr_executable) if canvas_size is None else None
+        if canvas_size is None:
+            inferred_canvas = _extract_ocr_metadata(initial_ocr or {}).get("canvas_size")
+            if not inferred_canvas:
+                raise ResolumeAdapterError("No se pudo obtener el canvas del OCR; entrega --canvas-size o un OCR compatible.")
+            canvas_size = (inferred_canvas["width"], inferred_canvas["height"])
+        report = detect_raster_surfaces(raster, canvas_size=canvas_size, min_area_ratio=min_area_ratio)
+        report["source"]["input"] = str(source)
+        report["source"]["pdf_page"] = pdf_page if source.suffix.casefold() == ".pdf" else None
+        report["ocr"] = run_ocr_command(
+            raster,
+            ocr_executable,
+            region_boxes=[region["source_bounds"] for region in report.get("regions") or []],
+        )
+        resolved_names = _annotate_regions(report)
+        _infer_paired_banner_dimensions(report)
+        _reconcile_detected_layout(report)
+        report["metadata"] = _extract_ocr_metadata(report["ocr"])
+        _derive_panel_metrics(report)
+        if report["ocr"].get("available"):
+            report["validation"]["warnings"] = [
+                warning for warning in report["validation"]["warnings"] if warning.get("code") != "labels_not_read"
+            ]
+            if resolved_names == 0:
+                report["validation"]["warnings"].append(
+                    {"code": "ocr_no_semantic_names", "message": "El OCR devolvió líneas, pero no resolvió nombres de superficies conocidos."}
+                )
+        elif ocr_executable is not None:
             report["validation"]["warnings"].append(
-                {"code": "ocr_no_semantic_names", "message": "El OCR devolvió líneas, pero no resolvió nombres de superficies conocidos."}
+                {"code": "ocr_unavailable", "message": report["ocr"].get("reason", "No se pudo ejecutar el OCR externo.")}
             )
-    elif ocr_executable is not None:
-        report["validation"]["warnings"].append(
-            {"code": "ocr_unavailable", "message": report["ocr"].get("reason", "No se pudo ejecutar el OCR externo.")}
-        )
-    with tempfile.TemporaryDirectory(prefix="instar-raster-") as directory:
-        svg_path = _candidate_svg(report, Path(directory) / "candidate.svg")
-        if svg_output:
-            _candidate_svg(report, svg_output)
-        xml_report = build_svg_mapping(
-            svg_path,
-            xml_output,
-            composition_size=canvas_size,
-            output_size=output_size or canvas_size,
-            screen_name=screen_name,
-        )
+        with tempfile.TemporaryDirectory(prefix="instar-raster-") as directory:
+            svg_path = _candidate_svg(report, Path(directory) / "candidate.svg")
+            if svg_output:
+                _candidate_svg(report, svg_output)
+            xml_report = build_svg_mapping(
+                svg_path,
+                xml_output,
+                composition_size=canvas_size,
+                output_size=output_size or canvas_size,
+                screen_name=screen_name,
+            )
     report["artifacts"] = {
         "advanced_output_xml": str(Path(xml_output).expanduser().resolve()),
         "candidate_svg": str(Path(svg_output).expanduser().resolve()) if svg_output else None,

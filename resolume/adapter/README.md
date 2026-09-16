@@ -179,6 +179,16 @@ python .\tools\resolume_adapter_cli.py instar-map-image `
 El OCR solo aporta etiquetas y anclas de resolución; la geometría sigue
 siendo detectada por INSTAR y el resultado conserva estado `REVIEW`.
 
+La misma orden acepta PDF. INSTAR rasteriza solo la página solicitada con
+`pdftoppm` y continúa por la misma ruta de detección/OCR:
+
+```powershell
+python .\tools\resolume_adapter_cli.py instar-map-image `
+  .\data\event\pixel-map.pdf `
+  --pdf-page 13 `
+  --xml .\artifacts\event-raster-candidate.xml
+```
+
 La salida de una imagen se etiqueta como `stage_layout_candidate`. Si el
 documento no aporta procesadores, puertos o cadena de datos, el campo
 `processor_routing` queda en `UNKNOWN`; INSTAR no convierte una disposición

@@ -260,6 +260,9 @@ def build_parser() -> argparse.ArgumentParser:
     image_mapping.add_argument("--screen-name", default="INSTAR Raster Map", help="Nombre de la pantalla virtual generada.")
     image_mapping.add_argument("--min-area-ratio", type=float, default=0.005, help="Área mínima de una región respecto de la imagen.")
     image_mapping.add_argument("--ocr-exe", help="Ejecutable OCR opcional que emita el protocolo OCR_LINE de INSTAR.")
+    image_mapping.add_argument("--pdf-renderer", help="Ruta opcional a pdftoppm si la entrada es PDF y no está en PATH.")
+    image_mapping.add_argument("--pdf-page", type=int, default=1, help="Página PDF que se rasteriza (default: 1).")
+    image_mapping.add_argument("--pdf-dpi", type=int, default=200, help="DPI de rasterización PDF (default: 200).")
     image_mapping.add_argument("--report", help="Ruta opcional para guardar el candidato JSON.")
 
     adapt = commands.add_parser(
@@ -673,6 +676,9 @@ def main(argv: list[str] | None = None) -> int:
                 screen_name=args.screen_name,
                 min_area_ratio=args.min_area_ratio,
                 ocr_executable=args.ocr_exe,
+                pdf_renderer=args.pdf_renderer,
+                pdf_page=args.pdf_page,
+                pdf_dpi=args.pdf_dpi,
             )
             print(raster_mapping_text_report(report))
             if args.report:
