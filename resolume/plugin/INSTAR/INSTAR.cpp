@@ -216,6 +216,15 @@ bool INSTAR::LoadVenue()
 		sceneDirty = false;
 		return true;
 	}
+	if (mode == 2)
+	{
+		// RASTER_PIXEL_MAP owns the frame. Keep a small scene available for a
+		// later mode switch, but never reload VenueFile while raster is active.
+		scene = BuildINSTARFlatPlaneDemoScene();
+		loadedPath.clear();
+		sceneDirty = false;
+		return true;
+	}
 	if (venuePath.empty())
 	{
 		scene = BuildINSTARDemoScene();
