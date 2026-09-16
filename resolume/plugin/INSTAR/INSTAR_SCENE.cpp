@@ -432,7 +432,7 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 	return true;
 }
 
-bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::string& error, unsigned int edgeBudget)
+bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::string& error, unsigned int edgeBudget, int confidenceCeiling)
 {
 	scene = INSTARScene();
 	std::ifstream file(path.c_str());
@@ -496,6 +496,11 @@ bool LoadINSTARVenueJson(const std::string& path, INSTARScene& scene, std::strin
 	{
 		const unsigned int edges = static_cast<unsigned int>(line.points.size() - 1U);
 		scene.totalEdges += edges;
+		if (VenueConfidenceOrder(line.confidence) > confidenceCeiling)
+		{
+			scene.omittedEdges += edges;
+			continue;
+		}
 		if (edgeBudget != 0 && scene.lineVertices.size() / 2U + edges > edgeBudget)
 		{
 			scene.omittedEdges += edges;

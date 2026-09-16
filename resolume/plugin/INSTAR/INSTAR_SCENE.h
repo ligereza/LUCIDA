@@ -59,7 +59,8 @@ bool LoadINSTARVenueJson(
 	const std::string& path,
 	INSTARScene& scene,
 	std::string& error,
-	unsigned int edgeBudget = 0
+	unsigned int edgeBudget = 0,
+	int confidenceCeiling = 4
 );
 INSTARScene BuildINSTARDemoScene();
 

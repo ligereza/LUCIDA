@@ -229,8 +229,9 @@ a venue file in `VENUE_3D` mode it shows the deterministic stage demo; raster
 mode remains empty until a map is selected. The camera and scene core are local
 and do not need a network, model service or LED processor. `EdgeBudget` keeps
 the highest-confidence polylines first and reports omitted edges rather than
-trimming a line silently. In raster mode, detected slices are outlined in the
-source before `ExportMapXML`, so the XML-producing regions are visible.
+trimming a line silently. `ConfidenceCeiling` can exclude unverified tiers
+explicitly. In raster mode, detected slices are outlined in the source before
+`ExportMapXML`, so the XML-producing regions are visible.
 
 INSTAR also exposes an explicit `ExportMapXML` event. The VJ supplies a raster
 pixel map through `MapFile` (PNG/JPG), sets `CanvasWidth` and `CanvasHeight`

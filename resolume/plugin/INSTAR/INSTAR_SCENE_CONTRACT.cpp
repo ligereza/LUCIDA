@@ -116,8 +116,13 @@ int main(int argc, char** argv)
 	INSTARScene budgetedVenue;
 	std::string budgetError;
 	const bool budgetLoaded = LoadINSTARVenueJson(venuePath, budgetedVenue, budgetError, 2);
+	INSTARScene measuredOnlyVenue;
+	std::string confidenceError;
+	const bool confidenceLoaded = LoadINSTARVenueJson(venuePath, measuredOnlyVenue, confidenceError, 0, 0);
 	std::remove(venuePath);
 	if (!budgetLoaded || budgetedVenue.totalEdges != 3U || budgetedVenue.omittedEdges != 1U || budgetedVenue.lineVertices.size() != 4U)
+		return 1;
+	if (!confidenceLoaded || measuredOnlyVenue.totalEdges != 3U || measuredOnlyVenue.omittedEdges != 1U || measuredOnlyVenue.lineVertices.size() != 4U)
 		return 1;
 	return 0;
 }

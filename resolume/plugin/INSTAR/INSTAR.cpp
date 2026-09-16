@@ -26,6 +26,13 @@ INSTAR::INSTAR()
 	}, 0));
 	AddParam(Param::Create("VenueFile", FF_TYPE_FILE, 0.0f));
 	AddParam(Param::Create("EdgeBudget", FF_TYPE_INTEGER, 800.0f));
+	AddParam(ParamOption::Create("ConfidenceCeiling", {
+		{"MEDIDO", 0.0f},
+		{"CITADO", 1.0f},
+		{"AJUSTADO", 2.0f},
+		{"APORTADO", 3.0f},
+		{"TODOS", 4.0f},
+	}, 4));
 	AddParam(Param::Create("MapFile", FF_TYPE_FILE, 0.0f));
 	AddParam(ParamEvent::Create("ExportMapXML"));
 	AddParam(ParamText::create("OutputXML", outputPath));
@@ -138,7 +145,8 @@ bool INSTAR::LoadVenue()
 	std::string error;
 	INSTARScene loaded;
 	const unsigned int edgeBudget = static_cast<unsigned int>(std::max(1.0f, GetFloatParameter(PARAM_EDGE_BUDGET)));
-	if (!LoadINSTARVenueJson(venuePath, loaded, error, edgeBudget))
+	const int confidenceCeiling = static_cast<int>(std::max(0.0f, std::min(4.0f, GetFloatParameter(PARAM_CONFIDENCE_CEILING))));
+	if (!LoadINSTARVenueJson(venuePath, loaded, error, edgeBudget, confidenceCeiling))
 	{
 		FFGLLog::LogToHost("INSTAR: VenueFile inválido; se usa escena demo");
 		scene = BuildINSTARDemoScene();
@@ -366,6 +374,10 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 	{
 		if (static_cast<int>(value) == 1)
 			rasterDirty = true;
+	}
+	else if (index == PARAM_EDGE_BUDGET || index == PARAM_CONFIDENCE_CEILING)
+	{
+		sceneDirty = true;
 	}
 	else if (index == PARAM_YAW)
 		yaw = value;
