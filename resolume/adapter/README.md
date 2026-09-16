@@ -142,7 +142,9 @@ deben convertirse a Bézier antes de importar.
 Cuando el SVG proviene de un informe generado, INSTAR detecta un canvas interno
 si existe, usa solo shapes con nombre o relleno de superficie y trata los
 fondos, grillas, bordes y textos como presentación. Los textos contenidos en
-una superficie pueden aportar su nombre sin convertirse en slices adicionales.
+una superficie pueden aportar su nombre sin convertirse en slices adicionales;
+la metadata textual del documento, como escala, módulos y área, se conserva en
+el candidato JSON.
 
 ### Imagen raster → candidato de mapping
 

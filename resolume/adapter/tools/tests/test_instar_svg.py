@@ -108,6 +108,23 @@ class InstarSvgMappingTests(unittest.TestCase):
 
             self.assertEqual([item["name"] for item in report["slices"]], ["CIELO - CARA LARGA N"])
 
+    def test_svg_preserves_inline_layout_metadata(self) -> None:
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "metadata-map.svg"
+            source.write_text(
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500">'
+                '<rect x="0" y="0" width="500" height="500" fill="#00ffff" fill-opacity="0.85"/>'
+                '<text x="20" y="40">CENTRAL 256 px/m Total: 56 modulos 28.00 m2</text>'
+                '</svg>',
+                encoding="utf-8",
+            )
+
+            report = build_svg_mapping(source, Path(directory) / "output.xml")
+
+            self.assertEqual(report["metadata"]["pixel_scale_px_per_m"], 256.0)
+            self.assertEqual(report["metadata"]["total_modules"], 56)
+            self.assertEqual(report["metadata"]["physical_area_m2"], 28.0)
+
 
 if __name__ == "__main__":
     unittest.main()

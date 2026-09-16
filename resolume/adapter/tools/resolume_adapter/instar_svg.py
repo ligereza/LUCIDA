@@ -370,6 +370,28 @@ def _surface_name_from_hints(hints: list[str], fallback: str) -> str:
     return fallback
 
 
+def _extract_svg_metadata(shapes: list[dict[str, Any]]) -> dict[str, Any]:
+    text = "\n".join(
+        value
+        for value in [
+            shapes[0].get("document_text", "") if shapes else "",
+            *(hint for shape in shapes for hint in shape.get("text_hints") or []),
+        ]
+        if value
+    )
+    metadata: dict[str, Any] = {"source": "svg_text_annotations", "raw_text_available": bool(text)}
+    scale = re.search(r"\b(\d+(?:[.,]\d+)?)\s*PX\s*/\s*M\b", _normalise_text(text))
+    if scale:
+        metadata["pixel_scale_px_per_m"] = float(scale.group(1).replace(",", "."))
+    total_modules = re.search(r"\bTOTAL:\s*(\d+)\s+MOD", _normalise_text(text))
+    if total_modules:
+        metadata["total_modules"] = int(total_modules.group(1))
+    area = re.search(r"\bTOTAL:\s*\d+\s+MOD(?:ULOS)?\s+(\d+(?:[.,]\d+)?)\s*M2\b", _normalise_text(text))
+    if area:
+        metadata["physical_area_m2"] = float(area.group(1).replace(",", "."))
+    return metadata
+
+
 def _parse_svg(path: str | Path, target_size: tuple[int, int]) -> list[dict[str, Any]]:
     source = Path(path).expanduser().resolve()
     if not source.is_file():
@@ -429,6 +451,7 @@ def _parse_svg(path: str | Path, target_size: tuple[int, int]) -> list[dict[str,
         raise ResolumeAdapterError(f"No se encontraron rectángulos, polígonos, elipses o paths en: {source}")
     hinted = [shape for shape in shapes if shape["surface_hint"]]
     selected = hinted or shapes
+    document_text = "\n".join(annotation["text"] for annotation in annotations)
     for shape in selected:
         xs = [point[0] for point in shape["points"]]
         ys = [point[1] for point in shape["points"]]
@@ -439,6 +462,8 @@ def _parse_svg(path: str | Path, target_size: tuple[int, int]) -> list[dict[str,
             if left <= annotation["point"][0] <= right and top <= annotation["point"][1] <= bottom
         ]
         shape["name"] = _surface_name_from_hints(shape["text_hints"], shape["name"])
+    if selected:
+        selected[0]["document_text"] = document_text
     return selected
 
 
@@ -652,6 +677,7 @@ def build_svg_mapping(
                 "id": slice_id,
                 "name": input_shape["name"],
                 "type": tag,
+                "text_hints": input_shape.get("text_hints", []),
                 "input_points": input_shape["points"],
                 "output_points": output_contour_points,
             }
@@ -679,6 +705,7 @@ def build_svg_mapping(
         "composition": {"width": composition_size[0], "height": composition_size[1]},
         "output": {"width": output_size[0], "height": output_size[1]},
         "screen_name": screen_name,
+        "metadata": _extract_svg_metadata(input_shapes),
         "slices": shape_records,
         "artifacts": {"advanced_output_xml": str(xml_path)},
         "validation": {"status": "WARN" if warnings else "PASS", "errors": [], "warnings": warnings},
