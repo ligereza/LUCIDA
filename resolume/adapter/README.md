@@ -139,6 +139,11 @@ Si no se entrega `--output-svg`, INSTAR escala la geometría del input para
 formar un OutputRect candidato y lo marca como advertencia. Los arcos SVG
 deben convertirse a Bézier antes de importar.
 
+Cuando el SVG proviene de un informe generado, INSTAR detecta un canvas interno
+si existe, usa solo shapes con nombre o relleno de superficie y trata los
+fondos, grillas, bordes y textos como presentación. Los textos contenidos en
+una superficie pueden aportar su nombre sin convertirse en slices adicionales.
+
 ### Imagen raster → candidato de mapping
 
 INSTAR también puede detectar superficies grandes diferenciadas por color en

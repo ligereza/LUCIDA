@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import math
 import re
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,11 @@ from .media import ResolumeAdapterError
 _NUMBER = r"[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?"
 _TOKEN_RE = re.compile(rf"[AaCcHhLlMmQqSsTtVvZz]|{_NUMBER}")
 _IDENTITY = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+
+
+def _normalise_text(value: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", value.casefold())
+    return "".join(char for char in decomposed if not unicodedata.combining(char)).upper()
 
 
 def _local_name(tag: str) -> str:
@@ -267,6 +273,24 @@ def _element_name(element: ElementTree.Element, index: int) -> str:
     return f"Slice_{index:03d}"
 
 
+def _has_explicit_surface_name(element: ElementTree.Element) -> bool:
+    return bool(
+        element.attrib.get("id")
+        or element.attrib.get("data-name")
+        or element.attrib.get("data-slice")
+        or element.attrib.get("aria-label")
+        or any(key.casefold().endswith("}label") and value for key, value in element.attrib.items())
+    )
+
+
+def _has_map_fill(element: ElementTree.Element) -> bool:
+    raw_opacity = element.attrib.get("fill-opacity")
+    try:
+        return float(raw_opacity) >= 0.5
+    except (TypeError, ValueError):
+        return False
+
+
 def _shape_points(element: ElementTree.Element) -> tuple[list[tuple[float, float]], str] | None:
     tag = _local_name(element.tag)
     if tag == "rect":
@@ -299,6 +323,53 @@ def _shape_points(element: ElementTree.Element) -> tuple[list[tuple[float, float
     return None
 
 
+def _find_canvas_view(root: ElementTree.Element, root_view: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
+    """Detecta un canvas interno cuando el SVG también contiene un reporte."""
+
+    _root_min_x, _root_min_y, root_width, root_height = root_view
+    candidates: list[tuple[float, float, float, float]] = []
+
+    def visit(element: ElementTree.Element, parent_matrix: tuple[float, ...]) -> None:
+        tag = _local_name(element.tag)
+        local_matrix = _transform_matrix(element.attrib.get("transform"))
+        matrix = _compose(parent_matrix, local_matrix)
+        if tag == "rect":
+            fill = (element.attrib.get("fill") or "").casefold()
+            width = _length(element.attrib.get("width")) or 0.0
+            height = _length(element.attrib.get("height")) or 0.0
+            if fill in {"#000000", "black"} and width >= root_width * 0.75 and height >= root_height * 0.65:
+                shape = _shape_points(element)
+                if shape is not None:
+                    points = [_apply(matrix, point) for point in shape[0]]
+                    candidates.append((min(point[0] for point in points), min(point[1] for point in points), width, height))
+        for child in list(element):
+            visit(child, matrix)
+
+    visit(root, _IDENTITY)
+    if not candidates:
+        return root_view
+    return max(candidates, key=lambda item: item[2] * item[3])
+
+
+def _surface_name_from_hints(hints: list[str], fallback: str) -> str:
+    for raw_text in hints:
+        text = " ".join(raw_text.split()).strip()
+        if not text:
+            continue
+        candidate = re.split(
+            r"\s+(?=(?:\d+(?:[.,]\d+)?\s*[x×]\s*\d+(?:[.,]\d+)?\s*M\b|\d+(?:[.,]\d+)?\s*M\b|\d{2,5}\s*[x×]\s*\d{2,5}\s*PX\b|POS\s*\())",
+            text,
+            maxsplit=1,
+            flags=re.IGNORECASE,
+        )[0].strip(" |-")
+        normalised = _normalise_text(candidate)
+        if not candidate or any(token in normalised for token in ("LIENZO", "ESCALA", "NOTA:", "TOTAL:")):
+            continue
+        if len(candidate) <= 80 and any(char.isalpha() for char in candidate):
+            return candidate
+    return fallback
+
+
 def _parse_svg(path: str | Path, target_size: tuple[int, int]) -> list[dict[str, Any]]:
     source = Path(path).expanduser().resolve()
     if not source.is_file():
@@ -310,7 +381,8 @@ def _parse_svg(path: str | Path, target_size: tuple[int, int]) -> list[dict[str,
     if _local_name(root.tag) != "svg":
         raise ResolumeAdapterError("El archivo no tiene raíz SVG.")
 
-    min_x, min_y, view_width, view_height = _view_box(root)
+    root_view = _view_box(root)
+    min_x, min_y, view_width, view_height = _find_canvas_view(root, root_view)
     target_width, target_height = target_size
     view_transform = (
         target_width / view_width,
@@ -321,13 +393,21 @@ def _parse_svg(path: str | Path, target_size: tuple[int, int]) -> list[dict[str,
         -min_y * target_height / view_height,
     )
     shapes: list[dict[str, Any]] = []
+    annotations: list[dict[str, Any]] = []
 
     def visit(element: ElementTree.Element, parent_matrix: tuple[float, ...]) -> None:
         tag = _local_name(element.tag)
         if tag in {"defs", "clippath", "mask", "metadata", "title", "desc"}:
             return
         local_matrix = _transform_matrix(element.attrib.get("transform"))
-        matrix = _compose(view_transform, _compose(parent_matrix, local_matrix))
+        raw_matrix = _compose(parent_matrix, local_matrix)
+        matrix = _compose(view_transform, raw_matrix)
+        if tag == "text":
+            text = " ".join("".join(element.itertext()).split())
+            x = _length(element.attrib.get("x"))
+            y = _length(element.attrib.get("y"))
+            if text and x is not None and y is not None:
+                annotations.append({"point": _apply(matrix, (x, y)), "text": text})
         shape = _shape_points(element)
         if shape is not None:
             points, kind = shape
@@ -338,15 +418,28 @@ def _parse_svg(path: str | Path, target_size: tuple[int, int]) -> list[dict[str,
                     "kind": kind,
                     "points": transformed,
                     "source_tag": tag,
+                    "surface_hint": _has_explicit_surface_name(element) or _has_map_fill(element),
                 }
             )
         for child in list(element):
-            visit(child, matrix)
+            visit(child, raw_matrix)
 
     visit(root, _IDENTITY)
     if not shapes:
         raise ResolumeAdapterError(f"No se encontraron rectángulos, polígonos, elipses o paths en: {source}")
-    return shapes
+    hinted = [shape for shape in shapes if shape["surface_hint"]]
+    selected = hinted or shapes
+    for shape in selected:
+        xs = [point[0] for point in shape["points"]]
+        ys = [point[1] for point in shape["points"]]
+        left, top, right, bottom = min(xs), min(ys), max(xs), max(ys)
+        shape["text_hints"] = [
+            annotation["text"]
+            for annotation in annotations
+            if left <= annotation["point"][0] <= right and top <= annotation["point"][1] <= bottom
+        ]
+        shape["name"] = _surface_name_from_hints(shape["text_hints"], shape["name"])
+    return selected
 
 
 def _canonical_rect(points: list[tuple[float, float]]) -> list[tuple[float, float]] | None:
@@ -468,7 +561,7 @@ def build_svg_mapping(
     input_path = Path(input_svg).expanduser().resolve()
     if composition_size is None:
         root = ElementTree.parse(input_path).getroot()
-        view = _view_box(root)
+        view = _find_canvas_view(root, _view_box(root))
         composition_size = (int(round(view[2])), int(round(view[3])))
     if output_size is None:
         if output_svg:
