@@ -95,6 +95,8 @@ add_library(INSTAR_3D SHARED
 	INSTAR/INSTAR_RENDERER.h
 	INSTAR/INSTAR_SCENE.cpp
 	INSTAR/INSTAR_SCENE.h
+	INSTAR/INSTAR_IMAGE.cpp
+	INSTAR/INSTAR_IMAGE.h
 	${FFGL_SOURCES}
 )
 target_include_directories(INSTAR_3D PRIVATE
@@ -108,6 +110,7 @@ set_property(TARGET INSTAR_3D PROPERTY
 )
 target_link_libraries(INSTAR_3D PRIVATE
 	OpenGL32
+	Gdiplus
 	"${FFGL_ROOT}/deps/glew-2.1.0/lib/Release/x64/glew32s.lib"
 )
 set_target_properties(INSTAR_3D PROPERTIES

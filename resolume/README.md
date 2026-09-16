@@ -260,8 +260,10 @@ requires the final installation step on a machine with Resolume.
 
 `resolume/plugin/INSTAR/INSTAR_3D.cpp` builds `INSTAR_3D.dll` as an independent
 `FF_SOURCE`. It loads Wavefront OBJ geometry into the composition and renders
-a filled mesh plus wireframe. It is for arbitrary 3D models; it does not
-create Advanced Output XML.
+a filled mesh plus wireframe over a transparent background. `TextureFile` can
+load a PNG/JPG texture; OBJ UV coordinates are respected and planar UVs are
+generated when the model does not provide them. It is for arbitrary 3D models;
+it does not create Advanced Output XML.
 
 OBJ `mtllib`/`usemtl` records are read for diffuse material colours; when no
 material is available, deterministic fallback colours keep the scene legible.

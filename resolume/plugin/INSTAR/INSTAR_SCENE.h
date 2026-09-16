@@ -16,6 +16,8 @@ struct INSTARVertex
 	float red = 1.0f;
 	float green = 1.0f;
 	float blue = 1.0f;
+	float u = 0.0f;
+	float v = 0.0f;
 };
 
 struct INSTARSurface3D
@@ -50,6 +52,7 @@ struct INSTARScene
 	unsigned int omittedEdges = 0;
 	INSTARVec3 renderCentre;
 	float renderScale = 1.0f;
+	bool hasTextureCoordinates = false;
 	bool fromObj = false;
 	std::string source;
 };

@@ -68,6 +68,7 @@ static CFFGLPluginInfo PluginInfo(
 INSTAR3D::INSTAR3D()
 {
 	AddParam(Param::Create("ModelFile", FF_TYPE_FILE, 0.0f));
+	AddParam(Param::Create("TextureFile", FF_TYPE_FILE, 0.0f));
 	AddParam(ParamOption::Create("View", {
 		{"AEREO", 0.0f},
 		{"PISTA", 1.0f},
@@ -83,13 +84,20 @@ FFResult INSTAR3D::Init()
 {
 	if (renderer.Init() != FF_SUCCESS)
 		return FF_FAIL;
+	glGenTextures(1, &textureId);
+	if (textureId == 0)
+		return FF_FAIL;
 	LoadScene();
 	UploadScene();
+	LoadTexture();
 	return FF_SUCCESS;
 }
 
 void INSTAR3D::Clean()
 {
+	if (textureId != 0)
+		glDeleteTextures(1, &textureId);
+	textureId = 0;
 	renderer.Clean();
 }
 
@@ -124,6 +132,46 @@ void INSTAR3D::UploadScene()
 	renderer.Upload(scene);
 }
 
+bool INSTAR3D::LoadTexture()
+{
+	textureDirty = false;
+	textureReady = false;
+	loadedTexturePath.clear();
+	if (texturePath.empty())
+		return true;
+	INSTARImage loaded;
+	std::string error;
+	if (!LoadINSTARImage(texturePath, loaded, error))
+	{
+		const std::string message = "INSTAR 3D: no se pudo cargar TextureFile: " + texturePath + " (" + error + ")";
+		FFGLLog::LogToHost(message.c_str());
+		return false;
+	}
+	textureImage = loaded;
+	glBindTexture(GL_TEXTURE_2D, textureId);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		GL_RGBA,
+		static_cast<GLsizei>(textureImage.width),
+		static_cast<GLsizei>(textureImage.height),
+		0,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE,
+		textureImage.rgba.data()
+	);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	loadedTexturePath = texturePath;
+	textureReady = true;
+	return true;
+}
+
 void INSTAR3D::Update()
 {
 	if (sceneDirty || loadedPath != modelPath)
@@ -131,6 +179,8 @@ void INSTAR3D::Update()
 		LoadScene();
 		UploadScene();
 	}
+	if (textureDirty || loadedTexturePath != texturePath)
+		LoadTexture();
 }
 
 FFResult INSTAR3D::Render(ProcessOpenGLStruct*)
@@ -142,7 +192,9 @@ FFResult INSTAR3D::Render(ProcessOpenGLStruct*)
 		camera,
 		brightness,
 		currentViewport.width,
-		currentViewport.height
+		currentViewport.height,
+		textureId,
+		textureReady
 	);
 }
 
@@ -169,16 +221,25 @@ FFResult INSTAR3D::SetTextParameter(unsigned int index, const char* value)
 		sceneDirty = true;
 		return FF_SUCCESS;
 	}
+	if (index == PARAM_TEXTURE_FILE)
+	{
+		texturePath = DecodeFileUri(value == nullptr ? "" : value);
+		const std::string message = "INSTAR 3D: TextureFile recibido: " + texturePath;
+		FFGLLog::LogToHost(message.c_str());
+		textureDirty = true;
+		return FF_SUCCESS;
+	}
 	return Source::SetTextParameter(index, value);
 }
 
 char* INSTAR3D::GetTextParameter(unsigned int index)
 {
 	static char buffer[4096];
-	if (index != PARAM_MODEL_FILE)
+	if (index != PARAM_MODEL_FILE && index != PARAM_TEXTURE_FILE)
 		return Source::GetTextParameter(index);
+	const std::string& value = index == PARAM_MODEL_FILE ? modelPath : texturePath;
 	std::fill(buffer, buffer + sizeof(buffer), '\0');
-	const size_t length = std::min(modelPath.size(), sizeof(buffer) - 1);
-	std::copy(modelPath.begin(), modelPath.begin() + length, buffer);
+	const size_t length = std::min(value.size(), sizeof(buffer) - 1);
+	std::copy(value.begin(), value.begin() + length, buffer);
 	return buffer;
 }

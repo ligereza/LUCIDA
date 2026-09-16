@@ -18,6 +18,12 @@
 
 namespace
 {
+struct INSTARVec2
+{
+	float u = 0.0f;
+	float v = 0.0f;
+};
+
 std::ifstream OpenTextFile(const std::string& path)
 {
 #ifdef _WIN32
@@ -54,6 +60,39 @@ void AddTriangle(std::vector<INSTARVertex>& output, const INSTARVec3& first, con
 	output.push_back({first, red, green, blue});
 	output.push_back({second, red, green, blue});
 	output.push_back({third, red, green, blue});
+}
+
+void AddEdgeTextured(
+	std::vector<INSTARVertex>& output,
+	const INSTARVec3& first,
+	const INSTARVec3& second,
+	const INSTARVec2& firstUv,
+	const INSTARVec2& secondUv,
+	float red,
+	float green,
+	float blue
+)
+{
+	output.push_back({first, red, green, blue, firstUv.u, firstUv.v});
+	output.push_back({second, red, green, blue, secondUv.u, secondUv.v});
+}
+
+void AddTriangleTextured(
+	std::vector<INSTARVertex>& output,
+	const INSTARVec3& first,
+	const INSTARVec3& second,
+	const INSTARVec3& third,
+	const INSTARVec2& firstUv,
+	const INSTARVec2& secondUv,
+	const INSTARVec2& thirdUv,
+	float red,
+	float green,
+	float blue
+)
+{
+	output.push_back({first, red, green, blue, firstUv.u, firstUv.v});
+	output.push_back({second, red, green, blue, secondUv.u, secondUv.v});
+	output.push_back({third, red, green, blue, thirdUv.u, thirdUv.v});
 }
 
 void Normalise(INSTARScene& scene)
@@ -99,6 +138,17 @@ void Normalise(INSTARScene& scene)
 		surface.maximum.y = (surface.maximum.y - centre.y) * scale;
 		surface.maximum.z = (surface.maximum.z - centre.z) * scale;
 	}
+	if (!scene.hasTextureCoordinates)
+	{
+		const auto generateUv = [](INSTARVertex& vertex) {
+			vertex.u = vertex.position.x * 0.5f + 0.5f;
+			vertex.v = vertex.position.y * 0.5f + 0.5f;
+		};
+		for (INSTARVertex& vertex : scene.lineVertices)
+			generateUv(vertex);
+		for (INSTARVertex& vertex : scene.triangleVertices)
+			generateUv(vertex);
+	}
 	scene.renderCentre = {};
 	scene.renderScale = 1.0f;
 }
@@ -139,6 +189,24 @@ int ObjIndex(const std::string& token, int positionCount)
 		return -1;
 	const long index = value > 0 ? value - 1 : positionCount + value;
 	return index >= 0 && index < positionCount ? static_cast<int>(index) : -1;
+}
+
+int ObjTexcoordIndex(const std::string& token, int texcoordCount)
+{
+	const size_t firstSlash = token.find('/');
+	if (firstSlash == std::string::npos)
+		return -1;
+	const size_t secondSlash = token.find('/', firstSlash + 1);
+	const size_t end = secondSlash == std::string::npos ? token.size() : secondSlash;
+	const std::string raw = token.substr(firstSlash + 1, end - firstSlash - 1);
+	if (raw.empty())
+		return -1;
+	char* endPointer = nullptr;
+	const long value = std::strtol(raw.c_str(), &endPointer, 10);
+	if (endPointer == raw.c_str() || value == 0)
+		return -1;
+	const long index = value > 0 ? value - 1 : texcoordCount + value;
+	return index >= 0 && index < texcoordCount ? static_cast<int>(index) : -1;
 }
 
 std::string DirectoryOf(const std::string& path)
@@ -346,6 +414,7 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 		return false;
 	}
 	std::vector<INSTARVec3> positions;
+	std::vector<INSTARVec2> texcoords;
 	std::map<std::string, std::vector<int>> groupPositions;
 	std::map<std::string, INSTARMaterialColour> materials;
 	std::string currentGroup = "OBJ";
@@ -364,6 +433,13 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 			INSTARVec3 position;
 			if (input >> position.x >> position.y >> position.z)
 				positions.push_back(position);
+			continue;
+		}
+		if (command == "vt")
+		{
+			INSTARVec2 texcoord;
+			if (input >> texcoord.u >> texcoord.v)
+				texcoords.push_back(texcoord);
 			continue;
 		}
 		if (command == "o" || command == "g")
@@ -389,12 +465,16 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 			continue;
 
 		std::vector<int> face;
+		std::vector<int> faceTexcoords;
 		std::string token;
 		while (input >> token)
 		{
 			const int index = ObjIndex(token, static_cast<int>(positions.size()));
 			if (index >= 0)
+			{
 				face.push_back(index);
+				faceTexcoords.push_back(ObjTexcoordIndex(token, static_cast<int>(texcoords.size())));
+			}
 		}
 		if (face.size() < 3)
 			continue;
@@ -414,10 +494,22 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 			const INSTARVec3& first = positions[face[0]];
 			const INSTARVec3& second = positions[face[index]];
 			const INSTARVec3& third = positions[face[index + 1]];
-			AddEdge(scene.lineVertices, first, second, colour.red, colour.green, colour.blue);
-			AddEdge(scene.lineVertices, second, third, colour.red, colour.green, colour.blue);
-			AddEdge(scene.lineVertices, third, first, colour.red, colour.green, colour.blue);
-			AddTriangle(scene.triangleVertices, first, second, third, colour.red, colour.green, colour.blue);
+			const auto fallbackUv = [](const INSTARVec3& vertex) {
+				return INSTARVec2{vertex.x * 0.5f + 0.5f, vertex.y * 0.5f + 0.5f};
+			};
+			const auto uvFor = [&texcoords, &faceTexcoords, index, &fallbackUv](size_t faceIndex, const INSTARVec3& vertex) {
+				const int uvIndex = faceTexcoords[faceIndex];
+				return uvIndex >= 0 ? texcoords[uvIndex] : fallbackUv(vertex);
+			};
+			const INSTARVec2 firstUv = uvFor(0, first);
+			const INSTARVec2 secondUv = uvFor(index, second);
+			const INSTARVec2 thirdUv = uvFor(index + 1, third);
+			if (faceTexcoords[0] >= 0 || faceTexcoords[index] >= 0 || faceTexcoords[index + 1] >= 0)
+				scene.hasTextureCoordinates = true;
+			AddEdgeTextured(scene.lineVertices, first, second, firstUv, secondUv, colour.red, colour.green, colour.blue);
+			AddEdgeTextured(scene.lineVertices, second, third, secondUv, thirdUv, colour.red, colour.green, colour.blue);
+			AddEdgeTextured(scene.lineVertices, third, first, thirdUv, firstUv, colour.red, colour.green, colour.blue);
+			AddTriangleTextured(scene.triangleVertices, first, second, third, firstUv, secondUv, thirdUv, colour.red, colour.green, colour.blue);
 		}
 		++faceNumber;
 	}

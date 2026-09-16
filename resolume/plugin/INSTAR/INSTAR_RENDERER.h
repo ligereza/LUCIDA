@@ -15,7 +15,9 @@ public:
 		const INSTARCamera& camera,
 		float brightness,
 		unsigned int viewportWidth,
-		unsigned int viewportHeight
+		unsigned int viewportHeight,
+		GLuint textureId,
+		bool useTexture
 	);
 
 private:

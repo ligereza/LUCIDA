@@ -82,7 +82,8 @@ permite excluir niveles y ambos contabilizan las omitidas. El modo raster
 dibuja los rectángulos detectados antes de exportar. No convierte modelos 3D
 ni configura procesadores LED.
 `INSTAR_3D.dll` es el `FF_SOURCE` separado para cargar OBJ/MTL y visualizar
-modelos dentro de la composición.
+modelos dentro de la composición, con fondo alfa y `TextureFile` opcional para
+PNG/JPG; conserva UV del OBJ y genera UV plana si faltan.
 
 El resto de esta sección describe el acompañante offline que prepara los
 perfiles antes del show; no debe confundirse con el plugin FFGL.

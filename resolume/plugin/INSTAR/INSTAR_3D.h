@@ -2,6 +2,7 @@
 
 #include <FFGLSDK.h>
 
+#include "INSTAR_IMAGE.h"
 #include "INSTAR_RENDERER.h"
 
 #include <string>
@@ -31,24 +32,32 @@ protected:
 	private:
 	bool LoadScene();
 	void UploadScene();
+	bool LoadTexture();
 
 	INSTARSceneRenderer renderer;
+	GLuint textureId = 0;
 	INSTARScene scene;
+	INSTARImage textureImage;
 	std::string modelPath;
 	std::string loadedPath;
+	std::string texturePath;
+	std::string loadedTexturePath;
 	float yaw = 0.5f;
 	float pitch = 0.5f;
 	float zoom = 0.55f;
 	float brightness = 0.85f;
 	bool sceneDirty = true;
+	bool textureDirty = true;
+	bool textureReady = false;
 
 	enum Parameter : unsigned int
 	{
 		PARAM_MODEL_FILE = 0,
-		PARAM_VIEW = 1,
-		PARAM_YAW = 2,
-		PARAM_PITCH = 3,
-		PARAM_ZOOM = 4,
-		PARAM_BRIGHTNESS = 5,
+		PARAM_TEXTURE_FILE = 1,
+		PARAM_VIEW = 2,
+		PARAM_YAW = 3,
+		PARAM_PITCH = 4,
+		PARAM_ZOOM = 5,
+		PARAM_BRIGHTNESS = 6,
 	};
 };

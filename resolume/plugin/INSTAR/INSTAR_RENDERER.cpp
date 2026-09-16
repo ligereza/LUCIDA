@@ -6,6 +6,7 @@ FFResult INSTARSceneRenderer::Init()
 		#version 410 core
 		layout(location = 0) in vec3 position;
 		layout(location = 1) in vec3 colour;
+		layout(location = 2) in vec2 texCoord;
 		uniform float u_yaw;
 		uniform float u_pitch;
 		uniform float u_zoom;
@@ -13,6 +14,7 @@ FFResult INSTARSceneRenderer::Init()
 		uniform vec3 u_scene_centre;
 		uniform float u_scene_scale;
 		out vec3 v_colour;
+		out vec2 v_texcoord;
 		void main()
 		{
 			float cy = cos(u_yaw);
@@ -27,16 +29,23 @@ FFResult INSTARSceneRenderer::Init()
 			float depth = clamp((p.z - 0.5) / 6.0 * 2.0 - 1.0, -1.0, 1.0);
 			gl_Position = vec4(p.x * perspective / max(0.1, u_aspect), p.y * perspective, depth, 1.0);
 			v_colour = colour;
+			v_texcoord = texCoord;
 		}
 	)";
 	const char* fragmentShader = R"(
 		#version 410 core
 		in vec3 v_colour;
+		in vec2 v_texcoord;
 		uniform float u_brightness;
+		uniform sampler2D modelTexture;
+		uniform float u_texture_enabled;
 		out vec4 fragColor;
 		void main()
 		{
-			fragColor = vec4(v_colour * u_brightness, 1.0);
+			vec4 textured = texture(modelTexture, vec2(v_texcoord.x, 1.0 - v_texcoord.y));
+			vec3 base = u_texture_enabled > 0.5 ? textured.rgb : v_colour;
+			float alpha = u_texture_enabled > 0.5 ? textured.a : 1.0;
+			fragColor = vec4(base * u_brightness, alpha);
 		}
 	)";
 	if (!sceneShader.Compile(vertexShader, fragmentShader))
@@ -79,6 +88,8 @@ void INSTARSceneRenderer::Upload(const INSTARScene& scene)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(0));
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(sizeof(INSTARVec3)));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(sizeof(INSTARVec3) + 3 * sizeof(float)));
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
@@ -89,6 +100,8 @@ void INSTARSceneRenderer::Upload(const INSTARScene& scene)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(0));
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(sizeof(INSTARVec3)));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(sizeof(INSTARVec3) + 3 * sizeof(float)));
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
@@ -98,11 +111,15 @@ FFResult INSTARSceneRenderer::Render(
 	const INSTARCamera& camera,
 	float brightness,
 	unsigned int viewportWidth,
-	unsigned int viewportHeight
+	unsigned int viewportHeight,
+	GLuint textureId,
+	bool useTexture
 )
 {
 	glEnable(GL_DEPTH_TEST);
-	glClearColor(0.005f, 0.008f, 0.015f, 1.0f);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	if (!sceneShader.IsReady() || (scene.lineVertices.empty() && scene.triangleVertices.empty()))
 		return FF_SUCCESS;
@@ -115,6 +132,10 @@ FFResult INSTARSceneRenderer::Render(
 	sceneShader.Set("u_scene_centre", scene.renderCentre.x, scene.renderCentre.y, scene.renderCentre.z);
 	sceneShader.Set("u_scene_scale", scene.renderScale);
 	sceneShader.Set("u_brightness", 0.2f + brightness * 1.2f);
+	sceneShader.Set("modelTexture", 0);
+	sceneShader.Set("u_texture_enabled", useTexture ? 1.0f : 0.0f);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, useTexture ? textureId : 0);
 	glBindVertexArray(triangleVao);
 	if (!scene.triangleVertices.empty())
 		glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(scene.triangleVertices.size()));
@@ -122,5 +143,8 @@ FFResult INSTARSceneRenderer::Render(
 	if (!scene.lineVertices.empty())
 		glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(scene.lineVertices.size()));
 	glBindVertexArray(0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
 	return FF_SUCCESS;
 }
