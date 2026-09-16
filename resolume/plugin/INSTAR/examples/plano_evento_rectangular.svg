@@ -6,7 +6,7 @@
   <line id="MURO_ESTE" x1="1560" y1="40" x2="1560" y2="860" data-height="3.2" />
 
   <rect id="TARIMA_PRINCIPAL" x="500" y="610" width="600" height="180" data-height="1.2" />
-  <rect id="PANTALLA_PRINCIPAL" x="620" y="520" width="360" height="28" data-height="5.0" />
+  <rect id="PANTALLA_PRINCIPAL" data-role="screen" data-slice="PANTALLA_PRINCIPAL" x="620" y="520" width="360" height="28" data-height="5.0" />
   <rect id="BANNER_IZQUIERDO" x="120" y="120" width="300" height="42" data-height="2.4" />
   <rect id="BANNER_DERECHO" x="1180" y="120" width="300" height="42" data-height="2.4" />
 

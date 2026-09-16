@@ -42,8 +42,14 @@ struct INSTARInputPlane
 struct INSTARPlanShape
 {
 	std::string name;
+	std::string role;
+	std::string sliceName;
 	std::vector<INSTARVec3> points;
+	std::vector<INSTARVec3> mappingCorners;
+	unsigned int mappingCanvasWidth = 0;
+	unsigned int mappingCanvasHeight = 0;
 	bool closed = false;
+	bool mapped = false;
 	float height = 0.0f;
 };
 
@@ -88,7 +94,8 @@ bool LoadINSTARPlanSvg(
 	std::string& error,
 	float extrusionHeight = 3.0f,
 	float planScale = 1.0f,
-	const std::vector<float>& heightOverrides = std::vector<float>()
+	const std::vector<float>& heightOverrides = std::vector<float>(),
+	const INSTARScene* mapping = nullptr
 );
 void ApplyINSTARInputPlaneDepths(INSTARScene& scene, const std::vector<float>& depths);
 INSTARScene BuildINSTARFlatPlaneDemoScene();

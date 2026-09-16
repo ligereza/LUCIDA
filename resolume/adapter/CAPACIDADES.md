@@ -108,9 +108,14 @@ El `viewBox` se normaliza automáticamente, por lo que `PlanScale=1` es el
 punto de partida normal; `PlanScale` ajusta la proporción entre huella y
 altura. `PlanHeight01`–`PlanHeight32` aparecen según las formas cargadas; `0`
 conserva la altura del SVG/default y un valor positivo la sobrescribe en vivo.
-El modo
+Una forma con `data-role="screen"` usa su primera arista como base de una
+superficie vertical. `data-slice` la vincula por nombre con el `Slice`
+correspondiente del `PlanMappingXML` opcional; el XML aporta las UV de la
+composición y el SVG aporta la posición 3D. `MapFile` aporta la textura
+opcional para esas pantallas. El modo
 recarga al cambiar el SVG o cualquiera de esos controles. No usa `MapFile`, no
-lee `OutputRect` y no transforma un JSON en una escena: el SVG es la
+usa `MapFile` salvo para texturizar pantallas vinculadas, no lee `OutputRect`
+y no transforma un JSON en una escena: el SVG es la
 representación visual que conecta el plano 2D con la extrusión 3D. Polígonos
 convexos reciben tapa; polígonos cóncavos conservan sus aristas extruidas para
 evitar una triangulación visualmente falsa.

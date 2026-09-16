@@ -121,6 +121,7 @@ INSTAR::INSTAR()
 		AddParam(ParamRange::Create(name, 0.0f, ParamRange::Range(0.0f, 20.0f)));
 		SetParamVisibility(PARAM_PLAN_HEIGHT_01 + index, false, false);
 	}
+	AddParam(Param::Create("PlanMappingXML", FF_TYPE_FILE, 0.0f));
 	ConfigureModeParams(MODE_XML_PLANES);
 }
 
@@ -129,7 +130,7 @@ void INSTAR::ConfigureModeParams(int mode)
 	const bool rasterMode = mode == MODE_RASTER_PIXEL_MAP;
 	const bool xmlMode = mode == MODE_XML_PLANES;
 	const bool planMode = mode == MODE_PLANO_3D;
-	SetParamVisibility(PARAM_MAP_FILE, rasterMode || xmlMode, true);
+	SetParamVisibility(PARAM_MAP_FILE, rasterMode || xmlMode || planMode, true);
 	SetParamVisibility(PARAM_TEMPLATE_XML, xmlMode, true);
 	SetParamVisibility(PARAM_EXPORT_MAP_XML, rasterMode || xmlMode, true);
 	SetParamVisibility(PARAM_OUTPUT_XML, rasterMode || xmlMode, true);
@@ -140,6 +141,7 @@ void INSTAR::ConfigureModeParams(int mode)
 	SetParamVisibility(PARAM_DEPTH, xmlMode, true);
 	SetParamVisibility(PARAM_CAMERA_DISTANCE, !rasterMode, true);
 	SetParamVisibility(PARAM_PLAN_FILE, planMode, true);
+	SetParamVisibility(PARAM_PLAN_MAPPING_XML, planMode, true);
 	SetParamVisibility(PARAM_PLAN_SCALE, planMode, true);
 	SetParamVisibility(PARAM_EXTRUSION_HEIGHT, planMode, true);
 	if (!planMode)
@@ -258,6 +260,7 @@ bool INSTAR::LoadScene()
 			scene = BuildINSTARFlatPlaneDemoScene();
 			ConfigureSliceDepthParams(0);
 			loadedFileSignature = {0, 0};
+			loadedMappingSignature = {0, 0};
 			loadedPath.clear();
 			sceneDirty = false;
 			return true;
@@ -271,6 +274,7 @@ bool INSTAR::LoadScene()
 			scene = BuildINSTARFlatPlaneDemoScene();
 			ConfigureSliceDepthParams(0);
 			loadedFileSignature = GetFileSignature(activeTemplatePath);
+			loadedMappingSignature = {0, 0};
 			loadedPath = activeTemplatePath;
 			sceneDirty = false;
 			return false;
@@ -282,6 +286,7 @@ bool INSTAR::LoadScene()
 		ApplyINSTARInputPlaneDepths(loaded, depths);
 		scene = loaded;
 		loadedFileSignature = GetFileSignature(activeTemplatePath);
+		loadedMappingSignature = {0, 0};
 		loadedPath = activeTemplatePath;
 		sceneDirty = false;
 		return true;
@@ -297,14 +302,28 @@ bool INSTAR::LoadScene()
 			ConfigureSliceDepthParams(0);
 			ConfigurePlanHeightParams(0);
 			loadedFileSignature = {0, 0};
+			loadedMappingSignature = {0, 0};
 			loadedPath.clear();
 			sceneDirty = false;
 			return true;
 		}
 		std::string error;
 		INSTARScene loaded;
+		INSTARScene mapping;
+		const INSTARScene* mappingSource = nullptr;
+		if (!planMappingPath.empty())
+		{
+			std::string mappingError;
+			if (LoadINSTARAdvancedOutputPlanes(planMappingPath, mapping, mappingError))
+				mappingSource = &mapping;
+			else
+			{
+				const std::string message = "INSTAR: PlanMappingXML inválido; se muestra el plano sin pantallas vinculadas: " + mappingError;
+				FFGLLog::LogToHost(message.c_str());
+			}
+		}
 		std::vector<float> heightOverrides(planHeights, planHeights + 32U);
-		if (!LoadINSTARPlanSvg(planPath, loaded, error, extrusionHeight, planScale, heightOverrides))
+		if (!LoadINSTARPlanSvg(planPath, loaded, error, extrusionHeight, planScale, heightOverrides, mappingSource))
 		{
 			const std::string message = "INSTAR: PlanFile inválido para PLANO_3D: " + error;
 			FFGLLog::LogToHost(message.c_str());
@@ -312,14 +331,25 @@ bool INSTAR::LoadScene()
 			ConfigureSliceDepthParams(0);
 			ConfigurePlanHeightParams(0);
 			loadedFileSignature = GetFileSignature(planPath);
+			loadedMappingSignature = GetFileSignature(planMappingPath);
 			loadedPath = planPath;
 			sceneDirty = false;
 			return false;
 		}
 		ConfigureSliceDepthParams(0);
 		ConfigurePlanHeightParams(loaded.planShapes.size());
+		if (mappingSource != nullptr)
+		{
+			size_t mappedCount = 0;
+			for (const INSTARPlanShape& shape : loaded.planShapes)
+				if (shape.mapped)
+					++mappedCount;
+			const std::string message = "INSTAR: pantallas vinculadas " + std::to_string(mappedCount) + "/" + std::to_string(loaded.planShapes.size());
+			FFGLLog::LogToHost(message.c_str());
+		}
 		scene = loaded;
 		loadedFileSignature = GetFileSignature(planPath);
+		loadedMappingSignature = GetFileSignature(planMappingPath);
 		loadedPath = planPath;
 		sceneDirty = false;
 		return true;
@@ -332,6 +362,7 @@ bool INSTAR::LoadScene()
 		ConfigureSliceDepthParams(0);
 		loadedRasterSignature = {0, 0};
 		loadedFileSignature = {0, 0};
+		loadedMappingSignature = {0, 0};
 		loadedPath.clear();
 		sceneDirty = false;
 		return true;
@@ -469,13 +500,15 @@ void INSTAR::Update()
 		(previewTemplatePath.empty() ? templatePath : previewTemplatePath) :
 		(mode == MODE_PLANO_3D ? planPath : std::string());
 	const std::pair<long long, long long> desiredSignature = sceneFileMode ? GetFileSignature(desiredPath) : std::pair<long long, long long>{0, 0};
-	if (sceneDirty || loadedPath != desiredPath || (sceneFileMode && desiredSignature != loadedFileSignature))
+	const std::pair<long long, long long> desiredMappingSignature = mode == MODE_PLANO_3D ? GetFileSignature(planMappingPath) : std::pair<long long, long long>{0, 0};
+	if (sceneDirty || loadedPath != desiredPath || (sceneFileMode && desiredSignature != loadedFileSignature) || desiredMappingSignature != loadedMappingSignature)
 	{
 		LoadScene();
 		UploadScene();
 	}
-	const std::pair<long long, long long> desiredRasterSignature = (mode == MODE_XML_PLANES || mode == MODE_RASTER_PIXEL_MAP) ? GetFileSignature(mapPath) : std::pair<long long, long long>{0, 0};
-	if (rasterDirty || ((mode == MODE_XML_PLANES || mode == MODE_RASTER_PIXEL_MAP) && desiredRasterSignature != loadedRasterSignature))
+	const bool rasterSourceMode = mode == MODE_XML_PLANES || mode == MODE_RASTER_PIXEL_MAP || mode == MODE_PLANO_3D;
+	const std::pair<long long, long long> desiredRasterSignature = rasterSourceMode ? GetFileSignature(mapPath) : std::pair<long long, long long>{0, 0};
+	if (rasterDirty || (rasterSourceMode && desiredRasterSignature != loadedRasterSignature))
 		LoadRaster();
 	if (exportRequested)
 	{
@@ -589,6 +622,7 @@ FFResult INSTAR::Render(ProcessOpenGLStruct*)
 		currentViewport.height,
 		rasterTexture,
 		static_cast<int>(GetFloatParameter(PARAM_MODE)) == MODE_XML_PLANES && rasterReady
+		|| (static_cast<int>(GetFloatParameter(PARAM_MODE)) == MODE_PLANO_3D && rasterReady && scene.hasTextureCoordinates)
 	);
 }
 
@@ -603,7 +637,7 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 	{
 		sceneDirty = true;
 		ConfigureModeParams(static_cast<int>(value));
-		if (static_cast<int>(value) == MODE_XML_PLANES || static_cast<int>(value) == MODE_RASTER_PIXEL_MAP)
+		if (static_cast<int>(value) == MODE_XML_PLANES || static_cast<int>(value) == MODE_RASTER_PIXEL_MAP || static_cast<int>(value) == MODE_PLANO_3D)
 			rasterDirty = true;
 	}
 	else if (index == PARAM_DEPTH)
@@ -673,6 +707,12 @@ FFResult INSTAR::SetTextParameter(unsigned int index, const char* value)
 		sceneDirty = true;
 		return FF_SUCCESS;
 	}
+	if (index == PARAM_PLAN_MAPPING_XML)
+	{
+		planMappingPath = safeValue;
+		sceneDirty = true;
+		return FF_SUCCESS;
+	}
 	return Source::SetTextParameter(index, value);
 }
 
@@ -688,6 +728,8 @@ char* INSTAR::GetTextParameter(unsigned int index)
 		value = &outputPath;
 	else if (index == PARAM_PLAN_FILE)
 		value = &planPath;
+	else if (index == PARAM_PLAN_MAPPING_XML)
+		value = &planMappingPath;
 	if (value == nullptr)
 		return Source::GetTextParameter(index);
 	std::fill(buffer, buffer + sizeof(buffer), '\0');

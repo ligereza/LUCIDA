@@ -732,6 +732,43 @@ std::string PlanShapeName(const std::string& xml, size_t start, const std::strin
 	return tag + "_" + std::to_string(index);
 }
 
+std::string PlanShapeRole(const std::string& xml, size_t start)
+{
+	return PlanXmlAttributeValue(xml, "data-role", start);
+}
+
+std::string PlanShapeSliceName(const std::string& xml, size_t start)
+{
+	return PlanXmlAttributeValue(xml, "data-slice", start);
+}
+
+std::string PlanNameKey(const std::string& value)
+{
+	std::string result;
+	for (const char character : value)
+	{
+		if (std::isspace(static_cast<unsigned char>(character)) != 0)
+			continue;
+		result += static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+	}
+	return result;
+}
+
+const INSTARInputPlane* FindPlanMapping(const INSTARScene* mapping, const INSTARPlanShape& shape)
+{
+	if (mapping == nullptr || PlanNameKey(shape.role) != "screen")
+		return nullptr;
+	const std::string requested = PlanNameKey(shape.sliceName.empty() ? shape.name : shape.sliceName);
+	if (requested.empty())
+		return nullptr;
+	for (const INSTARInputPlane& plane : mapping->inputPlanes)
+	{
+		if (PlanNameKey(plane.name) == requested)
+			return &plane;
+	}
+	return nullptr;
+}
+
 void PlanShapeColour(const std::string& name, float& red, float& green, float& blue)
 {
 	std::string lower;
@@ -768,6 +805,48 @@ void AddPlanWall(INSTARScene& scene, const INSTARVec3& first, const INSTARVec3& 
 	AddEdge(scene.lineVertices, bottomSecond, topSecond, red, green, blue);
 	AddTriangle(scene.triangleVertices, bottomFirst, bottomSecond, topSecond, red * 0.55f, green * 0.55f, blue * 0.55f);
 	AddTriangle(scene.triangleVertices, bottomFirst, topSecond, topFirst, red, green, blue);
+}
+
+void AddPlanScreen(
+	INSTARScene& scene,
+	const INSTARVec3& first,
+	const INSTARVec3& second,
+	float height,
+	float red,
+	float green,
+	float blue,
+	const INSTARPlanShape& shape
+)
+{
+	const INSTARVec3 bottomFirst{first.x, 0.0f, first.z};
+	const INSTARVec3 bottomSecond{second.x, 0.0f, second.z};
+	const INSTARVec3 topFirst{first.x, height, first.z};
+	const INSTARVec3 topSecond{second.x, height, second.z};
+	AddEdge(scene.lineVertices, bottomFirst, bottomSecond, red, green, blue);
+	AddEdge(scene.lineVertices, topFirst, topSecond, red, green, blue);
+	AddEdge(scene.lineVertices, bottomFirst, topFirst, red, green, blue);
+	AddEdge(scene.lineVertices, bottomSecond, topSecond, red, green, blue);
+	if (shape.mapped && shape.mappingCorners.size() >= 4U && shape.mappingCanvasWidth > 0U && shape.mappingCanvasHeight > 0U)
+	{
+		const auto toUv = [&shape](const INSTARVec3& point) {
+			return INSTARVec2{
+				point.x / static_cast<float>(shape.mappingCanvasWidth),
+				point.y / static_cast<float>(shape.mappingCanvasHeight),
+			};
+		};
+		const INSTARVec2 firstUv = toUv(shape.mappingCorners[0]);
+		const INSTARVec2 secondUv = toUv(shape.mappingCorners[1]);
+		const INSTARVec2 thirdUv = toUv(shape.mappingCorners[2]);
+		const INSTARVec2 fourthUv = toUv(shape.mappingCorners[3]);
+		AddTriangleTextured(scene.triangleVertices, bottomFirst, bottomSecond, topSecond, firstUv, secondUv, thirdUv, red, green, blue);
+		AddTriangleTextured(scene.triangleVertices, bottomFirst, topSecond, topFirst, firstUv, thirdUv, fourthUv, red, green, blue);
+		scene.hasTextureCoordinates = true;
+	}
+	else
+	{
+		AddTriangle(scene.triangleVertices, bottomFirst, bottomSecond, topSecond, red, green, blue);
+		AddTriangle(scene.triangleVertices, bottomFirst, topSecond, topFirst, red, green, blue);
+	}
 }
 
 bool IsPlanConvex(const std::vector<INSTARVec3>& points)
@@ -1072,7 +1151,7 @@ bool LoadINSTARAdvancedOutputPlanes(const std::string& path, INSTARScene& scene,
 	return true;
 }
 
-bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string& error, float extrusionHeight, float planScale, const std::vector<float>& heightOverrides)
+bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string& error, float extrusionHeight, float planScale, const std::vector<float>& heightOverrides, const INSTARScene* mapping)
 {
 	scene = INSTARScene();
 	std::ifstream file = OpenTextFile(path);
@@ -1184,6 +1263,8 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 			INSTARPlanShape shape;
 			const unsigned int shapeNumber = shapeIndex++;
 			shape.name = PlanShapeName(xml, open, tag, shapeNumber);
+			shape.role = PlanShapeRole(xml, open);
+			shape.sliceName = PlanShapeSliceName(xml, open);
 			shape.height = PlanShapeHeight(xml, open, safeHeight);
 			if (shapeNumber > 0U && shapeNumber <= heightOverrides.size() && heightOverrides[shapeNumber - 1U] > 0.0f)
 				shape.height = heightOverrides[shapeNumber - 1U];
@@ -1264,6 +1345,20 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 					point.x -= viewMinX;
 					point.y -= viewMinY;
 				}
+				if (const INSTARInputPlane* matchedPlane = FindPlanMapping(mapping, shape))
+				{
+					shape.mapped = true;
+					shape.mappingCorners = matchedPlane->corners;
+					if (shape.mappingCorners.size() < 4U)
+						shape.mappingCorners = {
+							{matchedPlane->x, matchedPlane->y, 0.0f},
+							{matchedPlane->x + matchedPlane->width, matchedPlane->y, 0.0f},
+							{matchedPlane->x + matchedPlane->width, matchedPlane->y + matchedPlane->height, 0.0f},
+							{matchedPlane->x, matchedPlane->y + matchedPlane->height, 0.0f},
+						};
+					shape.mappingCanvasWidth = mapping->inputCanvasWidth;
+					shape.mappingCanvasHeight = mapping->inputCanvasHeight;
+				}
 				scene.planShapes.push_back(shape);
 			}
 		}
@@ -1304,9 +1399,18 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 		}
 		scene.surfaces.push_back(surface);
 		const size_t segmentCount = shape.closed && world.size() >= 3U ? world.size() : world.size() - 1U;
-		for (size_t index = 0; index < segmentCount; ++index)
-			AddPlanWall(scene, world[index], world[(index + 1U) % world.size()], shape.height, red, green, blue);
-		if (shape.closed && world.size() >= 3U && IsPlanConvex(shape.points))
+		if (PlanNameKey(shape.role) == "screen" && world.size() >= 2U)
+		{
+			// A screen is represented by its first plan edge: the edge is the
+			// bottom of a vertical display surface, not a solid venue wall.
+			AddPlanScreen(scene, world[0], world[1], shape.height, red, green, blue, shape);
+		}
+		else
+		{
+			for (size_t index = 0; index < segmentCount; ++index)
+				AddPlanWall(scene, world[index], world[(index + 1U) % world.size()], shape.height, red, green, blue);
+		}
+		if (PlanNameKey(shape.role) != "screen" && shape.closed && world.size() >= 3U && IsPlanConvex(shape.points))
 		{
 			const INSTARVec3 topOrigin{world[0].x, shape.height, world[0].z};
 			for (size_t index = 1; index + 1U < world.size(); ++index)

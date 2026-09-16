@@ -256,7 +256,12 @@ segments are flattened into renderable points. The SVG element `id`,
 plan-footprint-to-height proportion. Both controls rebuild the scene
 immediately. `PlanHeight01` through `PlanHeight32` appear for the loaded
 shapes; `0` preserves the SVG/default height and a positive value overrides
-that shape live. Closed convex
+that shape live. A shape marked `data-role="screen"` uses its first plan edge
+as the bottom of a vertical display surface. `data-slice` links it to the
+matching `Slice` name in the optional `PlanMappingXML` Advanced Output file;
+that XML supplies the screen's composition UVs while the SVG supplies its 3D
+position. `MapFile` can provide the composition texture for linked screens.
+Closed convex
 polygons receive a top surface; concave polygons remain safely as extruded
 edges instead of receiving an incorrect triangle fan.
 

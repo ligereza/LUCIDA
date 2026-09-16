@@ -59,9 +59,11 @@ private:
 	std::string mapPath;
 	std::string templatePath;
 	std::string planPath;
+	std::string planMappingPath;
 	std::string previewTemplatePath;
 	std::string outputPath = "INSTAR_AdvancedOutput.xml";
 	std::pair<long long, long long> loadedFileSignature = {0, 0};
+	std::pair<long long, long long> loadedMappingSignature = {0, 0};
 	std::pair<long long, long long> loadedRasterSignature = {0, 0};
 	float yaw = 0.5f;
 	float pitch = 0.5f;
@@ -99,5 +101,6 @@ private:
 		PARAM_EXTRUSION_HEIGHT = 46,
 		PARAM_PLAN_HEIGHT_01 = 47,
 		PARAM_PLAN_HEIGHT_32 = 78,
+		PARAM_PLAN_MAPPING_XML = 79,
 	};
 };
