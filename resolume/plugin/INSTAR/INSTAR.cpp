@@ -204,7 +204,7 @@ bool INSTAR::LoadVenue()
 			FFGLLog::LogToHost(message.c_str());
 			scene = BuildINSTARFlatPlaneDemoScene();
 			ApplyINSTARTarima(scene, tarima);
-			loadedPath.clear();
+			loadedPath = templatePath;
 			sceneDirty = false;
 			return false;
 		}
@@ -231,7 +231,7 @@ bool INSTAR::LoadVenue()
 	{
 		FFGLLog::LogToHost("INSTAR: VenueFile inválido; se usa escena demo");
 		scene = BuildINSTARDemoScene();
-		loadedPath.clear();
+		loadedPath = venuePath;
 		sceneDirty = false;
 		return false;
 	}

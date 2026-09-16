@@ -35,6 +35,7 @@ struct INSTARInputPlane
 	float y = 0.0f;
 	float width = 0.0f;
 	float height = 0.0f;
+	float depth = 0.0f;
 };
 
 struct INSTARProjectedSurface

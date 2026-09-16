@@ -751,6 +751,7 @@ void ApplyINSTARInputPlaneDepths(INSTARScene& scene, const std::vector<float>& d
 	{
 		const INSTARInputPlane& plane = scene.inputPlanes[index];
 		const float depth = index < depths.size() ? depths[index] : 0.0f;
+		scene.inputPlanes[index].depth = depth;
 		const float left = plane.x / static_cast<float>(scene.inputCanvasWidth) * 2.0f - 1.0f;
 		const float right = (plane.x + plane.width) / static_cast<float>(scene.inputCanvasWidth) * 2.0f - 1.0f;
 		const float top = (0.5f - plane.y / static_cast<float>(scene.inputCanvasHeight)) * 2.0f * canvasAspect;
@@ -817,8 +818,11 @@ void ApplyINSTARTarima(INSTARScene& scene, const INSTARTarimaConfig& config)
 	const float worldPerMetre = mainWidth / configuredScreenWidth;
 	const float stageHeight = 0.60f * worldPerMetre;
 	const float stageDepth = std::max(0.10f, config.stageDepth * worldPerMetre);
-	const float stageZ = scene.lineVertices.empty() ? -config.stageDist * worldPerMetre :
-		scene.lineVertices.front().position.z - (config.stageDist * worldPerMetre + stageDepth * 0.5f);
+	const float mainDepth = scene.inputPlanes[mainIndex].depth;
+	// The renderer's camera is on the negative-Z side and looks toward +Z.
+	// Therefore the stage/backing must use greater Z than the InputRect plane
+	// so the actual textured screen remains in front of the context geometry.
+	const float stageZ = mainDepth + (config.stageDist * worldPerMetre + stageDepth * 0.5f);
 	const float floorY = main[1] - 0.35f * worldPerMetre;
 
 	AddBox(
@@ -830,7 +834,7 @@ void ApplyINSTARTarima(INSTARScene& scene, const INSTARTarimaConfig& config)
 
 	// A thin backing and module grid make the largest screen readable as the
 	// main banner without replacing the actual textured InputRect plane.
-	const float backingZ = scene.lineVertices.empty() ? stageZ + stageDepth * 0.5f : scene.lineVertices.front().position.z - 0.08f * worldPerMetre;
+	const float backingZ = mainDepth + 0.08f * worldPerMetre;
 	AddBox(scene, {mainCentreX, mainCentreY, backingZ}, {mainWidth, mainHeight, 0.08f * worldPerMetre}, 0.04f, 0.35f, 0.55f);
 	AddWireRectangle(scene, main[0], main[1], main[2], main[3], backingZ + 0.05f * worldPerMetre, 0.20f, 0.75f, 1.0f);
 	const int screenColumns = std::max(1, config.screenColumns);
@@ -851,7 +855,7 @@ void ApplyINSTARTarima(INSTARScene& scene, const INSTARTarimaConfig& config)
 	const float totemWidth = std::max(0.10f, static_cast<float>(std::max(1, config.totemColumns)) * config.moduleWidth * worldPerMetre);
 	const float totemHeight = std::max(0.10f, static_cast<float>(std::max(1, config.totemRows)) * config.moduleHeight * worldPerMetre);
 	const float gap = std::max(0.0f, config.totemGap * worldPerMetre);
-	const float totemZ = backingZ - 0.16f * worldPerMetre;
+	const float totemZ = backingZ + 0.16f * worldPerMetre;
 	for (int pair = 0; pair < pairs; ++pair)
 	{
 		const float offset = (static_cast<float>(pair) + 0.5f) * totemWidth + static_cast<float>(pair + 1) * gap;

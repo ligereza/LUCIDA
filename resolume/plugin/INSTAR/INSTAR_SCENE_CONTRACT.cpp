@@ -138,9 +138,11 @@ int main(int argc, char** argv)
 		const INSTARInputPlane& before = tarimaPlanesBefore[index];
 		const INSTARInputPlane& after = tarima.inputPlanes[index];
 		inputPlanesPreserved = before.name == after.name && before.x == after.x && before.y == after.y &&
-			before.width == after.width && before.height == after.height;
+			before.width == after.width && before.height == after.height && before.depth == after.depth;
 	}
 	if (tarima.lineVertices.size() <= tarimaPlaneLineCount || tarima.triangleVertices.empty() || !inputPlanesPreserved)
+		return 1;
+	if (tarima.lineVertices.front().textureEnabled < 0.5f || tarima.lineVertices[tarimaPlaneLineCount].textureEnabled > 0.5f)
 		return 1;
 	for (const INSTARVertex& vertex : tarima.lineVertices)
 	{
