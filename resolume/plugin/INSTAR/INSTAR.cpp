@@ -259,6 +259,7 @@ bool INSTAR::LoadVenue()
 		// later mode switch, but never reload VenueFile while raster is active.
 		scene = BuildINSTARFlatPlaneDemoScene();
 		ConfigureSliceDepthParams(0);
+		loadedRasterSignature = {0, 0};
 		loadedFileSignature = {0, 0};
 		loadedPath.clear();
 		sceneDirty = false;
@@ -268,6 +269,7 @@ bool INSTAR::LoadVenue()
 	{
 		scene = BuildINSTARDemoScene();
 		ConfigureSliceDepthParams(0);
+		loadedRasterSignature = {0, 0};
 		loadedFileSignature = {0, 0};
 		loadedPath.clear();
 		sceneDirty = false;
@@ -311,13 +313,17 @@ bool INSTAR::LoadRaster()
 	rasterDirty = false;
 	rasterReady = false;
 	if (mapPath.empty())
+	{
+		loadedRasterSignature = {0, 0};
 		return true;
+	}
 	std::string error;
 	INSTARImage loaded;
 	if (!LoadINSTARImage(mapPath, loaded, error))
 	{
 		std::string message = "INSTAR: MapFile no es un raster compatible: " + error;
 		FFGLLog::LogToHost(message.c_str());
+		loadedRasterSignature = GetFileSignature(mapPath);
 		return false;
 	}
 	rasterImage = loaded;
@@ -342,6 +348,7 @@ bool INSTAR::LoadRaster()
 	);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	rasterReady = true;
+	loadedRasterSignature = GetFileSignature(mapPath);
 	return true;
 }
 
@@ -424,13 +431,14 @@ void INSTAR::Update()
 	const std::string desiredPath = mode == MODE_XML_PLANES ?
 		(previewTemplatePath.empty() ? templatePath : previewTemplatePath) :
 		(mode == MODE_VENUE_3D ? venuePath : std::string());
-	const std::pair<long long, long long> desiredSignature = mode == MODE_XML_PLANES ? GetFileSignature(desiredPath) : std::pair<long long, long long>{0, 0};
-	if (sceneDirty || loadedPath != desiredPath || (mode == MODE_XML_PLANES && desiredSignature != loadedFileSignature))
+	const std::pair<long long, long long> desiredSignature = (mode == MODE_XML_PLANES || mode == MODE_VENUE_3D) ? GetFileSignature(desiredPath) : std::pair<long long, long long>{0, 0};
+	if (sceneDirty || loadedPath != desiredPath || ((mode == MODE_XML_PLANES || mode == MODE_VENUE_3D) && desiredSignature != loadedFileSignature))
 	{
 		LoadVenue();
 		UploadScene();
 	}
-	if (rasterDirty && (mode == MODE_XML_PLANES || mode == MODE_RASTER_PIXEL_MAP))
+	const std::pair<long long, long long> desiredRasterSignature = (mode == MODE_XML_PLANES || mode == MODE_RASTER_PIXEL_MAP) ? GetFileSignature(mapPath) : std::pair<long long, long long>{0, 0};
+	if (rasterDirty || ((mode == MODE_XML_PLANES || mode == MODE_RASTER_PIXEL_MAP) && desiredRasterSignature != loadedRasterSignature))
 		LoadRaster();
 	if (exportRequested)
 	{

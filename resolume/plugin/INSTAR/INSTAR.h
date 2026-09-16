@@ -60,6 +60,7 @@ private:
 	std::string previewTemplatePath;
 	std::string outputPath = "INSTAR_AdvancedOutput.xml";
 	std::pair<long long, long long> loadedFileSignature = {0, 0};
+	std::pair<long long, long long> loadedRasterSignature = {0, 0};
 	float yaw = 0.5f;
 	float pitch = 0.5f;
 	float zoom = 0.55f;
