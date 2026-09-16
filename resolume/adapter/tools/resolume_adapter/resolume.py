@@ -947,7 +947,13 @@ def build_advanced_output_map(root: ElementTree.Element, source_path: str | Path
             "devices": _output_device_data(screen),
             "slices": [],
         }
-        for slice_index, slice_element in enumerate(screen.findall("./layers/Slice"), start=1):
+        layers = screen.find("./layers")
+        layer_elements = (
+            [element for element in list(layers) if element.tag in {"Slice", "Polygon"}]
+            if layers is not None
+            else []
+        )
+        for slice_index, slice_element in enumerate(layer_elements, start=1):
             common = slice_element.find("./Params[@name='Common']")
             input_params = slice_element.find("./Params[@name='Input']")
             output_params = slice_element.find("./Params[@name='Output']")

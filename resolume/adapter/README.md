@@ -120,6 +120,25 @@ artifacts/         Salidas locales; ignoradas por Git.
 
 ## Catálogo INSTAR
 
+### SVG → Advanced Output candidato
+
+INSTAR puede convertir un SVG vectorial con rectángulos, polígonos, elipses o
+paths Bézier en un XML candidato de Advanced Output. Un segundo SVG opcional
+describe la geometría física de salida; ambas listas se emparejan por orden.
+La salida no modifica Resolume y debe revisarse con NAYADE antes del evento.
+
+```powershell
+python .\tools\resolume_adapter_cli.py instar-map-svg `
+  .\data\event\input-map.svg `
+  --output-svg .\data\event\output-map.svg `
+  --xml .\artifacts\event-advanced-output.xml `
+  --report .\artifacts\event-mapping-candidate.json
+```
+
+Si no se entrega `--output-svg`, INSTAR escala la geometría del input para
+formar un OutputRect candidato y lo marca como advertencia. Los arcos SVG
+deben convertirse a Bézier antes de importar.
+
 Para preparar material contra un objetivo conocido:
 
 ```powershell

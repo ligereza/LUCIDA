@@ -35,6 +35,7 @@ from resolume_adapter.imago import (
 from resolume_adapter.html_report import write_html_report
 from resolume_adapter.incidents import INCIDENT_CATEGORIES, build_incident_plan, incident_text_report, write_incident_plan
 from resolume_adapter.instar import run_instar, text_report as instar_text_report, write_report
+from resolume_adapter.instar_svg import build_svg_mapping, svg_mapping_text_report, write_svg_mapping_report
 from resolume_adapter.manifest import write_manifest
 from resolume_adapter.media import ResolumeAdapterError
 from resolume_adapter.nayade import (
@@ -232,6 +233,19 @@ def build_parser() -> argparse.ArgumentParser:
     mapping.add_argument("--catalog", help="Informe INSTAR o AssetManifest JSON con los perfiles de visuales.")
     mapping.add_argument("--report", help="Ruta opcional para guardar el mapa o plan JSON.")
     mapping.add_argument("--max-candidates", type=int, default=6, help="Máximo de candidatos por visual y slice.")
+
+    svg_mapping = commands.add_parser(
+        "instar-map-svg",
+        help="Convierte un SVG vectorial en un candidato XML de Advanced Output para Resolume Arena.",
+    )
+    svg_mapping.add_argument("input_svg", help="SVG con las superficies del canvas de composición.")
+    svg_mapping.add_argument("--output-svg", help="SVG opcional con la geometría física de salida, en el mismo orden.")
+    svg_mapping.add_argument("--composition-size", type=_resolution, help="Resolución de composición si el SVG no declara viewBox.")
+    svg_mapping.add_argument("--output-size", type=_resolution, help="Resolución del output; por defecto usa la composición o el Output SVG.")
+    svg_mapping.add_argument("--xml", required=True, help="Ruta de salida para el XML de Advanced Output.")
+    svg_mapping.add_argument("--screen-name", default="INSTAR SVG Map", help="Nombre de la pantalla virtual generada.")
+    svg_mapping.add_argument("--resolume-minor", type=int, default=27, help="Minor de Arena declarado en el XML (default: 27).")
+    svg_mapping.add_argument("--report", help="Ruta opcional para guardar el candidato JSON.")
 
     adapt = commands.add_parser(
         "instar-adapt",
@@ -617,6 +631,22 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"\nInforme JSON: {report_path}")
             status = report.get("status") or (report.get("validation") or {}).get("status")
             return 1 if status == "FAIL" else 0
+
+        if args.command == "instar-map-svg":
+            report = build_svg_mapping(
+                args.input_svg,
+                args.xml,
+                composition_size=args.composition_size,
+                output_svg=args.output_svg,
+                output_size=args.output_size,
+                screen_name=args.screen_name,
+                resolume_minor=args.resolume_minor,
+            )
+            print(svg_mapping_text_report(report))
+            if args.report:
+                report_path = write_svg_mapping_report(report, args.report)
+                print(f"\nCandidato JSON: {report_path}")
+            return 0 if (report.get("validation") or {}).get("status") != "FAIL" else 1
 
         if args.command == "instar-adapt":
             plan = run_adaptation(
