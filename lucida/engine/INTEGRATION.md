@@ -11,7 +11,8 @@ version, event vocabulary and capabilities. The registry requires the caller
 to select both ids explicitly. LUCIDA never guesses a domain from payload
 shape.
 
-The current engine includes strict metadata-only adapters for VISUAL and PUPILA.
+The current engine includes strict metadata-only adapters for RESOLUME, VISUAL
+and PUPILA.
 They translate already-redacted domain states into `EngineEvent` values; they do
 not capture sensors, infer attention, open a window or execute host actions.
 XIO and RESOLUME remain contract slots owned by their repositories:
@@ -19,11 +20,12 @@ XIO and RESOLUME remain contract slots owned by their repositories:
 | Domain | Source role | Candidate event families | Current owner |
 | --- | --- | --- | --- |
 | XIO | transport and signal observation | `signal.observed`, `peer.updated`, `timecode.observed` | XIO adapter |
-| RESOLUME | show-state projection | `show.state`, `show.phase`, `preview.candidate` | RESOLUME adapter |
+| RESOLUME | show-state projection | `show.state`, `show.phase`, `preview.candidate` | `resolume.state` |
 | VISUAL | bounded perception state | `focus.state`, `geometry.state`, `perception.quality` | `visual.metadata` |
 | PUPILA | coordination proposals | `coordination.state`, `coordination.proposal` | `pupila.coordination` |
 
-The VISUAL and PUPILA route ids are explicit: `visual.metadata` with
+The RESOLUME, VISUAL and PUPILA route ids are explicit: `resolume.state` with
+`resolume.show.v1`, `visual.metadata` with
 `visual.perception.v1`, and `pupila.coordination` with
 `pupila.coordination.v1`. Unknown keys, raw fields, executable proposal fields
 and undeclared event types are rejected before reduction. No raw video,

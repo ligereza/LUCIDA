@@ -217,3 +217,29 @@ hardware or venue assumptions. The live behavior section is postulation only;
 the artifact does not claim live Resolume, audio, venue, timing, calibration,
 or hardware validation. Evidence file hashes canonicalize CRLF to LF so the
 same Git blob produces the same manifest in Windows worktrees.
+
+## Native FFGL plugin prototype
+
+The first native Resolume unit is `resolume/plugin/LucidaGuide/`. It is an
+`FF_EFFECT` plugin built against the official Resolume FFGL SDK. It receives
+the current layer texture, preserves it, and adds a GPU-light composition
+guide controlled by `GuideOpacity`, `GuideDetail`, and `GuideColor`.
+
+The plugin deliberately has no network, filesystem, Python, camera, model, or
+PUPILA dependency in its render path. This keeps the native surface suitable
+for live use while the host-neutral LUCIDA engine remains the place for
+proposals and later user assistance.
+
+Build from this repository with the official FFGL checkout available at
+`C:/IA/vendor/resolume-ffgl`:
+
+```text
+cmake -S resolume/plugin -B work/resolume-plugin-build -DFFGL_ROOT=C:/IA/vendor/resolume-ffgl
+cmake --build work/resolume-plugin-build --config Release
+```
+
+The resulting DLL is copied to
+`work/resolume-plugin-build/Extra Effects/LucidaGuide.dll`. Add that folder in
+Resolume Preferences → Video → FFGL Directories and restart Resolume. The
+prototype is not evidence of live host loading until that final installation
+step is performed on a machine with Resolume.

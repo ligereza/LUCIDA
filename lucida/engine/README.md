@@ -16,12 +16,16 @@ payload from silently entering the wrong domain boundary.
 The first slice is intentionally small:
 
 ```text
-XIO event or RESOLUME state
+RESOLUME state
         -> EngineEvent
         -> LucidaEngine
         -> RenderPlan
         -> LucidaOverlayFrame
         -> future LUCIDA surface
+
+The RESOLUME route is `resolume.state` with contract `resolume.show.v1`. A
+`preview.candidate` event may carry one bounded, confirmation-required proposal;
+the reducer turns it into a visible `RenderPlan` without executing Resolume.
 ```
 
 The executable integration path is explicit:

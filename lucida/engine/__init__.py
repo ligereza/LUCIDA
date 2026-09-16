@@ -9,7 +9,11 @@ from .replay import ReplayError, replay_fixture, replay_path, replay_pipeline_fi
 from .domain_adapters import (
     DomainAdapterError,
     PupilaCoordinationAdapter,
+    ResolumeStateAdapter,
+    RESOLUME_ADAPTER_ID,
+    RESOLUME_CONTRACT_ID,
     VisualMetadataAdapter,
+    register_resolume_route,
     register_visual_pupila_routes,
 )
 from .overlay_frame import (
@@ -50,7 +54,11 @@ __all__ = [
     "replay_pipeline_fixture",
     "DomainAdapterError",
     "PupilaCoordinationAdapter",
+    "ResolumeStateAdapter",
+    "RESOLUME_ADAPTER_ID",
+    "RESOLUME_CONTRACT_ID",
     "VisualMetadataAdapter",
+    "register_resolume_route",
     "register_visual_pupila_routes",
     "OverlayFrame",
     "OverlayFrameError",

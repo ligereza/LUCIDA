@@ -22,6 +22,12 @@ PUPILA_SOURCE = "pupila"
 PUPILA_SOURCE_VERSION = "0.1"
 PUPILA_CAPABILITY = "observe.coordination"
 
+RESOLUME_ADAPTER_ID = "resolume.state"
+RESOLUME_CONTRACT_ID = "resolume.show.v1"
+RESOLUME_SOURCE = "resolume"
+RESOLUME_SOURCE_VERSION = "0.1"
+RESOLUME_CAPABILITY = "observe.show"
+
 
 class DomainAdapterError(ValueError):
     """Raised when a domain value crosses the boundary incorrectly."""
@@ -54,6 +60,11 @@ _VISUAL_SUMMARY_KEYS = {
 _PUPILA_SUMMARY_KEYS = {
     "coordination.state": {"participant_count", "proposal_count"},
     "coordination.proposal": {"participant_count", "proposal_kind", "proposal_state"},
+}
+_RESOLUME_SUMMARY_KEYS = {
+    "show.state": {"phase", "status", "proposal_count"},
+    "show.phase": {"phase", "status"},
+    "preview.candidate": {"surface_id", "strategy", "quality", "proposal_count"},
 }
 _PROPOSAL_KEYS = {
     "proposal_id",
@@ -243,6 +254,43 @@ class PupilaCoordinationAdapter:
         )
 
 
+class ResolumeStateAdapter:
+    """Translate one bounded RESOLUME state or preview candidate."""
+
+    adapter_id = RESOLUME_ADAPTER_ID
+
+    def adapt(self, value: Mapping[str, Any]) -> EngineEvent:
+        source = _require_mapping(value)
+        _reject_unknown_keys(source, _EVENT_KEYS | {"proposal"}, "resolume event")
+        _validate_source(source, RESOLUME_SOURCE, RESOLUME_SOURCE_VERSION)
+        event_type = source.get("event_type")
+        if not isinstance(event_type, str) or event_type not in _RESOLUME_SUMMARY_KEYS:
+            raise DomainAdapterError("event_type is not declared by RESOLUME adapter")
+        summary = _validate_summary(
+            source.get("summary"),
+            event_type=event_type,
+            declared=_RESOLUME_SUMMARY_KEYS,
+        )
+        raw_proposal = source.get("proposal")
+        if event_type != "preview.candidate" and raw_proposal is not None:
+            raise DomainAdapterError("only preview.candidate may carry a proposal")
+        if event_type == "preview.candidate" and not isinstance(raw_proposal, Mapping):
+            raise DomainAdapterError("preview.candidate requires a proposal")
+        proposal = None
+        if raw_proposal is not None:
+            _reject_unknown_keys(raw_proposal, _PROPOSAL_KEYS, "proposal")
+            proposal = raw_proposal
+        return _event(
+            source,
+            source=RESOLUME_SOURCE,
+            source_version=RESOLUME_SOURCE_VERSION,
+            capability=RESOLUME_CAPABILITY,
+            event_types=set(_RESOLUME_SUMMARY_KEYS),
+            summary=summary,
+            proposal=proposal,
+        )
+
+
 def register_visual_pupila_routes(
     adapters: AdapterRegistry,
     contracts: ContractRegistry,
@@ -258,6 +306,24 @@ def register_visual_pupila_routes(
             source_version=VISUAL_SOURCE_VERSION,
             event_types=tuple(sorted(_VISUAL_SUMMARY_KEYS)),
             capabilities=(VISUAL_CAPABILITY,),
+        )
+    )
+
+
+def register_resolume_route(
+    adapters: AdapterRegistry,
+    contracts: ContractRegistry,
+) -> None:
+    """Register the explicit RESOLUME input route."""
+
+    adapters.register(ResolumeStateAdapter())
+    contracts.register(
+        InputContract(
+            contract_id=RESOLUME_CONTRACT_ID,
+            source=RESOLUME_SOURCE,
+            source_version=RESOLUME_SOURCE_VERSION,
+            event_types=tuple(sorted(_RESOLUME_SUMMARY_KEYS)),
+            capabilities=(RESOLUME_CAPABILITY,),
         )
     )
     contracts.register(
@@ -279,5 +345,9 @@ __all__ = [
     "VisualMetadataAdapter",
     "VISUAL_ADAPTER_ID",
     "VISUAL_CONTRACT_ID",
+    "ResolumeStateAdapter",
+    "RESOLUME_ADAPTER_ID",
+    "RESOLUME_CONTRACT_ID",
+    "register_resolume_route",
     "register_visual_pupila_routes",
 ]
