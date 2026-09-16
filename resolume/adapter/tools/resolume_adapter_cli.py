@@ -36,6 +36,7 @@ from resolume_adapter.html_report import write_html_report
 from resolume_adapter.incidents import INCIDENT_CATEGORIES, build_incident_plan, incident_text_report, write_incident_plan
 from resolume_adapter.instar import run_instar, text_report as instar_text_report, write_report
 from resolume_adapter.instar_image import build_raster_mapping, raster_mapping_text_report, write_raster_mapping_report
+from resolume_adapter.instar_routing import import_pixel_peeker_routing, processor_routing_text_report, write_processor_routing_report
 from resolume_adapter.instar_svg import build_svg_mapping, svg_mapping_text_report, write_svg_mapping_report
 from resolume_adapter.instar_template import apply_input_svg_to_template, apply_raster_image_to_template, input_template_text_report, write_input_template_report
 from resolume_adapter.manifest import write_manifest
@@ -265,6 +266,15 @@ def build_parser() -> argparse.ArgumentParser:
     image_mapping.add_argument("--pdf-page", type=int, default=1, help="Página PDF que se rasteriza (default: 1).")
     image_mapping.add_argument("--pdf-dpi", type=int, default=200, help="DPI de rasterización PDF (default: 200).")
     image_mapping.add_argument("--report", help="Ruta opcional para guardar el candidato JSON.")
+
+    routing_mapping = commands.add_parser(
+        "instar-import-interchange",
+        help="Importa routing pixel-peeker/interchange y lo cruza opcionalmente con un reporte de layout INSTAR.",
+    )
+    routing_mapping.add_argument("interchange", help="JSON pixel-peeker.interchange/1 exportado por Pixel Peeker.")
+    routing_mapping.add_argument("--layout-report", help="Reporte JSON de instar-map-image o instar-map-svg para comparar geometría.")
+    routing_mapping.add_argument("--tolerance", type=float, default=1.0, help="Tolerancia geométrica en píxeles (default: 1).")
+    routing_mapping.add_argument("--report", required=True, help="Ruta de salida para el reporte normalizado.")
 
     template_mapping = commands.add_parser(
         "instar-apply-input-map",
@@ -711,6 +721,17 @@ def main(argv: list[str] | None = None) -> int:
             if args.report:
                 report_path = write_raster_mapping_report(report, args.report)
                 print(f"\nCandidato JSON: {report_path}")
+            return 0
+
+        if args.command == "instar-import-interchange":
+            report = import_pixel_peeker_routing(
+                args.interchange,
+                layout_report=args.layout_report,
+                tolerance=args.tolerance,
+            )
+            print(processor_routing_text_report(report))
+            report_path = write_processor_routing_report(report, args.report)
+            print(f"\nReporte JSON: {report_path}")
             return 0
 
         if args.command == "instar-apply-input-map":

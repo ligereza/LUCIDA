@@ -191,6 +191,25 @@ python .\tools\resolume_adapter_cli.py instar-map-image `
   --xml .\artifacts\event-raster-candidate.xml
 ```
 
+### Routing Pixel Peeker → INSTAR
+
+La imagen o el PDF no contienen procesadores ni puertos. Cuando el diseño ya
+existe en Pixel Peeker, su exportación `pixel-peeker.interchange/1` puede
+normalizarse y cruzarse con el reporte de layout de INSTAR:
+
+```powershell
+python .\tools\resolume_adapter_cli.py instar-import-interchange `
+  .\data\event\wall-interchange.json `
+  --layout-report .\artifacts\event-raster-candidate.json `
+  --report .\artifacts\event-processor-routing.json
+```
+
+INSTAR deriva el bounding box de cada puerto a partir de sus gabinetes y
+reporta coincidencias geométricas con las superficies detectadas. `PASS` solo
+significa coincidencia geométrica completa; `physical_status` queda
+`UNVERIFIED` porque ningún JSON sustituye la comprobación del procesador, el
+cableado o la carga en el venue.
+
 ### Aplicar solo la geometría de entrada sobre un template
 
 Si ya existe un Advanced Output XML con routing de procesadores, INSTAR puede
