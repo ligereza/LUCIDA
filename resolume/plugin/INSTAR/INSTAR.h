@@ -8,6 +8,7 @@
 #include "INSTAR_XML.h"
 
 #include <string>
+#include <vector>
 
 class INSTAR final : public ffglqs::Source
 {
@@ -35,15 +36,21 @@ private:
 	bool LoadVenue();
 	void UploadScene();
 	bool LoadRaster();
+	void BuildRasterOverlay();
 	FFResult RenderRaster();
 	bool ExportMapXml();
 
 	INSTARSceneRenderer renderer;
 	ffglex::FFGLShader rasterShader;
+	ffglex::FFGLShader rasterOverlayShader;
 	ffglex::FFGLScreenQuad rasterQuad;
 	GLuint rasterTexture = 0;
+	GLuint rasterOverlayVao = 0;
+	GLuint rasterOverlayVbo = 0;
 	INSTARScene scene;
 	INSTARImage rasterImage;
+	std::vector<INSTARSurface> rasterSurfaces;
+	std::vector<INSTARVertex> rasterOverlayVertices;
 	std::string venuePath;
 	std::string loadedPath;
 	std::string mapPath;

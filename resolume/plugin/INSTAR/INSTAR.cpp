@@ -73,10 +73,35 @@ FFResult INSTAR::Init()
 			fragColor = vec4(pixel.rgb * u_brightness, pixel.a);
 		}
 	)";
-	if (!rasterShader.Compile(rasterVertexShader, rasterFragmentShader) || !rasterQuad.Initialise(true))
+	const char* overlayVertexShader = R"(
+		#version 410 core
+		layout(location = 0) in vec3 position;
+		layout(location = 1) in vec3 colour;
+		uniform vec2 u_scale;
+		out vec3 v_colour;
+		void main()
+		{
+			gl_Position = vec4(position.xy * u_scale, 0.0, 1.0);
+			v_colour = colour;
+		}
+	)";
+	const char* overlayFragmentShader = R"(
+		#version 410 core
+		in vec3 v_colour;
+		out vec4 fragColor;
+		void main()
+		{
+			fragColor = vec4(v_colour, 1.0);
+		}
+	)";
+	if (!rasterShader.Compile(rasterVertexShader, rasterFragmentShader) ||
+		!rasterOverlayShader.Compile(overlayVertexShader, overlayFragmentShader) ||
+		!rasterQuad.Initialise(true))
 		return FF_FAIL;
 	glGenTextures(1, &rasterTexture);
-	if (rasterTexture == 0)
+	glGenVertexArrays(1, &rasterOverlayVao);
+	glGenBuffers(1, &rasterOverlayVbo);
+	if (rasterTexture == 0 || rasterOverlayVao == 0 || rasterOverlayVbo == 0)
 		return FF_FAIL;
 	LoadVenue();
 	UploadScene();
@@ -88,9 +113,16 @@ void INSTAR::Clean()
 {
 	if (rasterTexture != 0)
 		glDeleteTextures(1, &rasterTexture);
+	if (rasterOverlayVbo != 0)
+		glDeleteBuffers(1, &rasterOverlayVbo);
+	if (rasterOverlayVao != 0)
+		glDeleteVertexArrays(1, &rasterOverlayVao);
 	rasterTexture = 0;
+	rasterOverlayVbo = 0;
+	rasterOverlayVao = 0;
 	rasterQuad.Release();
 	rasterShader.FreeGLResources();
+	rasterOverlayShader.FreeGLResources();
 	renderer.Clean();
 }
 
@@ -146,6 +178,8 @@ bool INSTAR::LoadRaster()
 		return false;
 	}
 	rasterImage = loaded;
+	rasterSurfaces = DetectINSTARSurfaces(rasterImage, rasterImage.width, rasterImage.height);
+	BuildRasterOverlay();
 	glBindTexture(GL_TEXTURE_2D, rasterTexture);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -166,6 +200,42 @@ bool INSTAR::LoadRaster()
 	glBindTexture(GL_TEXTURE_2D, 0);
 	rasterReady = true;
 	return true;
+}
+
+void INSTAR::BuildRasterOverlay()
+{
+	rasterOverlayVertices.clear();
+	if (rasterImage.width == 0 || rasterImage.height == 0 || rasterOverlayVao == 0 || rasterOverlayVbo == 0)
+		return;
+	for (size_t index = 0; index < rasterSurfaces.size(); ++index)
+	{
+		const INSTARSurface& surface = rasterSurfaces[index];
+		const float left = surface.x / static_cast<float>(rasterImage.width) * 2.0f - 1.0f;
+		const float right = (surface.x + surface.width) / static_cast<float>(rasterImage.width) * 2.0f - 1.0f;
+		const float top = 1.0f - surface.y / static_cast<float>(rasterImage.height) * 2.0f;
+		const float bottom = 1.0f - (surface.y + surface.height) / static_cast<float>(rasterImage.height) * 2.0f;
+		const float red = 0.15f + static_cast<float>((index * 37U) % 55U) / 100.0f;
+		const float green = 0.70f + static_cast<float>((index * 19U) % 25U) / 100.0f;
+		const float blue = 0.70f + static_cast<float>((index * 11U) % 25U) / 100.0f;
+		const INSTARVec3 points[] = {
+			{left, top, 0.0f}, {right, top, 0.0f},
+			{right, top, 0.0f}, {right, bottom, 0.0f},
+			{right, bottom, 0.0f}, {left, bottom, 0.0f},
+			{left, bottom, 0.0f}, {left, top, 0.0f},
+		};
+		for (const INSTARVec3& point : points)
+			rasterOverlayVertices.push_back({point, red, green, blue});
+	}
+	ffglex::ScopedShaderBinding binding(rasterOverlayShader.GetGLID());
+	glBindVertexArray(rasterOverlayVao);
+	glBindBuffer(GL_ARRAY_BUFFER, rasterOverlayVbo);
+	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(rasterOverlayVertices.size() * sizeof(INSTARVertex)), rasterOverlayVertices.data(), GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(0));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(INSTARVertex), reinterpret_cast<const void*>(sizeof(INSTARVec3)));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 }
 
 FFResult INSTAR::RenderRaster()
@@ -193,6 +263,15 @@ FFResult INSTAR::RenderRaster()
 	glBindTexture(GL_TEXTURE_2D, rasterTexture);
 	rasterQuad.Draw();
 	glBindTexture(GL_TEXTURE_2D, 0);
+	if (!rasterOverlayVertices.empty() && rasterOverlayShader.IsReady())
+	{
+		ffglex::ScopedShaderBinding overlayBinding(rasterOverlayShader.GetGLID());
+		rasterOverlayShader.Set("u_scale", scaleX, scaleY);
+		glBindVertexArray(rasterOverlayVao);
+		glLineWidth(2.0f);
+		glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(rasterOverlayVertices.size()));
+		glBindVertexArray(0);
+	}
 	return FF_SUCCESS;
 }
 
