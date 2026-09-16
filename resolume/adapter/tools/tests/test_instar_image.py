@@ -29,6 +29,8 @@ class InstarRasterMappingTests(unittest.TestCase):
 
             self.assertEqual(len(report["regions"]), 5)
             self.assertEqual(report["validation"]["status"], "REVIEW")
+            self.assertEqual(report["layout_role"], "stage_layout_candidate")
+            self.assertEqual(report["processor_routing"]["status"], "UNKNOWN")
             self.assertEqual(
                 [region["source_color_family"] for region in report["regions"]],
                 ["yellow", "magenta", "red", "blue", "orange"],

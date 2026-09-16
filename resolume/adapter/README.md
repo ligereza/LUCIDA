@@ -179,6 +179,11 @@ python .\tools\resolume_adapter_cli.py instar-map-image `
 El OCR solo aporta etiquetas y anclas de resolución; la geometría sigue
 siendo detectada por INSTAR y el resultado conserva estado `REVIEW`.
 
+La salida de una imagen se etiqueta como `stage_layout_candidate`. Si el
+documento no aporta procesadores, puertos o cadena de datos, el campo
+`processor_routing` queda en `UNKNOWN`; INSTAR no convierte una disposición
+escénica en routing físico por inferencia.
+
 Para preparar material contra un objetivo conocido:
 
 ```powershell

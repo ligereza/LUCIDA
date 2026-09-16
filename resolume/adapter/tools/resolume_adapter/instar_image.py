@@ -497,9 +497,14 @@ def detect_raster_surfaces(image_path: str | Path, *, canvas_size: tuple[int, in
     return {
         "schema_version": "0.1",
         "map_type": "InstarRasterMappingCandidate",
+        "layout_role": "stage_layout_candidate",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source": {"image": str(source), "width": image_width, "height": image_height},
         "canvas": {"width": canvas_size[0], "height": canvas_size[1]},
+        "processor_routing": {
+            "status": "UNKNOWN",
+            "reason": "La imagen describe la disposición de superficies; no declara procesadores, puertos ni cadena de datos.",
+        },
         "regions": regions,
         "validation": {
             "status": "REVIEW",
@@ -623,6 +628,7 @@ def raster_mapping_text_report(report: dict[str, Any]) -> str:
         f"Superficies detectadas: {len(report.get('regions') or [])}",
         f"XML candidato: {report.get('artifacts', {}).get('advanced_output_xml')}",
         f"Estado: {validation.get('status', 'UNKNOWN')}",
+        f"Routing de procesadores: {(report.get('processor_routing') or {}).get('status', 'UNKNOWN')}",
     ]
     metadata = report.get("metadata") or {}
     if metadata.get("active_panels") is not None:
