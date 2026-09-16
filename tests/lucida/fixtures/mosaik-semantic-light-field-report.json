@@ -1,0 +1,79 @@
+{
+  "replay_type": "MosaikSemanticLightFieldReplayReport",
+  "schema_version": "0.1",
+  "session_id": "semantic-light-field-cli-001",
+  "status": "PASS",
+  "proposal": {
+    "proposal_id": "proposal-cli-light-field-001",
+    "event_id": "event-cli-light-field-001",
+    "phase": "preparation",
+    "operation": "preview_semantic_light_field",
+    "reason": "Review deterministic semantic light-field tape",
+    "risk": "low",
+    "requires_explicit_approval": true,
+    "reversible": true,
+    "execution_mode": "proposal_only",
+    "evidence": [
+      "consumer:mosaik-vj",
+      "tape_schema:farmaxia:semantic-light-field-tape:0.1",
+      "tape_sha256:f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec",
+      "frame_count:1"
+    ]
+  },
+  "pending": {
+    "contract_type": "MosaikVJSemanticLightFieldPending",
+    "schema_version": "0.1",
+    "status": "pending_approval",
+    "reversible": true,
+    "proposal": {
+      "proposal_id": "proposal-cli-light-field-001",
+      "event_id": "event-cli-light-field-001",
+      "phase": "preparation",
+      "operation": "preview_semantic_light_field",
+      "reason": "Review deterministic semantic light-field tape",
+      "risk": "low",
+      "requires_explicit_approval": true,
+      "reversible": true,
+      "execution_mode": "proposal_only",
+      "evidence": [
+        "consumer:mosaik-vj",
+        "tape_schema:farmaxia:semantic-light-field-tape:0.1",
+        "tape_sha256:f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec",
+        "frame_count:1"
+      ]
+    },
+    "tape": {
+      "schema": "farmaxia:semantic-light-field-tape:0.1",
+      "sample_hz": 10.0,
+      "proposal_only": true,
+      "calibration_status": "not_calibrated",
+      "frames": [
+        {
+          "phase": 0.0,
+          "time_s": 0.0,
+          "proposal_only": true,
+          "calibration_status": "not_calibrated",
+          "dmx": {"0": [47, 128, 238, 17]},
+          "fixtures": {},
+          "osc": []
+        }
+      ]
+    },
+    "tape_sha256": "f69e170a3447924a7e30126572c659bf61a353d6628ae9e4cd1359aa035bbaec",
+    "safety": {
+      "proposal_only": true,
+      "automatic_actions": false,
+      "external_side_effects": false
+    }
+  },
+  "state": {
+    "session_id": "semantic-light-field-cli-001",
+    "pending_proposal_ids": ["proposal-cli-light-field-001"]
+  },
+  "safety": {
+    "external_side_effects": false,
+    "irreversible_actions_executed": false,
+    "automatic_decision": false,
+    "execution_mode": "proposal_only"
+  }
+}
