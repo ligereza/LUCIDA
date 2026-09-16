@@ -1,6 +1,7 @@
 #include "INSTAR.h"
 
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iterator>
 
@@ -11,6 +12,18 @@ namespace
 constexpr int MODE_VENUE_3D = 0;
 constexpr int MODE_RASTER_PIXEL_MAP = 1;
 constexpr int MODE_XML_PLANES = 2;
+
+float BoundedFloat(float value, float fallback, float minimum, float maximum)
+{
+	if (!std::isfinite(value))
+		return fallback;
+	return std::max(minimum, std::min(maximum, value));
+}
+
+int BoundedInteger(float value, int fallback, int minimum, int maximum)
+{
+	return static_cast<int>(BoundedFloat(value, static_cast<float>(fallback), static_cast<float>(minimum), static_cast<float>(maximum)));
+}
 }
 
 static CFFGLPluginInfo PluginInfo(
@@ -166,18 +179,18 @@ void INSTAR::Clean()
 INSTARTarimaConfig INSTAR::GetTarimaConfig()
 {
 	INSTARTarimaConfig config;
-	config.stageDist = GetFloatParameter(PARAM_STAGE_DIST);
-	config.stageWidth = GetFloatParameter(PARAM_STAGE_WIDTH);
-	config.stageDepth = GetFloatParameter(PARAM_STAGE_DEPTH);
-	config.totemGap = GetFloatParameter(PARAM_TOTEM_GAP);
-	config.tilt = GetFloatParameter(PARAM_TILT);
-	config.moduleWidth = GetFloatParameter(PARAM_MODULE_WIDTH);
-	config.moduleHeight = GetFloatParameter(PARAM_MODULE_HEIGHT);
-	config.screenColumns = static_cast<int>(GetFloatParameter(PARAM_SCREEN_COLUMNS));
-	config.screenRows = static_cast<int>(GetFloatParameter(PARAM_SCREEN_ROWS));
-	config.totemCount = static_cast<int>(GetFloatParameter(PARAM_TOTEM_COUNT));
-	config.totemColumns = static_cast<int>(GetFloatParameter(PARAM_TOTEM_COLUMNS));
-	config.totemRows = static_cast<int>(GetFloatParameter(PARAM_TOTEM_ROWS));
+	config.stageDist = BoundedFloat(GetFloatParameter(PARAM_STAGE_DIST), 3.5f, 1.0f, 8.0f);
+	config.stageWidth = BoundedFloat(GetFloatParameter(PARAM_STAGE_WIDTH), 9.0f, 6.0f, 14.0f);
+	config.stageDepth = BoundedFloat(GetFloatParameter(PARAM_STAGE_DEPTH), 4.0f, 2.0f, 8.0f);
+	config.totemGap = BoundedFloat(GetFloatParameter(PARAM_TOTEM_GAP), 0.5f, 0.2f, 1.5f);
+	config.tilt = BoundedFloat(GetFloatParameter(PARAM_TILT), 0.0f, 0.0f, 90.0f);
+	config.moduleWidth = BoundedFloat(GetFloatParameter(PARAM_MODULE_WIDTH), 1.0f, 0.25f, 3.0f);
+	config.moduleHeight = BoundedFloat(GetFloatParameter(PARAM_MODULE_HEIGHT), 0.5f, 0.25f, 3.0f);
+	config.screenColumns = BoundedInteger(GetFloatParameter(PARAM_SCREEN_COLUMNS), 4, 1, 16);
+	config.screenRows = BoundedInteger(GetFloatParameter(PARAM_SCREEN_ROWS), 6, 1, 16);
+	config.totemCount = BoundedInteger(GetFloatParameter(PARAM_TOTEM_COUNT), 4, 0, 8);
+	config.totemColumns = BoundedInteger(GetFloatParameter(PARAM_TOTEM_COLUMNS), 1, 1, 4);
+	config.totemRows = BoundedInteger(GetFloatParameter(PARAM_TOTEM_ROWS), 6, 1, 16);
 	return config;
 }
 
@@ -489,19 +502,19 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 	}
 	else if (index >= PARAM_SLICE_DEPTH_01 && index <= PARAM_SLICE_DEPTH_32)
 	{
-		sliceDepths[index - PARAM_SLICE_DEPTH_01] = value;
+		sliceDepths[index - PARAM_SLICE_DEPTH_01] = BoundedFloat(value, 0.0f, -10.0f, 10.0f);
 		sceneDirty = true;
 	}
 	else if (index == PARAM_YAW)
-		yaw = value;
+		yaw = BoundedFloat(value, 0.5f, 0.0f, 1.0f);
 	else if (index == PARAM_PITCH)
-		pitch = value;
+		pitch = BoundedFloat(value, 0.5f, 0.0f, 1.0f);
 	else if (index == PARAM_ZOOM)
-		zoom = value;
+		zoom = BoundedFloat(value, 0.55f, 0.0f, 1.0f);
 	else if (index == PARAM_BRIGHTNESS)
-		brightness = value;
+		brightness = BoundedFloat(value, 0.85f, 0.0f, 1.0f);
 	else if (index == PARAM_CAMERA_DISTANCE)
-		cameraDistance = value;
+		cameraDistance = BoundedFloat(value, 3.5f, 1.0f, 20.0f);
 	else if (index >= PARAM_STAGE_DIST && index <= PARAM_TOTEM_ROWS)
 		sceneDirty = true;
 	return Source::SetFloatParameter(index, value);
