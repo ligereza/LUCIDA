@@ -99,12 +99,16 @@ venue o tarima pertenece a una fuente explícita separada. No convierte modelos
 
 `PLANO_3D` es esa fuente explícita para un plano/rider vectorial: recibe un SVG
 limpio y conserva su disposición 2D como huella frontal antes de extruir cada
-`rect`, `polygon`, `polyline`, `line` o `path` básico en el eje vertical. Los
+`rect`, `polygon`, `polyline`, `line`, `circle`, `ellipse` o `path` en el eje
+vertical. También hereda transforms afines de grupos y aplana segmentos
+lineales, cuadráticos y cúbicos a puntos renderizables. Los
 nombres provienen de `id`, `data-name` o `aria-label`; la altura puede venir de
 `data-height`/`data-extrusion-height` o del control global `ExtrusionHeight`.
 El `viewBox` se normaliza automáticamente, por lo que `PlanScale=1` es el
 punto de partida normal; `PlanScale` ajusta la proporción entre huella y
-altura. El modo
+altura. `PlanHeight01`–`PlanHeight32` aparecen según las formas cargadas; `0`
+conserva la altura del SVG/default y un valor positivo la sobrescribe en vivo.
+El modo
 recarga al cambiar el SVG o cualquiera de esos controles. No usa `MapFile`, no
 lee `OutputRect` y no transforma un JSON en una escena: el SVG es la
 representación visual que conecta el plano 2D con la extrusión 3D. Polígonos
@@ -113,7 +117,8 @@ evitar una triangulación visualmente falsa.
 
 El resultado es una reconstrucción visual normalizada, no una medición física.
 Un PDF o raster requiere primero la vectorización offline y debe producir
-geometría nombrada antes de cargarla en `PLANO_3D`.
+geometría nombrada antes de cargarla en `PLANO_3D`; los arcos SVG no soportados
+y los paths decorativos sin geometría de plano se omiten.
 `INSTAR_3D.dll` es el `FF_SOURCE` separado para cargar OBJ/MTL y visualizar
 modelos dentro de la composición, con fondo alfa y `TextureFile` opcional para
 PNG/JPG; conserva UV del OBJ y genera UV plana si faltan.

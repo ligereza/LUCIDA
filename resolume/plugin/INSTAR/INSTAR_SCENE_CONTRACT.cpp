@@ -72,6 +72,10 @@ int main(int argc, char** argv)
 		fixture << "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 60\">\n"
 		       << "  <rect id=\"TARIMA\" x=\"10\" y=\"20\" width=\"80\" height=\"30\" data-height=\"1.5\"/>\n"
 		       << "  <polyline id=\"MURO\" points=\"5,5 95,5\" data-extrusion-height=\"4\"/>\n"
+		       << "  <g transform=\"translate(5 5) scale(1.5)\">\n"
+		       << "    <path id=\"ARCO\" d=\"M 10 10 C 20 0 40 0 50 10 L 50 30 L 10 30 Z\" data-height=\"2px\"/>\n"
+		       << "  </g>\n"
+		       << "  <circle id=\"PILAR\" cx=\"50\" cy=\"15\" r=\"5\" data-height=\"1\"/>\n"
 		       << "</svg>\n";
 	}
 
@@ -88,14 +92,20 @@ int main(int argc, char** argv)
 	INSTARScene plan;
 	std::string planError;
 	const bool planLoaded = LoadINSTARPlanSvg(planPath, plan, planError, 3.0f, 1.0f);
+	INSTARScene overriddenPlan;
+	std::string overriddenPlanError;
+	const std::vector<float> heightOverrides = {6.0f};
+	const bool overriddenPlanLoaded = LoadINSTARPlanSvg(planPath, overriddenPlan, overriddenPlanError, 3.0f, 1.0f, heightOverrides);
 	std::remove(planPath);
-	if (!planLoaded || plan.planShapes.size() != 2U || plan.lineVertices.empty() || plan.triangleVertices.empty())
+	if (!planLoaded || plan.planShapes.size() != 4U || plan.lineVertices.empty() || plan.triangleVertices.empty())
 	{
 		std::fprintf(stderr, "plan load=%d shapes=%zu lines=%zu triangles=%zu error=%s\n", planLoaded, plan.planShapes.size(), plan.lineVertices.size(), plan.triangleVertices.size(), planError.c_str());
 		return 1;
 	}
 	if (std::fabs(plan.planShapes[0].height - 1.5f) > 0.0001f ||
-		std::fabs(plan.planShapes[1].height - 4.0f) > 0.0001f)
+		std::fabs(plan.planShapes[1].height - 4.0f) > 0.0001f ||
+		std::fabs(plan.planShapes[2].height - 2.0f) > 0.0001f ||
+		plan.planShapes[2].points.size() <= 10U || plan.planShapes[3].points.size() != 32U)
 		return 1;
 	for (const INSTARVertex& vertex : plan.lineVertices)
 	{
@@ -118,6 +128,8 @@ int main(int argc, char** argv)
 		std::fprintf(stderr, "projection empty\\n");
 		return 1;
 	}
+	if (!overriddenPlanLoaded || overriddenPlan.planShapes.empty() || std::fabs(overriddenPlan.planShapes[0].height - 6.0f) > 0.0001f)
+		return 1;
 	std::vector<INSTARSurface> xmlSurfaces;
 	for (const INSTARProjectedSurface& source : projected)
 	{

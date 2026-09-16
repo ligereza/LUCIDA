@@ -245,14 +245,18 @@ existing `AEREO`, `PISTA` and `LIBRE` camera controls.
 
 `PLANO_3D` is the second, independent geometric input. It consumes the SVG
 exported from a 2D plan/rider and uses the plan's own X/Y arrangement as the
-ground footprint: `rect`, `polygon`, `polyline`, `line` and basic `path`
-geometry are raised into walls, stages or bleachers. The SVG element `id`,
+ground footprint: `rect`, `polygon`, `polyline`, `line`, `circle`, `ellipse`
+and `path` geometry are raised into walls, stages or bleachers. Basic SVG
+groups and affine transforms are inherited; line, quadratic and cubic path
+segments are flattened into renderable points. The SVG element `id`,
 `data-name` or `aria-label` becomes the shape name. `data-height` or
 `data-extrusion-height` supplies a shape-specific height; otherwise the
 `ExtrusionHeight` control is used. The SVG `viewBox` is normalised first, so
 `PlanScale=1` is the normal starting point; `PlanScale` then changes the
 plan-footprint-to-height proportion. Both controls rebuild the scene
-immediately. Closed convex
+immediately. `PlanHeight01` through `PlanHeight32` appear for the loaded
+shapes; `0` preserves the SVG/default height and a positive value overrides
+that shape live. Closed convex
 polygons receive a top surface; concave polygons remain safely as extruded
 edges instead of receiving an incorrect triangle fan.
 
@@ -260,9 +264,9 @@ This mode is a visual reconstruction of the supplied 2D geometry. It does
 not claim that an unlabeled drawing contains measured physical heights, nor
 does it use `OutputRect` or a JSON venue description to invent routing. For a
 reliable result, the plan must be exported as clean SVG with named geometry;
-decorative text/Bezier paths are ignored when line or polygon geometry is
-available. A PDF or raster image still needs the offline vectorisation step
-before it can become a plan SVG.
+decorative text paths and unsupported arc paths are ignored when line or
+polygon geometry is available. A PDF or raster image still needs the offline
+vectorisation step before it can become a plan SVG.
 
 The same source retains `RASTER_PIXEL_MAP` for a flat PNG/JPG inspection with
 detected surface outlines. The camera and scene core are local and do not need

@@ -87,7 +87,8 @@ bool LoadINSTARPlanSvg(
 	INSTARScene& scene,
 	std::string& error,
 	float extrusionHeight = 3.0f,
-	float planScale = 1.0f
+	float planScale = 1.0f,
+	const std::vector<float>& heightOverrides = std::vector<float>()
 );
 void ApplyINSTARInputPlaneDepths(INSTARScene& scene, const std::vector<float>& depths);
 INSTARScene BuildINSTARFlatPlaneDemoScene();

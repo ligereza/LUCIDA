@@ -380,6 +380,95 @@ size_t FindPlanSvgRoot(const std::string& xml)
 	return std::string::npos;
 }
 
+std::vector<float> PlanSvgNumbers(const std::string& value);
+
+struct PlanTransform
+{
+	float a = 1.0f;
+	float b = 0.0f;
+	float c = 0.0f;
+	float d = 1.0f;
+	float e = 0.0f;
+	float f = 0.0f;
+};
+
+PlanTransform ComposePlanTransforms(const PlanTransform& first, const PlanTransform& second)
+{
+	return {
+		first.a * second.a + first.c * second.b,
+		first.b * second.a + first.d * second.b,
+		first.a * second.c + first.c * second.d,
+		first.b * second.c + first.d * second.d,
+		first.a * second.e + first.c * second.f + first.e,
+		first.b * second.e + first.d * second.f + first.f,
+	};
+}
+
+INSTARVec3 ApplyPlanTransform(const PlanTransform& transform, const INSTARVec3& point)
+{
+	return {
+		transform.a * point.x + transform.c * point.y + transform.e,
+		transform.b * point.x + transform.d * point.y + transform.f,
+		0.0f,
+	};
+}
+
+PlanTransform ParsePlanTransform(const std::string& value)
+{
+	PlanTransform result;
+	size_t cursor = 0;
+	while (cursor < value.size())
+	{
+		while (cursor < value.size() && std::isspace(static_cast<unsigned char>(value[cursor])) != 0)
+			++cursor;
+		const size_t nameStart = cursor;
+		while (cursor < value.size() && std::isalpha(static_cast<unsigned char>(value[cursor])) != 0)
+			++cursor;
+		if (nameStart == cursor)
+			break;
+		const std::string operation = value.substr(nameStart, cursor - nameStart);
+		while (cursor < value.size() && (std::isspace(static_cast<unsigned char>(value[cursor])) != 0 || value[cursor] == '('))
+			++cursor;
+		const size_t argumentStart = cursor;
+		const size_t argumentEnd = value.find(')', argumentStart);
+		if (argumentEnd == std::string::npos)
+			break;
+		const std::vector<float> arguments = PlanSvgNumbers(value.substr(argumentStart, argumentEnd - argumentStart));
+		PlanTransform current;
+		if (operation == "matrix" && arguments.size() >= 6U)
+			current = {arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5]};
+		else if (operation == "translate")
+			current = {1.0f, 0.0f, 0.0f, 1.0f, arguments.empty() ? 0.0f : arguments[0], arguments.size() > 1U ? arguments[1] : 0.0f};
+		else if (operation == "scale" && !arguments.empty())
+		{
+			const float sy = arguments.size() > 1U ? arguments[1] : arguments[0];
+			current = {arguments[0], 0.0f, 0.0f, sy, 0.0f, 0.0f};
+		}
+		else if (operation == "rotate" && !arguments.empty())
+		{
+			const float angle = arguments[0] * 0.017453292519943295f;
+			const float cosine = std::cos(angle);
+			const float sine = std::sin(angle);
+			const PlanTransform rotation{cosine, sine, -sine, cosine, 0.0f, 0.0f};
+			if (arguments.size() >= 3U)
+			{
+				const PlanTransform toCentre{1.0f, 0.0f, 0.0f, 1.0f, arguments[1], arguments[2]};
+				const PlanTransform fromCentre{1.0f, 0.0f, 0.0f, 1.0f, -arguments[1], -arguments[2]};
+				current = ComposePlanTransforms(ComposePlanTransforms(toCentre, rotation), fromCentre);
+			}
+			else
+				current = rotation;
+		}
+		else if (operation == "skewX" && !arguments.empty())
+			current = {1.0f, 0.0f, std::tan(arguments[0] * 0.017453292519943295f), 1.0f, 0.0f, 0.0f};
+		else if (operation == "skewY" && !arguments.empty())
+			current = {1.0f, std::tan(arguments[0] * 0.017453292519943295f), 0.0f, 1.0f, 0.0f, 0.0f};
+		result = ComposePlanTransforms(result, current);
+		cursor = argumentEnd + 1U;
+	}
+	return result;
+}
+
 std::vector<float> PlanSvgNumbers(const std::string& value)
 {
 	std::vector<float> numbers;
@@ -398,6 +487,15 @@ std::vector<float> PlanSvgNumbers(const std::string& value)
 		cursor = end;
 	}
 	return numbers;
+}
+
+bool ParsePlanLength(const std::string& value, float& result)
+{
+	if (value.empty())
+		return false;
+	char* end = nullptr;
+	result = std::strtof(value.c_str(), &end);
+	return end != value.c_str() && std::isfinite(result);
 }
 
 std::string PlanXmlAttributeValue(const std::string& text, const char* name, size_t start)
@@ -449,6 +547,23 @@ bool ParsePlanSvgPath(const std::string& value, std::vector<INSTARVec3>& points,
 	char command = 0;
 	INSTARVec3 current;
 	INSTARVec3 start;
+	INSTARVec3 lastCubicControl;
+	INSTARVec3 lastQuadraticControl;
+	bool hasLastCubicControl = false;
+	bool hasLastQuadraticControl = false;
+	const auto appendCubic = [&points](const INSTARVec3& first, const INSTARVec3& controlFirst, const INSTARVec3& controlSecond, const INSTARVec3& second) {
+		constexpr unsigned int samples = 12U;
+		for (unsigned int sample = 1U; sample <= samples; ++sample)
+		{
+			const float t = static_cast<float>(sample) / static_cast<float>(samples);
+			const float inverse = 1.0f - t;
+			points.push_back({
+				inverse * inverse * inverse * first.x + 3.0f * inverse * inverse * t * controlFirst.x + 3.0f * inverse * t * t * controlSecond.x + t * t * t * second.x,
+				inverse * inverse * inverse * first.y + 3.0f * inverse * inverse * t * controlFirst.y + 3.0f * inverse * t * t * controlSecond.y + t * t * t * second.y,
+				0.0f,
+			});
+		}
+	};
 	while (*cursor != '\0')
 	{
 		while (*cursor != '\0' && (std::isspace(static_cast<unsigned char>(*cursor)) || *cursor == ','))
@@ -463,6 +578,8 @@ bool ParsePlanSvgPath(const std::string& value, std::vector<INSTARVec3>& points,
 				closed = true;
 				current = start;
 				command = 0;
+				hasLastCubicControl = false;
+				hasLastQuadraticControl = false;
 			}
 			continue;
 		}
@@ -473,12 +590,14 @@ bool ParsePlanSvgPath(const std::string& value, std::vector<INSTARVec3>& points,
 		}
 		const bool relative = std::islower(static_cast<unsigned char>(command)) != 0;
 		const char operation = static_cast<char>(std::toupper(static_cast<unsigned char>(command)));
-		if (operation != 'M' && operation != 'L' && operation != 'H' && operation != 'V')
+		if (operation != 'M' && operation != 'L' && operation != 'H' && operation != 'V' &&
+			operation != 'C' && operation != 'S' && operation != 'Q' && operation != 'T')
 		{
-			error = "SVG path uses an unsupported command; convert curves to polygons first";
+			error = operation == 'A' ? "SVG arc paths are not supported; convert arcs to polygons" : "SVG path uses an unsupported command";
 			return false;
 		}
-		const size_t required = operation == 'H' || operation == 'V' ? 1U : 2U;
+		const size_t required = operation == 'H' || operation == 'V' ? 1U :
+			(operation == 'C' ? 6U : operation == 'S' ? 4U : operation == 'Q' ? 4U : 2U);
 		std::vector<float> group;
 		while (group.size() < required)
 		{
@@ -513,8 +632,75 @@ bool ParsePlanSvgPath(const std::string& value, std::vector<INSTARVec3>& points,
 		{
 			start = next;
 			command = relative ? 'l' : 'L';
+			hasLastCubicControl = false;
+			hasLastQuadraticControl = false;
 		}
-		points.push_back(next);
+		if (operation == 'C')
+		{
+			INSTARVec3 controlFirst{group[0], group[1], 0.0f};
+			INSTARVec3 controlSecond{group[2], group[3], 0.0f};
+			if (relative)
+			{
+				controlFirst.x += current.x;
+				controlFirst.y += current.y;
+				controlSecond.x += current.x;
+				controlSecond.y += current.y;
+			}
+			appendCubic(current, controlFirst, controlSecond, next);
+			lastCubicControl = controlSecond;
+			hasLastCubicControl = true;
+			hasLastQuadraticControl = false;
+		}
+		else if (operation == 'S')
+		{
+			const INSTARVec3 controlFirst = hasLastCubicControl ?
+				INSTARVec3{2.0f * current.x - lastCubicControl.x, 2.0f * current.y - lastCubicControl.y, 0.0f} : current;
+			INSTARVec3 controlSecond{group[0], group[1], 0.0f};
+			if (relative)
+			{
+				controlSecond.x += current.x;
+				controlSecond.y += current.y;
+			}
+			appendCubic(current, controlFirst, controlSecond, next);
+			lastCubicControl = controlSecond;
+			hasLastCubicControl = true;
+			hasLastQuadraticControl = false;
+		}
+		else if (operation == 'Q' || operation == 'T')
+		{
+			INSTARVec3 control;
+			if (operation == 'Q')
+			{
+				control = {group[0], group[1], 0.0f};
+				if (relative)
+				{
+					control.x += current.x;
+					control.y += current.y;
+				}
+			}
+			else
+				control = hasLastQuadraticControl ? INSTARVec3{2.0f * current.x - lastQuadraticControl.x, 2.0f * current.y - lastQuadraticControl.y, 0.0f} : current;
+			const INSTARVec3 controlFirst{
+				current.x + (2.0f / 3.0f) * (control.x - current.x),
+				current.y + (2.0f / 3.0f) * (control.y - current.y),
+				0.0f,
+			};
+			const INSTARVec3 controlSecond{
+				next.x + (2.0f / 3.0f) * (control.x - next.x),
+				next.y + (2.0f / 3.0f) * (control.y - next.y),
+				0.0f,
+			};
+			appendCubic(current, controlFirst, controlSecond, next);
+			lastQuadraticControl = control;
+			hasLastQuadraticControl = true;
+			hasLastCubicControl = false;
+		}
+		else
+		{
+			points.push_back(next);
+			hasLastCubicControl = false;
+			hasLastQuadraticControl = false;
+		}
 		current = next;
 	}
 	if (points.size() < 2U)
@@ -529,8 +715,8 @@ float PlanShapeHeight(const std::string& xml, size_t start, float fallback)
 {
 	float result = fallback;
 	float parsed = 0.0f;
-	if (ParseFloatValue(PlanXmlAttributeValue(xml, "data-height", start), parsed) ||
-		ParseFloatValue(PlanXmlAttributeValue(xml, "data-extrusion-height", start), parsed))
+	if (ParsePlanLength(PlanXmlAttributeValue(xml, "data-height", start), parsed) ||
+		ParsePlanLength(PlanXmlAttributeValue(xml, "data-extrusion-height", start), parsed))
 		result = parsed;
 	return std::max(0.0f, result);
 }
@@ -886,7 +1072,7 @@ bool LoadINSTARAdvancedOutputPlanes(const std::string& path, INSTARScene& scene,
 	return true;
 }
 
-bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string& error, float extrusionHeight, float planScale)
+bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string& error, float extrusionHeight, float planScale, const std::vector<float>& heightOverrides)
 {
 	scene = INSTARScene();
 	std::ifstream file = OpenTextFile(path);
@@ -920,7 +1106,7 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 			const std::string value = PlanXmlAttributeValue(xml, name, root);
 			char* end = nullptr;
 			const float parsed = std::strtof(value.c_str(), &end);
-			return end != value.c_str() ? parsed : 0.0f;
+			return end != value.c_str() && std::isfinite(parsed) ? parsed : 0.0f;
 		};
 		viewWidth = scalarAttribute("width");
 		viewHeight = scalarAttribute("height");
@@ -941,17 +1127,38 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 
 	const auto isShapeTag = [](const std::string& tag) {
 		const std::string localName = PlanLocalName(tag);
-		return localName == "rect" || localName == "polygon" || localName == "polyline" || localName == "line" || localName == "path";
+		return localName == "rect" || localName == "polygon" || localName == "polyline" || localName == "line" ||
+			localName == "circle" || localName == "ellipse" || localName == "path";
 	};
 	size_t cursor = root;
 	unsigned int shapeIndex = 1;
 	bool unsupportedPathFound = false;
+	std::vector<std::string> elementStack;
+	std::vector<PlanTransform> transformStack;
 	while (cursor < xml.size())
 	{
 		const size_t open = xml.find('<', cursor);
 		if (open == std::string::npos)
 			break;
-		if (open + 1U >= xml.size() || xml[open + 1U] == '/' || xml[open + 1U] == '!' || xml[open + 1U] == '?')
+		if (open + 1U >= xml.size())
+			break;
+		if (xml[open + 1U] == '/')
+		{
+			const size_t close = xml.find('>', open + 2U);
+			if (close == std::string::npos)
+			{
+				error = "plan SVG has an unterminated closing element";
+				return false;
+			}
+			if (!elementStack.empty())
+			{
+				elementStack.pop_back();
+				transformStack.pop_back();
+			}
+			cursor = close + 1U;
+			continue;
+		}
+		if (xml[open + 1U] == '!' || xml[open + 1U] == '?')
 		{
 			cursor = open + 1U;
 			continue;
@@ -966,19 +1173,27 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 			error = "plan SVG has an unterminated element";
 			return false;
 		}
+		const PlanTransform parentTransform = transformStack.empty() ? PlanTransform() : transformStack.back();
+		const PlanTransform elementTransform = ComposePlanTransforms(
+			parentTransform,
+			ParsePlanTransform(PlanXmlAttributeValue(xml, "transform", open))
+		);
 		if (isShapeTag(tag))
 		{
 			const std::string localTag = PlanLocalName(tag);
 			INSTARPlanShape shape;
-			shape.name = PlanShapeName(xml, open, tag, shapeIndex++);
+			const unsigned int shapeNumber = shapeIndex++;
+			shape.name = PlanShapeName(xml, open, tag, shapeNumber);
 			shape.height = PlanShapeHeight(xml, open, safeHeight);
+			if (shapeNumber > 0U && shapeNumber <= heightOverrides.size() && heightOverrides[shapeNumber - 1U] > 0.0f)
+				shape.height = heightOverrides[shapeNumber - 1U];
 			if (localTag == "rect")
 			{
 				float x = 0.0f, y = 0.0f, width = 0.0f, height = 0.0f;
-				if (ParseFloatValue(PlanXmlAttributeValue(xml, "x", open), x) &&
-					ParseFloatValue(PlanXmlAttributeValue(xml, "y", open), y) &&
-					ParseFloatValue(PlanXmlAttributeValue(xml, "width", open), width) &&
-					ParseFloatValue(PlanXmlAttributeValue(xml, "height", open), height) &&
+				if (ParsePlanLength(PlanXmlAttributeValue(xml, "x", open), x) &&
+					ParsePlanLength(PlanXmlAttributeValue(xml, "y", open), y) &&
+					ParsePlanLength(PlanXmlAttributeValue(xml, "width", open), width) &&
+					ParsePlanLength(PlanXmlAttributeValue(xml, "height", open), height) &&
 					width > 0.0f && height > 0.0f)
 				{
 					shape.points = {{x, y, 0.0f}, {x + width, y, 0.0f}, {x + width, y + height, 0.0f}, {x, y + height, 0.0f}};
@@ -988,10 +1203,10 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 			else if (localTag == "line")
 			{
 				float x1 = 0.0f, y1 = 0.0f, x2 = 0.0f, y2 = 0.0f;
-				if (ParseFloatValue(PlanXmlAttributeValue(xml, "x1", open), x1) &&
-					ParseFloatValue(PlanXmlAttributeValue(xml, "y1", open), y1) &&
-					ParseFloatValue(PlanXmlAttributeValue(xml, "x2", open), x2) &&
-					ParseFloatValue(PlanXmlAttributeValue(xml, "y2", open), y2))
+				if (ParsePlanLength(PlanXmlAttributeValue(xml, "x1", open), x1) &&
+					ParsePlanLength(PlanXmlAttributeValue(xml, "y1", open), y1) &&
+					ParsePlanLength(PlanXmlAttributeValue(xml, "x2", open), x2) &&
+					ParsePlanLength(PlanXmlAttributeValue(xml, "y2", open), y2))
 					shape.points = {{x1, y1, 0.0f}, {x2, y2, 0.0f}};
 			}
 			else if (localTag == "polygon" || localTag == "polyline")
@@ -1003,6 +1218,30 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 					for (size_t index = 0; index < values.size(); index += 2U)
 						shape.points.push_back({values[index], values[index + 1U], 0.0f});
 					shape.closed = localTag == "polygon";
+				}
+			}
+			else if (localTag == "circle" || localTag == "ellipse")
+			{
+				float centreX = 0.0f, centreY = 0.0f, radiusX = 0.0f, radiusY = 0.0f;
+				ParsePlanLength(PlanXmlAttributeValue(xml, "cx", open), centreX);
+				ParsePlanLength(PlanXmlAttributeValue(xml, "cy", open), centreY);
+				bool validRadius = false;
+				if (localTag == "circle")
+				{
+					validRadius = ParsePlanLength(PlanXmlAttributeValue(xml, "r", open), radiusX);
+					radiusY = radiusX;
+				}
+				else
+					validRadius = ParsePlanLength(PlanXmlAttributeValue(xml, "rx", open), radiusX) && ParsePlanLength(PlanXmlAttributeValue(xml, "ry", open), radiusY);
+				if (validRadius && radiusX > 0.0f && radiusY > 0.0f)
+				{
+					constexpr unsigned int samples = 32U;
+					for (unsigned int sample = 0U; sample < samples; ++sample)
+					{
+						const float angle = 6.2831853071795864769f * static_cast<float>(sample) / static_cast<float>(samples);
+						shape.points.push_back({centreX + radiusX * std::cos(angle), centreY + radiusY * std::sin(angle), 0.0f});
+					}
+					shape.closed = true;
 				}
 			}
 			else if (localTag == "path")
@@ -1021,11 +1260,20 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 			{
 				for (INSTARVec3& point : shape.points)
 				{
+					point = ApplyPlanTransform(elementTransform, point);
 					point.x -= viewMinX;
 					point.y -= viewMinY;
 				}
 				scene.planShapes.push_back(shape);
 			}
+		}
+		size_t nonWhitespace = close;
+		while (nonWhitespace > open && std::isspace(static_cast<unsigned char>(xml[nonWhitespace - 1U])) != 0)
+			--nonWhitespace;
+		if (xml[nonWhitespace - 1U] != '/')
+		{
+			elementStack.push_back(tag);
+			transformStack.push_back(elementTransform);
 		}
 		cursor = close + 1U;
 	}

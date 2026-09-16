@@ -100,10 +100,10 @@ INSTAR::INSTAR()
 		{"PISTA", 1.0f},
 		{"LIBRE", 2.0f},
 	}, 0));
-	AddParam(Param::Create("Yaw", yaw));
-	AddParam(Param::Create("Pitch", pitch));
-	AddParam(Param::Create("Zoom", zoom));
-	AddParam(Param::Create("Brightness", brightness));
+	AddParam(ParamRange::Create("Yaw", yaw, ParamRange::Range(0.0f, 1.0f)));
+	AddParam(ParamRange::Create("Pitch", pitch, ParamRange::Range(0.0f, 1.0f)));
+	AddParam(ParamRange::Create("Zoom", zoom, ParamRange::Range(0.0f, 1.0f)));
+	AddParam(ParamRange::Create("Brightness", brightness, ParamRange::Range(0.0f, 1.0f)));
 	AddParam(ParamRange::Create("Depth", depth, ParamRange::Range(-10.0f, 10.0f)));
 	for (unsigned int index = 0; index < 32U; ++index)
 	{
@@ -115,6 +115,46 @@ INSTAR::INSTAR()
 	AddParam(Param::Create("PlanFile", FF_TYPE_FILE, 0.0f));
 	AddParam(ParamRange::Create("PlanScale", planScale, ParamRange::Range(0.1f, 4.0f)));
 	AddParam(ParamRange::Create("ExtrusionHeight", extrusionHeight, ParamRange::Range(0.0f, 20.0f)));
+	for (unsigned int index = 0; index < 32U; ++index)
+	{
+		const std::string name = std::string("PlanHeight") + (index < 9U ? "0" : "") + std::to_string(index + 1U);
+		AddParam(ParamRange::Create(name, 0.0f, ParamRange::Range(0.0f, 20.0f)));
+		SetParamVisibility(PARAM_PLAN_HEIGHT_01 + index, false, false);
+	}
+	ConfigureModeParams(MODE_XML_PLANES);
+}
+
+void INSTAR::ConfigureModeParams(int mode)
+{
+	const bool rasterMode = mode == MODE_RASTER_PIXEL_MAP;
+	const bool xmlMode = mode == MODE_XML_PLANES;
+	const bool planMode = mode == MODE_PLANO_3D;
+	SetParamVisibility(PARAM_MAP_FILE, rasterMode || xmlMode, true);
+	SetParamVisibility(PARAM_TEMPLATE_XML, xmlMode, true);
+	SetParamVisibility(PARAM_EXPORT_MAP_XML, rasterMode || xmlMode, true);
+	SetParamVisibility(PARAM_OUTPUT_XML, rasterMode || xmlMode, true);
+	SetParamVisibility(PARAM_VIEW, !rasterMode, true);
+	SetParamVisibility(PARAM_YAW, !rasterMode, true);
+	SetParamVisibility(PARAM_PITCH, !rasterMode, true);
+	SetParamVisibility(PARAM_ZOOM, !rasterMode, true);
+	SetParamVisibility(PARAM_DEPTH, xmlMode, true);
+	SetParamVisibility(PARAM_CAMERA_DISTANCE, !rasterMode, true);
+	SetParamVisibility(PARAM_PLAN_FILE, planMode, true);
+	SetParamVisibility(PARAM_PLAN_SCALE, planMode, true);
+	SetParamVisibility(PARAM_EXTRUSION_HEIGHT, planMode, true);
+	if (!planMode)
+		ConfigurePlanHeightParams(0);
+	if (!xmlMode)
+		ConfigureSliceDepthParams(0);
+}
+
+void INSTAR::ConfigurePlanHeightParams(size_t shapeCount)
+{
+	const size_t visibleCount = std::min<size_t>(shapeCount, 32U);
+	for (unsigned int index = 0; index < 32U; ++index)
+		SetParamVisibility(PARAM_PLAN_HEIGHT_01 + index, index < visibleCount, true);
+	if (shapeCount > 32U)
+		FFGLLog::LogToHost("INSTAR: hay más de 32 formas de plano; los controles visibles cubren las primeras 32");
 }
 
 void INSTAR::ConfigureSliceDepthParams(size_t sliceCount)
@@ -255,6 +295,7 @@ bool INSTAR::LoadScene()
 		{
 			scene = INSTARScene();
 			ConfigureSliceDepthParams(0);
+			ConfigurePlanHeightParams(0);
 			loadedFileSignature = {0, 0};
 			loadedPath.clear();
 			sceneDirty = false;
@@ -262,18 +303,21 @@ bool INSTAR::LoadScene()
 		}
 		std::string error;
 		INSTARScene loaded;
-		if (!LoadINSTARPlanSvg(planPath, loaded, error, extrusionHeight, planScale))
+		std::vector<float> heightOverrides(planHeights, planHeights + 32U);
+		if (!LoadINSTARPlanSvg(planPath, loaded, error, extrusionHeight, planScale, heightOverrides))
 		{
 			const std::string message = "INSTAR: PlanFile inválido para PLANO_3D: " + error;
 			FFGLLog::LogToHost(message.c_str());
 			scene = INSTARScene();
 			ConfigureSliceDepthParams(0);
+			ConfigurePlanHeightParams(0);
 			loadedFileSignature = GetFileSignature(planPath);
 			loadedPath = planPath;
 			sceneDirty = false;
 			return false;
 		}
 		ConfigureSliceDepthParams(0);
+		ConfigurePlanHeightParams(loaded.planShapes.size());
 		scene = loaded;
 		loadedFileSignature = GetFileSignature(planPath);
 		loadedPath = planPath;
@@ -558,6 +602,7 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 	else if (index == PARAM_MODE)
 	{
 		sceneDirty = true;
+		ConfigureModeParams(static_cast<int>(value));
 		if (static_cast<int>(value) == MODE_XML_PLANES || static_cast<int>(value) == MODE_RASTER_PIXEL_MAP)
 			rasterDirty = true;
 	}
@@ -584,6 +629,11 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 	else if (index == PARAM_EXTRUSION_HEIGHT)
 	{
 		extrusionHeight = BoundedFloat(value, 3.0f, 0.0f, 20.0f);
+		sceneDirty = true;
+	}
+	else if (index >= PARAM_PLAN_HEIGHT_01 && index <= PARAM_PLAN_HEIGHT_32)
+	{
+		planHeights[index - PARAM_PLAN_HEIGHT_01] = BoundedFloat(value, 0.0f, 0.0f, 20.0f);
 		sceneDirty = true;
 	}
 	else if (index >= PARAM_SLICE_DEPTH_01 && index <= PARAM_SLICE_DEPTH_32)

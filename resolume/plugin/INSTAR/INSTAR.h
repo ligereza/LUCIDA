@@ -35,7 +35,9 @@ protected:
 
 private:
 	bool LoadScene();
+	void ConfigureModeParams(int mode);
 	void ConfigureSliceDepthParams(size_t sliceCount);
+	void ConfigurePlanHeightParams(size_t shapeCount);
 	void UploadScene();
 	bool LoadRaster();
 	void BuildRasterOverlay();
@@ -70,6 +72,7 @@ private:
 	float planScale = 1.0f;
 	float extrusionHeight = 3.0f;
 	float sliceDepths[32] = {};
+	float planHeights[32] = {};
 	bool sceneDirty = true;
 	bool rasterDirty = true;
 	bool rasterReady = false;
@@ -94,5 +97,7 @@ private:
 		PARAM_PLAN_FILE = 44,
 		PARAM_PLAN_SCALE = 45,
 		PARAM_EXTRUSION_HEIGHT = 46,
+		PARAM_PLAN_HEIGHT_01 = 47,
+		PARAM_PLAN_HEIGHT_32 = 78,
 	};
 };
