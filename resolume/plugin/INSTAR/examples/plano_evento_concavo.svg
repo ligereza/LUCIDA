@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <!-- Mezcla de path lineal, poligono concavo y lineas abiertas. -->
+  <path id="MURO_PERIMETRAL" d="M 60 60 L 1140 60 L 1140 740 L 60 740 Z" data-height="2.8" />
+  <path id="TARIMA_EN_L" d="M 360 520 L 840 520 L 840 680 L 600 680 L 600 600 L 360 600 Z" data-height="1.4" />
+  <polyline id="GRADERIA_1" points="120,180 300,180 300,250 120,250" data-height="0.6" />
+  <polyline id="GRADERIA_2" points="120,280 300,280 300,350 120,350" data-height="0.9" />
+  <polyline id="GRADERIA_3" points="900,180 1080,180 1080,250 900,250" data-height="0.6" />
+  <polyline id="GRADERIA_4" points="900,280 1080,280 1080,350 900,350" data-height="0.9" />
+  <line id="PANTALLA_FRONTAL" x1="450" y1="430" x2="750" y2="430" data-height="4.5" />
+  <line id="BARRA_TECNICA" x1="400" y1="120" x2="800" y2="120" data-height="2.0" />
+</svg>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plan:svg xmlns:plan="http://www.w3.org/2000/svg" viewBox="-600 -400 1200 800">
+  <!-- Prueba de namespace SVG y viewBox con coordenadas negativas. -->
+  <plan:rect id="TARIMA_CENTRAL" x="-260" y="80" width="520" height="180" data-height="1.0" />
+  <plan:polygon id="PANTALLA_CENTRAL" points="-170,20 170,20 170,70 -170,70" data-extrusion-height="4.2" />
+  <plan:line id="MURO_FONDO" x1="-520" y1="-280" x2="520" y2="-280" data-height="3.6" />
+  <plan:polyline id="BANNER_L" points="-520,-180 -360,-180 -360,-80 -520,-80" data-height="2.2" />
+  <plan:polyline id="BANNER_R" points="360,-180 520,-180 520,-80 360,-80" data-height="2.2" />
+</plan:svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+  <!-- Plano frontal de un venue rectangular. Las alturas son metros relativos. -->
+  <line id="MURO_NORTE" x1="40" y1="40" x2="1560" y2="40" data-height="3.2" />
+  <line id="MURO_SUR" x1="40" y1="860" x2="1560" y2="860" data-height="3.2" />
+  <line id="MURO_OESTE" x1="40" y1="40" x2="40" y2="860" data-height="3.2" />
+  <line id="MURO_ESTE" x1="1560" y1="40" x2="1560" y2="860" data-height="3.2" />
+
+  <rect id="TARIMA_PRINCIPAL" x="500" y="610" width="600" height="180" data-height="1.2" />
+  <rect id="PANTALLA_PRINCIPAL" x="620" y="520" width="360" height="28" data-height="5.0" />
+  <rect id="BANNER_IZQUIERDO" x="120" y="120" width="300" height="42" data-height="2.4" />
+  <rect id="BANNER_DERECHO" x="1180" y="120" width="300" height="42" data-height="2.4" />
+
+  <polygon id="GRADERIA_IZQUIERDA" points="120,250 420,250 420,500 120,500" data-height="0.9" />
+  <polygon id="GRADERIA_DERECHA" points="1180,250 1480,250 1480,500 1180,500" data-height="0.9" />
+</svg>

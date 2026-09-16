@@ -993,7 +993,8 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 			else if (localTag == "polygon" || localTag == "polyline")
 			{
 				const std::vector<float> values = PlanSvgNumbers(PlanXmlAttributeValue(xml, "points", open));
-				if (values.size() >= 4U && values.size() % 2U == 0U)
+				const size_t minimumValues = localTag == "polygon" ? 6U : 4U;
+				if (values.size() >= minimumValues && values.size() % 2U == 0U)
 				{
 					for (size_t index = 0; index < values.size(); index += 2U)
 						shape.points.push_back({values[index], values[index + 1U], 0.0f});
@@ -1050,7 +1051,7 @@ bool LoadINSTARPlanSvg(const std::string& path, INSTARScene& scene, std::string&
 			surface.maximum.z = std::max(surface.maximum.z, point.z);
 		}
 		scene.surfaces.push_back(surface);
-		const size_t segmentCount = shape.closed ? world.size() : world.size() - 1U;
+		const size_t segmentCount = shape.closed && world.size() >= 3U ? world.size() : world.size() - 1U;
 		for (size_t index = 0; index < segmentCount; ++index)
 			AddPlanWall(scene, world[index], world[(index + 1U) % world.size()], shape.height, red, green, blue);
 		if (shape.closed && world.size() >= 3U && IsPlanConvex(shape.points))
