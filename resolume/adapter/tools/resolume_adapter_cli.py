@@ -259,6 +259,7 @@ def build_parser() -> argparse.ArgumentParser:
     image_mapping.add_argument("--svg", help="Guarda también el SVG geométrico intermedio.")
     image_mapping.add_argument("--screen-name", default="INSTAR Raster Map", help="Nombre de la pantalla virtual generada.")
     image_mapping.add_argument("--min-area-ratio", type=float, default=0.005, help="Área mínima de una región respecto de la imagen.")
+    image_mapping.add_argument("--ocr-exe", help="Ejecutable OCR opcional que emita el protocolo OCR_LINE de INSTAR.")
     image_mapping.add_argument("--report", help="Ruta opcional para guardar el candidato JSON.")
 
     adapt = commands.add_parser(
@@ -671,6 +672,7 @@ def main(argv: list[str] | None = None) -> int:
                 svg_output=args.svg,
                 screen_name=args.screen_name,
                 min_area_ratio=args.min_area_ratio,
+                ocr_executable=args.ocr_exe,
             )
             print(raster_mapping_text_report(report))
             if args.report:

@@ -7,7 +7,7 @@ import unittest
 import cv2
 import numpy as np
 
-from resolume_adapter.instar_image import build_raster_mapping, detect_raster_surfaces
+from resolume_adapter.instar_image import _annotate_regions, build_raster_mapping, detect_raster_surfaces
 from resolume_adapter.resolume import extract_advanced_output_map
 
 
@@ -46,6 +46,29 @@ class InstarRasterMappingTests(unittest.TestCase):
             self.assertEqual(len(report["regions"]), 5)
             self.assertEqual(parsed["statistics"]["slices"], 5)
             self.assertEqual(parsed["composition"], {"width": 4186, "height": 1283})
+
+    def test_ocr_lines_resolve_names_and_dimensions_by_region(self) -> None:
+        with TemporaryDirectory() as directory:
+            image = Path(directory) / "mapping.png"
+            self._image(image)
+            report = detect_raster_surfaces(image, canvas_size=(4186, 1283))
+            report["ocr"] = {
+                "available": True,
+                "lines": [
+                    {"x": 100, "y": 90, "width": 100, "height": 20, "text": "BANNER FRONTAL"},
+                    {"x": 100, "y": 220, "width": 100, "height": 20, "text": "CENTRAL W 2560 x H 1024"},
+                ],
+            }
+
+            resolved = _annotate_regions(report)
+
+            self.assertEqual(resolved, 2)
+            self.assertEqual(report["regions"][0]["name"], "BANNER_FRONTAL")
+            central = next(region for region in report["regions"] if region["name"] == "CENTRAL")
+            self.assertEqual(central["declared_resolution"], {"width": 2560, "height": 1024, "source": "ocr"})
+            self.assertEqual(central["bounds"]["width"], 2560.0)
+            self.assertEqual(central["bounds"]["height"], 1024.0)
+            self.assertEqual(central["geometry_source"], "raster_detection_plus_ocr_dimensions")
 
 
 if __name__ == "__main__":

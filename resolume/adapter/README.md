@@ -159,6 +159,21 @@ El XML sirve para inspección y posterior corrección; no se presenta como
 mapping físico confirmado. La siguiente extensión es asociar OCR de nombres y
 resoluciones a estas regiones antes de ajustar coordenadas.
 
+Si existe un OCR externo compatible con el protocolo `OCR_LINE`, puede
+conectarse sin convertirlo en dependencia del núcleo:
+
+```powershell
+python .\tools\resolume_adapter_cli.py instar-map-image `
+  .\data\event\pixel-map.png `
+  --canvas-size 4186x1283 `
+  --ocr-exe C:\ruta\instar-ocr.exe `
+  --xml .\artifacts\event-raster-candidate.xml `
+  --report .\artifacts\event-raster-candidate.json
+```
+
+El OCR solo aporta etiquetas y anclas de resolución; la geometría sigue
+siendo detectada por INSTAR y el resultado conserva estado `REVIEW`.
+
 Para preparar material contra un objetivo conocido:
 
 ```powershell
