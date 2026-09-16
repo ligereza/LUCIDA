@@ -210,6 +210,23 @@ significa coincidencia geométrica completa; `physical_status` queda
 `UNVERIFIED` porque ningún JSON sustituye la comprobación del procesador, el
 cableado o la carga en el venue.
 
+Si además existe un template Advanced Output cuyos slices se llaman como
+`<processor name> <port label>`, esa correspondencia puede aplicarse sobre el
+template:
+
+```powershell
+python .\tools\resolume_adapter_cli.py instar-apply-routed-map `
+  .\data\event\AdvancedOutput.xml `
+  .\data\event\wall-interchange.json `
+  .\artifacts\event-raster-candidate.json `
+  --xml .\artifacts\event-routed-candidate.xml `
+  --report .\artifacts\event-routed-template.json
+```
+
+La orden modifica únicamente `InputRect`. `OutputRect`, dispositivos, warpers
+y routing del template se conservan; un resultado `PASS` sigue significando
+solo integridad y coincidencia geométrica.
+
 ### Aplicar solo la geometría de entrada sobre un template
 
 Si ya existe un Advanced Output XML con routing de procesadores, INSTAR puede

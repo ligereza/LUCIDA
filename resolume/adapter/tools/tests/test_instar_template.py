@@ -2,16 +2,82 @@ from __future__ import annotations
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import json
 import unittest
 
 import cv2
 import numpy as np
 
-from resolume_adapter.instar_template import apply_input_svg_to_template, apply_raster_image_to_template
+from resolume_adapter.instar_template import (
+    apply_input_svg_to_template,
+    apply_raster_image_to_template,
+    apply_routed_layout_to_template,
+)
 from resolume_adapter.resolume import extract_advanced_output_map
 
 
 class InstarInputTemplateTests(unittest.TestCase):
+    def test_routed_layout_changes_only_input_rect(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            template = root / "template.xml"
+            interchange = root / "interchange.json"
+            layout = root / "layout.json"
+            output = root / "candidate.xml"
+            template.write_text(
+                '''<?xml version="1.0" encoding="utf-8"?>
+<XmlState><ScreenSetup><CurrentCompositionTextureSize width="1000" height="500"/><screens>
+<Screen name="Screen"><Params name="Params"/><OutputDevice><OutputDeviceVirtual name="Physical" deviceId="D1" width="1920" height="1080"/></OutputDevice><layers>
+<Slice><Params name="Common"><Param name="Name" value="MX40 A ETH 1"/></Params><InputRect><v x="0" y="0"/><v x="10" y="0"/><v x="10" y="10"/><v x="0" y="10"/></InputRect><OutputRect><v x="200" y="300"/><v x="600" y="300"/><v x="600" y="500"/><v x="200" y="500"/></OutputRect></Slice>
+</layers></Screen></screens></ScreenSetup></XmlState>''',
+                encoding="utf-8",
+            )
+            interchange.write_text(
+                json.dumps({
+                    "format": "pixel-peeker.interchange/1",
+                    "project": {"name": "Test"},
+                    "wall": {"widthPx": 1000, "heightPx": 500},
+                    "processors": [{
+                        "name": "MX40 A",
+                        "model": "MX40 Pro",
+                        "manufacturer": "NovaStar",
+                        "deviceCapacityPx": 9000000,
+                        "usedPx": 400000,
+                        "ports": [{
+                            "label": "ETH 1",
+                            "linkSpeedGbps": 10,
+                            "capacityPx": 659722,
+                            "usedPx": 400000,
+                            "utilisationPct": 61,
+                            "cabinets": [{
+                                "order": 1,
+                                "id": "cab-1",
+                                "model": "P3.9",
+                                "xPx": 100,
+                                "yPx": 50,
+                                "widthPx": 400,
+                                "heightPx": 200,
+                            }],
+                        }],
+                    }],
+                }),
+                encoding="utf-8",
+            )
+            layout.write_text(
+                json.dumps({"regions": [{"name": "CENTRAL", "bounds": {"x": 100, "y": 50, "width": 400, "height": 200}}]}),
+                encoding="utf-8",
+            )
+
+            report = apply_routed_layout_to_template(template, interchange, layout, output)
+            parsed = extract_advanced_output_map(output)
+            item = parsed["slices"][0]
+
+            self.assertEqual(report["validation"]["status"], "PASS")
+            self.assertEqual(report["physical_status"], "UNVERIFIED")
+            self.assertEqual(item["input"]["bounds"], {"x": 100.0, "y": 50.0, "width": 400.0, "height": 200.0})
+            self.assertEqual(item["output"]["bounds"], {"x": 200.0, "y": 300.0, "width": 400.0, "height": 200.0})
+            self.assertIn('deviceId="D1"', output.read_text(encoding="utf-8"))
+
     def test_updates_input_rect_and_preserves_output_rect(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)

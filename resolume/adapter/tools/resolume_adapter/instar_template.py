@@ -11,6 +11,7 @@ from typing import Any, Mapping
 from xml.etree import ElementTree
 
 from .instar_image import build_raster_mapping
+from .instar_routing import import_pixel_peeker_routing
 from .instar_svg import _canonical_rect, _find_canvas_view, _parse_svg, _view_box
 from .media import ResolumeAdapterError
 
@@ -225,6 +226,166 @@ def apply_raster_image_to_template(
         },
     }
     return report
+
+
+def apply_routed_layout_to_template(
+    template_xml: str | Path,
+    interchange: str | Path | Mapping[str, Any],
+    layout_report: str | Path | Mapping[str, Any],
+    xml_output: str | Path,
+    *,
+    tolerance: float = 1.0,
+) -> dict[str, Any]:
+    """Apply matched layout geometry to slices named ``processor + port``.
+
+    Pixel Peeker supplies the processor/port identity and the INSTAR layout
+    supplies the named surface geometry. Only ``InputRect`` is replaced. The
+    template remains the sole authority for ``OutputRect``, devices, warpers
+    and any existing processor assignment.
+    """
+
+    routing = import_pixel_peeker_routing(
+        interchange,
+        layout_report=layout_report,
+        tolerance=tolerance,
+    )
+    template_path = Path(template_xml).expanduser().resolve()
+    if not template_path.is_file():
+        raise ResolumeAdapterError(f"No se encontró el template Advanced Output: {template_path}")
+    try:
+        root = ElementTree.parse(template_path).getroot()
+    except (OSError, ElementTree.ParseError) as exc:
+        raise ResolumeAdapterError(f"No se pudo leer el template Advanced Output: {template_path}") from exc
+    if root.tag not in {"XmlState", "ScreenSetup"}:
+        raise ResolumeAdapterError(f"El template no parece Advanced Output: raíz {root.tag!r}")
+
+    setup = root.find("./ScreenSetup")
+    if setup is None:
+        setup = root
+    template_elements = [
+        element
+        for screen in setup.findall("./screens/Screen")
+        for layers in [screen.find("./layers")]
+        if layers is not None
+        for element in list(layers)
+        if element.tag in {"Slice", "Polygon"}
+    ]
+
+    route_matches = routing.get("comparison", {}).get("matches", [])
+    routes_by_slice: dict[str, list[dict[str, Any]]] = {}
+    all_route_ids: list[str] = []
+    for processor in routing.get("processors", []):
+        processor_name = processor["name"]
+        for port in processor.get("ports", []):
+            if port.get("bounds") is not None:
+                all_route_ids.append(f"{processor_name}/{port['label']}")
+    for match in route_matches:
+        route_id = f"{match['processor']}/{match['port']}"
+        routes_by_slice.setdefault(_name_key(f"{match['processor']} {match['port']}"), []).append({
+            "route_id": route_id,
+            "surface": match["surface"],
+            "bounds": match["bounds"],
+            "method": match["method"],
+            "score": match["score"],
+        })
+
+    matched_slices: list[dict[str, Any]] = []
+    ambiguous_template: list[str] = []
+    unmatched_template: list[str] = []
+    matched_route_ids: set[str] = set()
+    for element in template_elements:
+        name = _slice_name(element)
+        if not name:
+            continue
+        candidates = routes_by_slice.get(_name_key(name), [])
+        if len(candidates) != 1:
+            if len(candidates) > 1:
+                ambiguous_template.append(name)
+            else:
+                unmatched_template.append(name)
+            continue
+        candidate = candidates[0]
+        bounds = candidate["bounds"]
+        points = [
+            (float(bounds["x"]), float(bounds["y"])),
+            (float(bounds["x"] + bounds["width"]), float(bounds["y"])),
+            (float(bounds["x"] + bounds["width"]), float(bounds["y"] + bounds["height"])),
+            (float(bounds["x"]), float(bounds["y"] + bounds["height"])),
+        ]
+        _replace_input_rect(element, points)
+        matched_route_ids.add(candidate["route_id"])
+        matched_slices.append({
+            "template_slice": name,
+            "route": candidate["route_id"],
+            "surface": candidate["surface"],
+            "method": candidate["method"],
+            "score": candidate["score"],
+        })
+
+    unmatched_routes = [route_id for route_id in all_route_ids if route_id not in matched_route_ids]
+    output_path = Path(xml_output).expanduser().resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    ElementTree.indent(root, space="\t")
+    ElementTree.ElementTree(root).write(output_path, encoding="utf-8", xml_declaration=True)
+    validation_status = "PASS" if (
+        matched_slices
+        and routing.get("comparison", {}).get("geometry_status") == "GEOMETRIC_MATCH"
+        and not unmatched_routes
+        and not unmatched_template
+        and not ambiguous_template
+    ) else "REVIEW"
+    return {
+        "schema_version": "0.1",
+        "map_type": "InstarRoutedTemplateApplication",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source": {
+            "template_xml": str(template_path),
+            "interchange": routing.get("source", {}).get("interchange"),
+            "layout_report": routing.get("source", {}).get("layout_report"),
+        },
+        "matched_slices": matched_slices,
+        "unmatched_routes": unmatched_routes,
+        "unmatched_template": unmatched_template,
+        "ambiguous_template": ambiguous_template,
+        "processor_routing": {"status": "PRESERVED_FROM_TEMPLATE"},
+        "output": {
+            "xml": str(output_path),
+            "input_rects_changed": len(matched_slices),
+            "output_rects_changed": 0,
+            "devices_changed": 0,
+        },
+        "validation": {
+            "status": validation_status,
+            "errors": [],
+            "warnings": [
+                "La aplicación usa coincidencias geométricas; no demuestra el patch físico ni el cableado del venue.",
+            ],
+        },
+        "physical_status": "UNVERIFIED",
+        "limitations": [
+            "El nombre del slice debe corresponder a '<processor name> <port label>' normalizado.",
+            "Solo se modifica InputRect; OutputRect, dispositivos, warpers y routing del template se conservan.",
+            "Un intercambio parcial produce un candidato REVIEW, no una aplicación total silenciosa.",
+        ],
+    }
+
+
+def routed_template_text_report(report: dict[str, Any]) -> str:
+    output = report.get("output") or {}
+    validation = report.get("validation") or {}
+    return "\n".join([
+        "RESOLUME_ADAPTER INSTAR ROUTED TEMPLATE",
+        "=========================================",
+        f"Template: {report.get('source', {}).get('template_xml')}",
+        f"Slices actualizadas: {output.get('input_rects_changed', 0)}",
+        f"Rutas sin coincidencia: {len(report.get('unmatched_routes') or [])}",
+        f"Slices sin coincidencia: {len(report.get('unmatched_template') or [])}",
+        f"OutputRects modificados: {output.get('output_rects_changed', 0)}",
+        f"Dispositivos modificados: {output.get('devices_changed', 0)}",
+        f"Routing: {(report.get('processor_routing') or {}).get('status')}",
+        f"Hardware: {report.get('physical_status', 'UNVERIFIED')}",
+        f"Estado: {validation.get('status', 'REVIEW')}",
+    ])
 
 
 def input_template_text_report(report: dict[str, Any]) -> str:

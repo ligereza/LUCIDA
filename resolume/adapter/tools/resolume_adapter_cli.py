@@ -38,7 +38,14 @@ from resolume_adapter.instar import run_instar, text_report as instar_text_repor
 from resolume_adapter.instar_image import build_raster_mapping, raster_mapping_text_report, write_raster_mapping_report
 from resolume_adapter.instar_routing import import_pixel_peeker_routing, processor_routing_text_report, write_processor_routing_report
 from resolume_adapter.instar_svg import build_svg_mapping, svg_mapping_text_report, write_svg_mapping_report
-from resolume_adapter.instar_template import apply_input_svg_to_template, apply_raster_image_to_template, input_template_text_report, write_input_template_report
+from resolume_adapter.instar_template import (
+    apply_input_svg_to_template,
+    apply_raster_image_to_template,
+    apply_routed_layout_to_template,
+    input_template_text_report,
+    routed_template_text_report,
+    write_input_template_report,
+)
 from resolume_adapter.manifest import write_manifest
 from resolume_adapter.media import ResolumeAdapterError
 from resolume_adapter.nayade import (
@@ -301,6 +308,17 @@ def build_parser() -> argparse.ArgumentParser:
     image_template_mapping.add_argument("--aliases", help="JSON {nombre_input: nombre_template} para coincidencias explícitas.")
     image_template_mapping.add_argument("--xml", required=True, help="Ruta del XML candidato resultante.")
     image_template_mapping.add_argument("--report", help="Ruta opcional para guardar el reporte JSON.")
+
+    routed_template_mapping = commands.add_parser(
+        "instar-apply-routed-map",
+        help="Aplica layout INSTAR a slices de un template usando routing Pixel Peeker, sin tocar OutputRect.",
+    )
+    routed_template_mapping.add_argument("template_xml", help="Template XML existente de Advanced Output.")
+    routed_template_mapping.add_argument("interchange", help="JSON pixel-peeker.interchange/1 con procesadores y puertos.")
+    routed_template_mapping.add_argument("layout_report", help="Reporte JSON de instar-map-image o instar-map-svg.")
+    routed_template_mapping.add_argument("--tolerance", type=float, default=1.0, help="Tolerancia geométrica en píxeles (default: 1).")
+    routed_template_mapping.add_argument("--xml", required=True, help="Ruta del XML candidato resultante.")
+    routed_template_mapping.add_argument("--report", required=True, help="Ruta para el reporte JSON.")
 
     adapt = commands.add_parser(
         "instar-adapt",
@@ -774,6 +792,19 @@ def main(argv: list[str] | None = None) -> int:
             if args.report:
                 report_path = write_input_template_report(report, args.report)
                 print(f"\nReporte JSON: {report_path}")
+            return 0
+
+        if args.command == "instar-apply-routed-map":
+            report = apply_routed_layout_to_template(
+                args.template_xml,
+                args.interchange,
+                args.layout_report,
+                args.xml,
+                tolerance=args.tolerance,
+            )
+            print(routed_template_text_report(report))
+            report_path = write_input_template_report(report, args.report)
+            print(f"\nReporte JSON: {report_path}")
             return 0
 
         if args.command == "instar-adapt":
