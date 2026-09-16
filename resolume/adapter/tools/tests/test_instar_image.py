@@ -7,7 +7,15 @@ import unittest
 import cv2
 import numpy as np
 
-from resolume_adapter.instar_image import _annotate_regions, _extract_ocr_metadata, build_raster_mapping, detect_raster_surfaces
+from resolume_adapter.instar_image import (
+    _annotate_regions,
+    _detect_embedded_canvas,
+    _extract_ocr_metadata,
+    _infer_paired_banner_dimensions,
+    _semantic_name,
+    build_raster_mapping,
+    detect_raster_surfaces,
+)
 from resolume_adapter.resolume import extract_advanced_output_map
 
 
@@ -83,6 +91,45 @@ class InstarRasterMappingTests(unittest.TestCase):
         self.assertEqual(metadata["panel_size_cm"], {"width": 50.0, "height": 50.0})
         self.assertEqual(metadata["active_panels"], 320)
         self.assertEqual(metadata["physical_area_m2"], 80.0)
+
+    def test_semantic_name_accepts_compact_ocr_variants(self) -> None:
+        self.assertEqual(_semantic_name("CCTV Rt"), "CCTV_R")
+        self.assertEqual(_semantic_name("CCTVL"), "CCTV_L")
+
+    def test_paired_banner_reconciles_small_ocr_height_error(self) -> None:
+        report = {
+            "regions": [
+                {
+                    "name": "BANNER_FRONTAL",
+                    "inferred_role": "BANNER_FRONTAL",
+                    "bounds": {"x": 0.0, "y": 0.0, "width": 2551.0, "height": 135.0},
+                    "declared_resolution": {"width": 2560, "height": 128, "source": "ocr"},
+                },
+                {
+                    "name": "BANNER_PISO",
+                    "inferred_role": "BANNER_PISO",
+                    "bounds": {"x": 0.0, "y": 1148.0, "width": 2545.0, "height": 123.0},
+                    "declared_resolution": {"width": 2560, "height": 123, "source": "ocr"},
+                },
+            ],
+            "validation": {"warnings": []},
+        }
+
+        _infer_paired_banner_dimensions(report)
+
+        bottom = report["regions"][1]
+        self.assertEqual(bottom["declared_resolution"], {"width": 2560, "height": 128, "source": "paired_banner_reconciliation"})
+        self.assertEqual(bottom["bounds"]["height"], 128.0)
+        self.assertEqual(report["validation"]["warnings"][0]["code"], "paired_banner_dimensions_reconciled")
+
+    def test_pdf_canvas_heuristic_ignores_full_page_standalone_raster(self) -> None:
+        page = np.full((1000, 700, 3), 255, dtype=np.uint8)
+        cv2.rectangle(page, (50, 100), (650, 600), (15, 15, 15), -1)
+        crop = _detect_embedded_canvas(page)
+        self.assertEqual({key: crop[key] for key in ("x", "y", "width", "height")}, {"x": 50, "y": 100, "width": 601, "height": 501})
+
+        standalone = np.zeros((500, 800, 3), dtype=np.uint8)
+        self.assertIsNone(_detect_embedded_canvas(standalone))
 
 
 if __name__ == "__main__":

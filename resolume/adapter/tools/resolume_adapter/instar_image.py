@@ -89,6 +89,86 @@ def _raster_source(
         yield rendered
 
 
+def _detect_embedded_canvas(image: Any) -> dict[str, int] | None:
+    """Find a large non-white visual panel embedded in a PDF page.
+
+    A mapping page is often an A4/Letter sheet containing a dark layout plus
+    notes below it. Analysing the whole page makes the notes look like extra
+    surfaces. This heuristic only returns a crop when there is one clearly
+    dominant, inset, page-sized component; otherwise the caller keeps the full
+    raster and the existing fallback remains intact.
+    """
+
+    _require_backend()
+    image_height, image_width = image.shape[:2]
+    if image_width <= 0 or image_height <= 0:
+        return None
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    mask = np.where(gray < 245, 255, 0).astype(np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((15, 15), dtype=np.uint8))
+    count, _labels, stats, _centroids = cv2.connectedComponentsWithStats(mask, 8)
+    page_area = image_width * image_height
+    candidates: list[dict[str, int]] = []
+    for row in stats[1:count]:
+        x, y, width, height, area = [int(value) for value in row]
+        box_area = width * height
+        if (
+            width < image_width * 0.55
+            or height < image_height * 0.20
+            or box_area < page_area * 0.15
+            or box_area > page_area * 0.90
+            or x <= 5
+            or y <= 5
+            or x + width >= image_width - 5
+            or y + height >= image_height - 5
+        ):
+            continue
+        candidates.append({"x": x, "y": y, "width": width, "height": height, "area": area})
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: item["area"], reverse=True)
+    return candidates[0]
+
+
+@contextmanager
+def _analysis_source(
+    input_path: str | Path,
+    *,
+    pdf_renderer: str | Path | None = None,
+    pdf_page: int = 1,
+    pdf_dpi: int = 200,
+):
+    """Yield the raster used for analysis and optional PDF crop provenance."""
+
+    source = Path(input_path).expanduser().resolve()
+    with _raster_source(
+        source,
+        pdf_renderer=pdf_renderer,
+        pdf_page=pdf_page,
+        pdf_dpi=pdf_dpi,
+    ) as raster:
+        if source.suffix.casefold() != ".pdf":
+            yield raster, None
+            return
+        _require_backend()
+        image = cv2.imread(str(raster), cv2.IMREAD_COLOR)
+        crop = _detect_embedded_canvas(image) if image is not None else None
+        if crop is None:
+            yield raster, None
+            return
+        with tempfile.TemporaryDirectory(prefix="instar-pdf-canvas-") as directory:
+            crop_path = Path(directory) / "canvas.png"
+            focused = image[crop["y"] : crop["y"] + crop["height"], crop["x"] : crop["x"] + crop["width"]]
+            if focused.size == 0 or not cv2.imwrite(str(crop_path), focused):
+                yield raster, None
+                return
+            yield crop_path, {
+                "source_bounds": {key: crop[key] for key in ("x", "y", "width", "height")},
+                "source_size": {"width": image.shape[1], "height": image.shape[0]},
+                "method": "dominant_inset_nonwhite_component",
+            }
+
+
 def _overlap(first: dict[str, Any], second: dict[str, Any]) -> float:
     left = max(first["x"], second["x"])
     top = max(first["y"], second["y"])
@@ -322,14 +402,15 @@ def _line_inside_region(line: dict[str, Any], region: dict[str, Any]) -> bool:
 
 def _semantic_name(text: str) -> str | None:
     normalised = _normalise_ocr_text(text)
+    compact = re.sub(r"[^A-Z0-9]", "", normalised)
     for needle, name in (
-        ("BANNER FRONTAL", "BANNER_FRONTAL"),
-        ("BANNER PISO", "BANNER_PISO"),
+        ("BANNERFRONTAL", "BANNER_FRONTAL"),
+        ("BANNERPISO", "BANNER_PISO"),
         ("CENTRAL", "CENTRAL"),
-        ("CCTV R", "CCTV_R"),
-        ("CCTV L", "CCTV_L"),
+        ("CCTVR", "CCTV_R"),
+        ("CCTVL", "CCTV_L"),
     ):
-        if needle in normalised:
+        if needle in compact:
             return name
     return None
 
@@ -410,17 +491,34 @@ def _infer_paired_banner_dimensions(report: dict[str, Any]) -> None:
         region for region in report.get("regions") or []
         if region.get("inferred_role") in {"BANNER_FRONTAL", "BANNER_PISO"}
     ]
-    known = next((region for region in banners if region.get("declared_resolution")), None)
+    known = max(
+        (region for region in banners if region.get("declared_resolution")),
+        key=lambda region: (
+            region["declared_resolution"]["width"] * region["declared_resolution"]["height"],
+            region["declared_resolution"].get("source") == "ocr",
+        ),
+        default=None,
+    )
     if not known:
         return
     resolution = known["declared_resolution"]
+    reconciled = False
     for region in banners:
-        if region is known or region.get("declared_resolution"):
+        if region is known:
             continue
+        existing = region.get("declared_resolution")
+        if existing:
+            width_close = abs(float(existing["width"]) - float(resolution["width"])) <= max(8.0, float(resolution["width"]) * 0.02)
+            height_close = abs(float(existing["height"]) - float(resolution["height"])) <= max(8.0, float(resolution["height"]) * 0.10)
+            if not (width_close and height_close):
+                continue
+            source = "paired_banner_reconciliation"
+        else:
+            source = "paired_banner_inference"
         region["declared_resolution"] = {
             "width": resolution["width"],
             "height": resolution["height"],
-            "source": "paired_banner_inference",
+            "source": source,
         }
         bounds = region["bounds"]
         center_x = bounds["x"] + bounds["width"] / 2.0
@@ -429,7 +527,13 @@ def _infer_paired_banner_dimensions(report: dict[str, Any]) -> None:
         bounds["height"] = float(resolution["height"])
         bounds["x"] = round(center_x - bounds["width"] / 2.0, 3)
         bounds["y"] = round(center_y - bounds["height"] / 2.0, 3)
-        region["geometry_source"] = "raster_detection_plus_paired_banner_inference"
+        region["geometry_source"] = f"raster_detection_plus_{source}"
+        reconciled = reconciled or source == "paired_banner_reconciliation"
+    if reconciled:
+        report.setdefault("validation", {}).setdefault("warnings", []).append({
+            "code": "paired_banner_dimensions_reconciled",
+            "message": "La altura del banner emparejado se ajustó a la grilla declarada del otro banner; confirmar contra el plano original.",
+        })
 
 
 def _reconcile_detected_layout(report: dict[str, Any]) -> bool:
@@ -539,7 +643,7 @@ def detect_raster_surfaces(
     source = Path(image_path).expanduser().resolve()
     if not source.is_file():
         raise ResolumeAdapterError(f"No se encontró la imagen de mapping: {source}")
-    with _raster_source(source, pdf_renderer=pdf_renderer, pdf_page=pdf_page, pdf_dpi=pdf_dpi) as raster:
+    with _analysis_source(source, pdf_renderer=pdf_renderer, pdf_page=pdf_page, pdf_dpi=pdf_dpi) as (raster, _crop):
         image = cv2.imread(str(raster), cv2.IMREAD_COLOR)
         if image is None:
             raise ResolumeAdapterError(f"No se pudo decodificar la imagen de mapping: {raster}")
@@ -626,7 +730,7 @@ def build_raster_mapping(
     pdf_dpi: int = 200,
 ) -> dict[str, Any]:
     source = Path(image_path).expanduser().resolve()
-    with _raster_source(source, pdf_renderer=pdf_renderer, pdf_page=pdf_page, pdf_dpi=pdf_dpi) as raster:
+    with _analysis_source(source, pdf_renderer=pdf_renderer, pdf_page=pdf_page, pdf_dpi=pdf_dpi) as (raster, crop):
         initial_ocr = run_ocr_command(raster, ocr_executable) if canvas_size is None else None
         if canvas_size is None:
             inferred_canvas = _extract_ocr_metadata(initial_ocr or {}).get("canvas_size")
@@ -634,8 +738,16 @@ def build_raster_mapping(
                 raise ResolumeAdapterError("No se pudo obtener el canvas del OCR; entrega --canvas-size o un OCR compatible.")
             canvas_size = (inferred_canvas["width"], inferred_canvas["height"])
         report = detect_raster_surfaces(raster, canvas_size=canvas_size, min_area_ratio=min_area_ratio)
+        # `raster` is temporary for PDFs; keep the user-facing source stable.
+        report["source"]["image"] = str(source)
         report["source"]["input"] = str(source)
         report["source"]["pdf_page"] = pdf_page if source.suffix.casefold() == ".pdf" else None
+        if crop:
+            report["source"]["analysis_crop"] = crop
+            report["validation"]["warnings"].append({
+                "code": "pdf_embedded_canvas_cropped",
+                "message": "Se aisló el canvas visual dominante de la página PDF antes de detectar superficies; confirmar que no se haya omitido otra superficie.",
+            })
         report["ocr"] = run_ocr_command(
             raster,
             ocr_executable,
