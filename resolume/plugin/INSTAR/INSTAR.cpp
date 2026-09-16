@@ -62,20 +62,13 @@ INSTAR::INSTAR()
 		AddParam(Param::Create(name, 0.0f));
 		SetParamRange(PARAM_SLICE_DEPTH_01 + index, -10.0f, 10.0f);
 	}
-	AddParam(Param::Create("StageDist", 3.5f));
-	SetParamRange(PARAM_STAGE_DIST, 1.0f, 8.0f);
-	AddParam(Param::Create("StageWidth", 9.0f));
-	SetParamRange(PARAM_STAGE_WIDTH, 6.0f, 14.0f);
-	AddParam(Param::Create("StageDepth", 4.0f));
-	SetParamRange(PARAM_STAGE_DEPTH, 2.0f, 8.0f);
-	AddParam(Param::Create("TotemGap", 0.5f));
-	SetParamRange(PARAM_TOTEM_GAP, 0.2f, 1.5f);
-	AddParam(Param::Create("Tilt", 0.0f));
-	SetParamRange(PARAM_TILT, 0.0f, 90.0f);
-	AddParam(Param::Create("ModuleWidth", 1.0f));
-	SetParamRange(PARAM_MODULE_WIDTH, 0.25f, 3.0f);
-	AddParam(Param::Create("ModuleHeight", 0.5f));
-	SetParamRange(PARAM_MODULE_HEIGHT, 0.25f, 3.0f);
+	AddParam(ParamRange::Create("StageDist", 3.5f, ParamRange::Range(1.0f, 8.0f)));
+	AddParam(ParamRange::Create("StageWidth", 9.0f, ParamRange::Range(6.0f, 14.0f)));
+	AddParam(ParamRange::Create("StageDepth", 4.0f, ParamRange::Range(2.0f, 8.0f)));
+	AddParam(ParamRange::Create("TotemGap", 0.5f, ParamRange::Range(0.2f, 1.5f)));
+	AddParam(ParamRange::Create("Tilt", 0.0f, ParamRange::Range(0.0f, 90.0f)));
+	AddParam(ParamRange::Create("ModuleWidth", 1.0f, ParamRange::Range(0.25f, 3.0f)));
+	AddParam(ParamRange::Create("ModuleHeight", 0.5f, ParamRange::Range(0.25f, 3.0f)));
 	AddParam(Param::Create("ScreenColumns", FF_TYPE_INTEGER, 4.0f));
 	SetParamRange(PARAM_SCREEN_COLUMNS, 1.0f, 16.0f);
 	AddParam(Param::Create("ScreenRows", FF_TYPE_INTEGER, 6.0f));
@@ -86,8 +79,7 @@ INSTAR::INSTAR()
 	SetParamRange(PARAM_TOTEM_COLUMNS, 1.0f, 4.0f);
 	AddParam(Param::Create("TotemRows", FF_TYPE_INTEGER, 6.0f));
 	SetParamRange(PARAM_TOTEM_ROWS, 1.0f, 16.0f);
-	AddParam(Param::Create("CameraDistance", cameraDistance));
-	SetParamRange(PARAM_CAMERA_DISTANCE, 1.0f, 20.0f);
+	AddParam(ParamRange::Create("CameraDistance", cameraDistance, ParamRange::Range(1.0f, 20.0f)));
 }
 
 FFResult INSTAR::Init()
