@@ -139,6 +139,26 @@ Si no se entrega `--output-svg`, INSTAR escala la geometría del input para
 formar un OutputRect candidato y lo marca como advertencia. Los arcos SVG
 deben convertirse a Bézier antes de importar.
 
+### Imagen raster → candidato de mapping
+
+INSTAR también puede detectar superficies grandes diferenciadas por color en
+un PNG/JPG de pixel mapping y generar un XML candidato. Esta ruta normaliza
+las regiones al canvas declarado, pero queda en `REVIEW`: todavía no lee OCR,
+números de panel ni routing de procesadores.
+
+```powershell
+python .\tools\resolume_adapter_cli.py instar-map-image `
+  .\data\event\pixel-map.png `
+  --canvas-size 4186x1283 `
+  --xml .\artifacts\event-raster-candidate.xml `
+  --svg .\artifacts\event-raster-candidate.svg `
+  --report .\artifacts\event-raster-candidate.json
+```
+
+El XML sirve para inspección y posterior corrección; no se presenta como
+mapping físico confirmado. La siguiente extensión es asociar OCR de nombres y
+resoluciones a estas regiones antes de ajustar coordenadas.
+
 Para preparar material contra un objetivo conocido:
 
 ```powershell

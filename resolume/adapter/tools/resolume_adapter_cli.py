@@ -35,6 +35,7 @@ from resolume_adapter.imago import (
 from resolume_adapter.html_report import write_html_report
 from resolume_adapter.incidents import INCIDENT_CATEGORIES, build_incident_plan, incident_text_report, write_incident_plan
 from resolume_adapter.instar import run_instar, text_report as instar_text_report, write_report
+from resolume_adapter.instar_image import build_raster_mapping, raster_mapping_text_report, write_raster_mapping_report
 from resolume_adapter.instar_svg import build_svg_mapping, svg_mapping_text_report, write_svg_mapping_report
 from resolume_adapter.manifest import write_manifest
 from resolume_adapter.media import ResolumeAdapterError
@@ -246,6 +247,19 @@ def build_parser() -> argparse.ArgumentParser:
     svg_mapping.add_argument("--screen-name", default="INSTAR SVG Map", help="Nombre de la pantalla virtual generada.")
     svg_mapping.add_argument("--resolume-minor", type=int, default=27, help="Minor de Arena declarado en el XML (default: 27).")
     svg_mapping.add_argument("--report", help="Ruta opcional para guardar el candidato JSON.")
+
+    image_mapping = commands.add_parser(
+        "instar-map-image",
+        help="Detecta superficies grandes en una imagen de mapping y genera un XML candidato para Resolume Arena.",
+    )
+    image_mapping.add_argument("image", help="PNG/JPG/PDF rasterizado con el plano de mapping.")
+    image_mapping.add_argument("--canvas-size", type=_resolution, required=True, help="Resolución del canvas descrita por el plano.")
+    image_mapping.add_argument("--output-size", type=_resolution, help="Resolución del output; por defecto usa el canvas.")
+    image_mapping.add_argument("--xml", required=True, help="Ruta de salida para el XML candidato.")
+    image_mapping.add_argument("--svg", help="Guarda también el SVG geométrico intermedio.")
+    image_mapping.add_argument("--screen-name", default="INSTAR Raster Map", help="Nombre de la pantalla virtual generada.")
+    image_mapping.add_argument("--min-area-ratio", type=float, default=0.005, help="Área mínima de una región respecto de la imagen.")
+    image_mapping.add_argument("--report", help="Ruta opcional para guardar el candidato JSON.")
 
     adapt = commands.add_parser(
         "instar-adapt",
@@ -647,6 +661,22 @@ def main(argv: list[str] | None = None) -> int:
                 report_path = write_svg_mapping_report(report, args.report)
                 print(f"\nCandidato JSON: {report_path}")
             return 0 if (report.get("validation") or {}).get("status") != "FAIL" else 1
+
+        if args.command == "instar-map-image":
+            report = build_raster_mapping(
+                args.image,
+                args.xml,
+                canvas_size=args.canvas_size,
+                output_size=args.output_size,
+                svg_output=args.svg,
+                screen_name=args.screen_name,
+                min_area_ratio=args.min_area_ratio,
+            )
+            print(raster_mapping_text_report(report))
+            if args.report:
+                report_path = write_raster_mapping_report(report, args.report)
+                print(f"\nCandidato JSON: {report_path}")
+            return 0
 
         if args.command == "instar-adapt":
             plan = run_adaptation(
