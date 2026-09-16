@@ -34,7 +34,6 @@ protected:
 
 private:
 	bool LoadVenue();
-	INSTARTarimaConfig GetTarimaConfig();
 	void UploadScene();
 	bool LoadRaster();
 	void BuildRasterOverlay();
@@ -62,7 +61,8 @@ private:
 	float zoom = 0.55f;
 	float cameraDistance = 3.5f;
 	float brightness = 0.85f;
-	float sliceDepths[32] = {};
+	float depth = 0.0f;
+	std::string sliceDepthsText;
 	bool sceneDirty = true;
 	bool rasterDirty = true;
 	bool rasterReady = false;
@@ -83,20 +83,8 @@ private:
 		PARAM_PITCH = 10,
 		PARAM_ZOOM = 11,
 		PARAM_BRIGHTNESS = 12,
-		PARAM_SLICE_DEPTH_01 = 13,
-		PARAM_SLICE_DEPTH_32 = 44,
-		PARAM_STAGE_DIST = 45,
-		PARAM_STAGE_WIDTH = 46,
-		PARAM_STAGE_DEPTH = 47,
-		PARAM_TOTEM_GAP = 48,
-		PARAM_TILT = 49,
-		PARAM_MODULE_WIDTH = 50,
-		PARAM_MODULE_HEIGHT = 51,
-		PARAM_SCREEN_COLUMNS = 52,
-		PARAM_SCREEN_ROWS = 53,
-		PARAM_TOTEM_COUNT = 54,
-		PARAM_TOTEM_COLUMNS = 55,
-		PARAM_TOTEM_ROWS = 56,
-		PARAM_CAMERA_DISTANCE = 57,
+		PARAM_DEPTH = 13,
+		PARAM_SLICE_DEPTHS = 14,
+		PARAM_CAMERA_DISTANCE = 15,
 	};
 };

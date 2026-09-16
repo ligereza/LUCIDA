@@ -8,7 +8,6 @@
 #endif
 
 #include <algorithm>
-#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
@@ -455,53 +454,6 @@ std::vector<INSTARVec3> ParseXmlRectPoints(const std::string& text, size_t start
 	return points;
 }
 
-void AddWireRectangle(
-	INSTARScene& scene,
-	float left,
-	float bottom,
-	float right,
-	float top,
-	float z,
-	float red,
-	float green,
-	float blue
-)
-{
-	const INSTARVec3 points[] = {
-		{left, top, z}, {right, top, z},
-		{right, top, z}, {right, bottom, z},
-		{right, bottom, z}, {left, bottom, z},
-		{left, bottom, z}, {left, top, z},
-	};
-	for (size_t index = 0; index < 8U; index += 2U)
-		AddEdge(scene.lineVertices, points[index], points[index + 1U], red, green, blue);
-}
-
-void AddTiltedWireRectangle(
-	INSTARScene& scene,
-	float left,
-	float bottom,
-	float right,
-	float top,
-	float z,
-	float tiltDegrees,
-	float red,
-	float green,
-	float blue
-)
-{
-	// FLUJO's tilt is an orientation control. A sine offset keeps the
-	// 0..90-degree range finite and avoids exploding the preview at 90 degrees.
-	const float topDepthOffset = std::sin(tiltDegrees * 3.1415926535f / 180.0f) * (top - bottom);
-	const INSTARVec3 bottomLeft{left, bottom, z};
-	const INSTARVec3 bottomRight{right, bottom, z};
-	const INSTARVec3 topLeft{left, top, z + topDepthOffset};
-	const INSTARVec3 topRight{right, top, z + topDepthOffset};
-	AddEdge(scene.lineVertices, topLeft, topRight, red, green, blue);
-	AddEdge(scene.lineVertices, topRight, bottomRight, red, green, blue);
-	AddEdge(scene.lineVertices, bottomRight, bottomLeft, red, green, blue);
-	AddEdge(scene.lineVertices, bottomLeft, topLeft, red, green, blue);
-}
 }
 
 bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& error)
@@ -776,99 +728,6 @@ void ApplyINSTARInputPlaneDepths(INSTARScene& scene, const std::vector<float>& d
 	}
 	scene.renderCentre = {};
 	scene.renderScale = 1.0f;
-}
-
-void ApplyINSTARTarima(INSTARScene& scene, const INSTARTarimaConfig& config)
-{
-	if (scene.inputPlanes.empty() || scene.inputCanvasWidth == 0 || scene.inputCanvasHeight == 0)
-		return;
-
-	const float canvasAspect = static_cast<float>(scene.inputCanvasHeight) / static_cast<float>(scene.inputCanvasWidth);
-	const auto boundsOf = [canvasAspect, &scene](const INSTARInputPlane& plane) {
-		const float canvasWidth = static_cast<float>(scene.inputCanvasWidth);
-		const float canvasHeight = static_cast<float>(scene.inputCanvasHeight);
-		const float left = plane.x / canvasWidth * 2.0f - 1.0f;
-		const float right = (plane.x + plane.width) / canvasWidth * 2.0f - 1.0f;
-		const float top = (0.5f - plane.y / canvasHeight) * 2.0f * canvasAspect;
-		const float bottom = (0.5f - (plane.y + plane.height) / canvasHeight) * 2.0f * canvasAspect;
-		return std::array<float, 4>{left, bottom, right, top};
-	};
-
-	// The largest InputRect is the main screen. XML remains authoritative for
-	// every plane's XY position and order; this function only adds the stage
-	// context behind those planes.
-	size_t mainIndex = 0;
-	float mainArea = -1.0f;
-	for (size_t index = 0; index < scene.inputPlanes.size(); ++index)
-	{
-		const INSTARInputPlane& plane = scene.inputPlanes[index];
-		const float area = plane.width * plane.height;
-		if (area > mainArea)
-		{
-			mainArea = area;
-			mainIndex = index;
-		}
-	}
-	const std::array<float, 4> main = boundsOf(scene.inputPlanes[mainIndex]);
-	const float mainWidth = std::max(0.25f, main[2] - main[0]);
-	const float mainHeight = std::max(0.25f, main[3] - main[1]);
-	const float mainCentreX = (main[0] + main[2]) * 0.5f;
-	const float mainCentreY = (main[1] + main[3]) * 0.5f;
-	const float configuredScreenWidth = std::max(0.25f, static_cast<float>(std::max(1, config.screenColumns)) * config.moduleWidth);
-	const float worldPerMetre = mainWidth / configuredScreenWidth;
-	const float stageHeight = 0.60f * worldPerMetre;
-	const float stageDepth = std::max(0.10f, config.stageDepth * worldPerMetre);
-	const float mainDepth = scene.inputPlanes[mainIndex].depth;
-	// The renderer's camera is on the negative-Z side and looks toward +Z.
-	// Therefore the stage/backing must use greater Z than the InputRect plane
-	// so the actual textured screen remains in front of the context geometry.
-	const float stageZ = mainDepth + (config.stageDist * worldPerMetre + stageDepth * 0.5f);
-	const float floorY = main[1] - 0.35f * worldPerMetre;
-
-	AddBox(
-		scene,
-		{mainCentreX, floorY + stageHeight * 0.5f, stageZ},
-		{std::max(0.25f, config.stageWidth * worldPerMetre), stageHeight, stageDepth},
-		0.12f, 0.07f, 0.20f
-	);
-
-	// A thin backing and module grid make the largest screen readable as the
-	// main banner without replacing the actual textured InputRect plane.
-	const float backingZ = mainDepth + 0.08f * worldPerMetre;
-	AddBox(scene, {mainCentreX, mainCentreY, backingZ}, {mainWidth, mainHeight, 0.08f * worldPerMetre}, 0.04f, 0.35f, 0.55f);
-	AddWireRectangle(scene, main[0], main[1], main[2], main[3], backingZ + 0.05f * worldPerMetre, 0.20f, 0.75f, 1.0f);
-	const int screenColumns = std::max(1, config.screenColumns);
-	const int screenRows = std::max(1, config.screenRows);
-	for (int column = 1; column < screenColumns; ++column)
-	{
-		const float x = main[0] + mainWidth * static_cast<float>(column) / static_cast<float>(screenColumns);
-		AddEdge(scene.lineVertices, {x, main[1], backingZ + 0.06f * worldPerMetre}, {x, main[3], backingZ + 0.06f * worldPerMetre}, 0.15f, 0.55f, 0.85f);
-	}
-	for (int row = 1; row < screenRows; ++row)
-	{
-		const float y = main[1] + mainHeight * static_cast<float>(row) / static_cast<float>(screenRows);
-		AddEdge(scene.lineVertices, {main[0], y, backingZ + 0.06f * worldPerMetre}, {main[2], y, backingZ + 0.06f * worldPerMetre}, 0.15f, 0.55f, 0.85f);
-	}
-
-	const int totalTotems = std::max(0, config.totemCount);
-	const int pairs = totalTotems / 2;
-	const float totemWidth = std::max(0.10f, static_cast<float>(std::max(1, config.totemColumns)) * config.moduleWidth * worldPerMetre);
-	const float totemHeight = std::max(0.10f, static_cast<float>(std::max(1, config.totemRows)) * config.moduleHeight * worldPerMetre);
-	const float gap = std::max(0.0f, config.totemGap * worldPerMetre);
-	const float totemZ = backingZ + 0.16f * worldPerMetre;
-	for (int pair = 0; pair < pairs; ++pair)
-	{
-		const float offset = (static_cast<float>(pair) + 0.5f) * totemWidth + static_cast<float>(pair + 1) * gap;
-		const float leftX = main[0] - offset;
-		const float rightX = main[2] + offset;
-		const float centreY = main[1] + totemHeight * 0.5f;
-		AddBox(scene, {leftX, centreY, totemZ}, {totemWidth, totemHeight, 0.12f * worldPerMetre}, 0.75f, 0.35f, 0.05f);
-		AddBox(scene, {rightX, centreY, totemZ}, {totemWidth, totemHeight, 0.12f * worldPerMetre}, 0.75f, 0.35f, 0.05f);
-		AddTiltedWireRectangle(scene, leftX - totemWidth * 0.5f, main[1], leftX + totemWidth * 0.5f, main[1] + totemHeight, totemZ + 0.08f * worldPerMetre, config.tilt, 1.0f, 0.70f, 0.10f);
-		AddTiltedWireRectangle(scene, rightX - totemWidth * 0.5f, main[1], rightX + totemWidth * 0.5f, main[1] + totemHeight, totemZ + 0.08f * worldPerMetre, config.tilt, 1.0f, 0.70f, 0.10f);
-	}
-
-	SetRenderFit(scene);
 }
 
 bool LoadINSTARAdvancedOutputPlanes(const std::string& path, INSTARScene& scene, std::string& error)

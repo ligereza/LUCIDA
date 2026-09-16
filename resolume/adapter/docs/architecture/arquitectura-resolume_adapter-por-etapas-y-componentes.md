@@ -44,13 +44,14 @@ Las etapas de uso quedan como una taxonomía independiente:
 
 INSTAR tiene dos superficies coordinadas: el plugin FFGL Capture de venues y el
 parser offline que prepara entradas PDF/PNG/SVG. En el plugin, `XML_PLANES`
-lee los `InputRect` del Advanced Output como la composición frontal de la
-tarima: el mayor es el banner principal y los controles de profundidad solo
-añaden Z. El contexto de escenario tradicional (stage, backing, retícula y
-tótems) se genera detrás sin reordenar esos planos. `VENUE_3D` conserva el
-recorrido JSON de FLUJO y `RASTER_PIXEL_MAP` conserva la inspección plana.
-`MapFile` puede texturizar los planos XML y `TemplateXML` continúa siendo la
-autoridad de routing para la exportación explícita; `INSTAR_3D.dll` recibe
+lee los `InputRect` del Advanced Output como la composición frontal y crea
+exactamente un plano por `Slice`. No deduce una pantalla principal, banners,
+tótems o tarima desde el XML. `Depth` es un valor global y `SliceDepths` es
+una lista opcional alineada con el orden real de los slices. `VENUE_3D`
+conserva el recorrido JSON de FLUJO y `RASTER_PIXEL_MAP` conserva la
+inspección plana. `MapFile` puede texturizar los planos XML si corresponde a
+la misma composición y `TemplateXML` continúa siendo la autoridad de routing
+para la exportación explícita; `INSTAR_3D.dll` recibe
 OBJ/MTL para visualización de modelos y no genera XML. La exportación raster de
 INSTAR es independiente del visualizador 3D; ambos comparten escena/render/cámara
 donde corresponde.

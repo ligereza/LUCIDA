@@ -223,20 +223,22 @@ same Git blob produces the same manifest in Windows worktrees.
 The native Resolume unit is `resolume/plugin/INSTAR/INSTAR.cpp`. `INSTAR.dll`
 is an `FF_SOURCE` inspired by FLUJO's venue viewer. Its primary
 `XML_PLANES` mode reads the `InputRect` planes of an Advanced Output XML and
-uses them as the authoritative front-view arrangement. The largest `InputRect`
-is treated as the main banner; its XY position and the order of all other
-planes are preserved. `SliceDepth01` through `SliceDepth32` add independent Z
-offsets without changing the XML layout. `MapFile` can texture those planes
-with the source pixel-map image, while `TemplateXML` remains the real routing
+uses them as the authoritative front-view arrangement. It creates exactly one
+preview plane per XML `Slice`; it does not infer a main screen, banners,
+totems, stage dimensions or other venue objects from slice count or size.
+`Depth` applies one Z value to every slice, while the optional `SliceDepths`
+text field accepts comma-separated values in XML slice order, for example
+`0,0.2,-0.1`. Missing entries use `Depth` and extra entries are ignored.
+This keeps the control tied to the actual XML instead of exposing a fixed
+number of fictional slices. `MapFile` can texture those planes with an image
+from the same composition, while `TemplateXML` remains the real routing
 template and `OutputRect` is never used to invent the front-view composition.
 
-The XML preview adds a traditional stage, a backing/grid for the main screen,
-and configurable side totems. The `StageDist`, `StageWidth`, `StageDepth`,
-`TotemGap`, `TotemCount`, `TotemColumns`, `TotemRows`, `ModuleWidth`,
-`ModuleHeight`, `ScreenColumns`, `ScreenRows`, and `Tilt` parameters are real
-numeric controls modelled on FLUJO's tarima tool. They change only the stage
-context; they do not rewrite the source mapping. `CameraDistance` complements
-the existing `AEREO`, `PISTA` and `LIBRE` camera controls.
+The XML preview contains only mapping geometry. A venue shell or a tarima
+model must come from an explicit `VenueFile`/model source; FLUJO's tarima
+sliders are not silently copied into an unrelated Advanced Output XML.
+`CameraDistance` complements the existing `AEREO`, `PISTA` and `LIBRE` camera
+controls.
 
 The same source retains `VENUE_3D` for confidence-coloured venue JSON and
 `RASTER_PIXEL_MAP` for a flat PNG/JPG inspection with detected surface

@@ -73,19 +73,19 @@ y snapshot de procesador antes de tocar niveles o gamma.
 
 La implementación nativa vive en `resolume/plugin/INSTAR/`. `INSTAR.dll` es un
 `FF_SOURCE` de Capture de venues. En `XML_PLANES` lee los `InputRect` del
-Advanced Output como disposición frontal autoritativa: el `InputRect` de mayor
-área es el banner principal, los demás conservan su posición y orden, y
-`SliceDepth01`–`SliceDepth32` permiten ajustar profundidad por slice. `MapFile`
-puede texturizar esas superficies. Los controles numéricos de tarima
-(`StageDist`, `StageWidth`, `StageDepth`, `TotemGap`, módulos, columnas/filas,
-`TotemCount` y `Tilt`) agregan el contexto de escenario tradicional con
-backing, retícula y tótems; no sustituyen ni reordenan el mapping del XML.
+Advanced Output como disposición frontal autoritativa y crea exactamente un
+plano por `Slice`. No infiere pantalla principal, banners, tótems ni tarima a
+partir de la cantidad o el tamaño de los slices. `Depth` aplica una
+profundidad global y `SliceDepths` acepta una lista CSV alineada con el orden
+real de los slices, sin un límite artificial de 32 controles. `MapFile` puede
+texturizar esas superficies solo cuando pertenece a la misma composición.
 
 También conserva `VENUE_3D`, que lee el JSON de polilíneas de FLUJO, y
 `RASTER_PIXEL_MAP`, que muestra un `MapFile` raster conservando proporciones.
 `ExportMapXML` sigue siendo explícito y genera desde el PNG/JPG usando
 `TemplateXML` real como autoridad de composición, pantalla, dispositivo e IDs.
-`OutputRect`, warpers y routing no se inventan desde la imagen. `EdgeBudget`
+`OutputRect`, warpers y routing no se inventan desde la imagen. Un escenario
+adicional debe venir de un `VenueFile` o modelo explícito. `EdgeBudget`
 prioriza polilíneas por confianza y `ConfidenceCeiling` permite excluir niveles;
 ambos contabilizan las omitidas. No convierte modelos 3D ni configura
 procesadores LED.

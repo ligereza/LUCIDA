@@ -1,9 +1,12 @@
 #include "INSTAR.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <iterator>
+#include <sstream>
 
 using namespace ffglqs;
 
@@ -20,9 +23,23 @@ float BoundedFloat(float value, float fallback, float minimum, float maximum)
 	return std::max(minimum, std::min(maximum, value));
 }
 
-int BoundedInteger(float value, int fallback, int minimum, int maximum)
+std::vector<float> ParseSliceDepths(const std::string& text, size_t count, float fallback)
 {
-	return static_cast<int>(BoundedFloat(value, static_cast<float>(fallback), static_cast<float>(minimum), static_cast<float>(maximum)));
+	std::vector<float> result(count, fallback);
+	std::istringstream input(text);
+	std::string token;
+	size_t index = 0;
+	while (index < result.size() && std::getline(input, token, ','))
+	{
+		char* end = nullptr;
+		const float parsed = std::strtof(token.c_str(), &end);
+		while (*end != '\0' && std::isspace(static_cast<unsigned char>(*end)))
+			++end;
+		if (end != token.c_str() && *end == '\0')
+			result[index] = BoundedFloat(parsed, fallback, -10.0f, 10.0f);
+		++index;
+	}
+	return result;
 }
 }
 
@@ -69,29 +86,8 @@ INSTAR::INSTAR()
 	AddParam(Param::Create("Zoom", zoom));
 	AddParam(Param::Create("Brightness", brightness));
 	SetParamRange(PARAM_EDGE_BUDGET, 1.0f, 1000000.0f);
-	for (unsigned int index = 0; index < 32U; ++index)
-	{
-		const std::string name = std::string("SliceDepth") + (index < 9U ? "0" : "") + std::to_string(index + 1U);
-		AddParam(Param::Create(name, 0.0f));
-		SetParamRange(PARAM_SLICE_DEPTH_01 + index, -10.0f, 10.0f);
-	}
-	AddParam(ParamRange::Create("StageDist", 3.5f, ParamRange::Range(1.0f, 8.0f)));
-	AddParam(ParamRange::Create("StageWidth", 9.0f, ParamRange::Range(6.0f, 14.0f)));
-	AddParam(ParamRange::Create("StageDepth", 4.0f, ParamRange::Range(2.0f, 8.0f)));
-	AddParam(ParamRange::Create("TotemGap", 0.5f, ParamRange::Range(0.2f, 1.5f)));
-	AddParam(ParamRange::Create("Tilt", 0.0f, ParamRange::Range(0.0f, 90.0f)));
-	AddParam(ParamRange::Create("ModuleWidth", 1.0f, ParamRange::Range(0.25f, 3.0f)));
-	AddParam(ParamRange::Create("ModuleHeight", 0.5f, ParamRange::Range(0.25f, 3.0f)));
-	AddParam(Param::Create("ScreenColumns", FF_TYPE_INTEGER, 4.0f));
-	SetParamRange(PARAM_SCREEN_COLUMNS, 1.0f, 16.0f);
-	AddParam(Param::Create("ScreenRows", FF_TYPE_INTEGER, 6.0f));
-	SetParamRange(PARAM_SCREEN_ROWS, 1.0f, 16.0f);
-	AddParam(Param::Create("TotemCount", FF_TYPE_INTEGER, 4.0f));
-	SetParamRange(PARAM_TOTEM_COUNT, 0.0f, 8.0f);
-	AddParam(Param::Create("TotemColumns", FF_TYPE_INTEGER, 1.0f));
-	SetParamRange(PARAM_TOTEM_COLUMNS, 1.0f, 4.0f);
-	AddParam(Param::Create("TotemRows", FF_TYPE_INTEGER, 6.0f));
-	SetParamRange(PARAM_TOTEM_ROWS, 1.0f, 16.0f);
+	AddParam(ParamRange::Create("Depth", depth, ParamRange::Range(-10.0f, 10.0f)));
+	AddParam(ParamText::create("SliceDepths", sliceDepthsText));
 	AddParam(ParamRange::Create("CameraDistance", cameraDistance, ParamRange::Range(1.0f, 20.0f)));
 }
 
@@ -176,34 +172,14 @@ void INSTAR::Clean()
 	renderer.Clean();
 }
 
-INSTARTarimaConfig INSTAR::GetTarimaConfig()
-{
-	INSTARTarimaConfig config;
-	config.stageDist = BoundedFloat(GetFloatParameter(PARAM_STAGE_DIST), 3.5f, 1.0f, 8.0f);
-	config.stageWidth = BoundedFloat(GetFloatParameter(PARAM_STAGE_WIDTH), 9.0f, 6.0f, 14.0f);
-	config.stageDepth = BoundedFloat(GetFloatParameter(PARAM_STAGE_DEPTH), 4.0f, 2.0f, 8.0f);
-	config.totemGap = BoundedFloat(GetFloatParameter(PARAM_TOTEM_GAP), 0.5f, 0.2f, 1.5f);
-	config.tilt = BoundedFloat(GetFloatParameter(PARAM_TILT), 0.0f, 0.0f, 90.0f);
-	config.moduleWidth = BoundedFloat(GetFloatParameter(PARAM_MODULE_WIDTH), 1.0f, 0.25f, 3.0f);
-	config.moduleHeight = BoundedFloat(GetFloatParameter(PARAM_MODULE_HEIGHT), 0.5f, 0.25f, 3.0f);
-	config.screenColumns = BoundedInteger(GetFloatParameter(PARAM_SCREEN_COLUMNS), 4, 1, 16);
-	config.screenRows = BoundedInteger(GetFloatParameter(PARAM_SCREEN_ROWS), 6, 1, 16);
-	config.totemCount = BoundedInteger(GetFloatParameter(PARAM_TOTEM_COUNT), 4, 0, 8);
-	config.totemColumns = BoundedInteger(GetFloatParameter(PARAM_TOTEM_COLUMNS), 1, 1, 4);
-	config.totemRows = BoundedInteger(GetFloatParameter(PARAM_TOTEM_ROWS), 6, 1, 16);
-	return config;
-}
-
 bool INSTAR::LoadVenue()
 {
 	const int mode = static_cast<int>(GetFloatParameter(PARAM_MODE));
-	const INSTARTarimaConfig tarima = GetTarimaConfig();
 	if (mode == MODE_XML_PLANES)
 	{
 		if (templatePath.empty())
 		{
 			scene = BuildINSTARFlatPlaneDemoScene();
-			ApplyINSTARTarima(scene, tarima);
 			loadedPath.clear();
 			sceneDirty = false;
 			return true;
@@ -215,14 +191,14 @@ bool INSTAR::LoadVenue()
 			const std::string message = "INSTAR: TemplateXML inválido para XML_PLANES: " + error;
 			FFGLLog::LogToHost(message.c_str());
 			scene = BuildINSTARFlatPlaneDemoScene();
-			ApplyINSTARTarima(scene, tarima);
 			loadedPath = templatePath;
 			sceneDirty = false;
 			return false;
 		}
-		std::vector<float> depths(sliceDepths, sliceDepths + 32U);
+		std::vector<float> depths(loaded.inputPlanes.size(), BoundedFloat(depth, 0.0f, -10.0f, 10.0f));
+		const std::vector<float> explicitDepths = ParseSliceDepths(sliceDepthsText, loaded.inputPlanes.size(), depths.front());
+		depths = explicitDepths;
 		ApplyINSTARInputPlaneDepths(loaded, depths);
-		ApplyINSTARTarima(loaded, tarima);
 		scene = loaded;
 		loadedPath = templatePath;
 		sceneDirty = false;
@@ -500,9 +476,9 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 	{
 		sceneDirty = true;
 	}
-	else if (index >= PARAM_SLICE_DEPTH_01 && index <= PARAM_SLICE_DEPTH_32)
+	else if (index == PARAM_DEPTH)
 	{
-		sliceDepths[index - PARAM_SLICE_DEPTH_01] = BoundedFloat(value, 0.0f, -10.0f, 10.0f);
+		depth = BoundedFloat(value, 0.0f, -10.0f, 10.0f);
 		sceneDirty = true;
 	}
 	else if (index == PARAM_YAW)
@@ -515,8 +491,6 @@ FFResult INSTAR::SetFloatParameter(unsigned int index, float value)
 		brightness = BoundedFloat(value, 0.85f, 0.0f, 1.0f);
 	else if (index == PARAM_CAMERA_DISTANCE)
 		cameraDistance = BoundedFloat(value, 3.5f, 1.0f, 20.0f);
-	else if (index >= PARAM_STAGE_DIST && index <= PARAM_TOTEM_ROWS)
-		sceneDirty = true;
 	return Source::SetFloatParameter(index, value);
 }
 
@@ -541,6 +515,12 @@ FFResult INSTAR::SetTextParameter(unsigned int index, const char* value)
 		sceneDirty = true;
 		return FF_SUCCESS;
 	}
+	if (index == PARAM_SLICE_DEPTHS)
+	{
+		sliceDepthsText = safeValue;
+		sceneDirty = true;
+		return FF_SUCCESS;
+	}
 	if (index == PARAM_OUTPUT_XML)
 	{
 		outputPath = safeValue.empty() ? "INSTAR_AdvancedOutput.xml" : safeValue;
@@ -559,6 +539,8 @@ char* INSTAR::GetTextParameter(unsigned int index)
 		value = &mapPath;
 	else if (index == PARAM_TEMPLATE_XML)
 		value = &templatePath;
+	else if (index == PARAM_SLICE_DEPTHS)
+		value = &sliceDepthsText;
 	else if (index == PARAM_OUTPUT_XML)
 		value = &outputPath;
 	if (value == nullptr)

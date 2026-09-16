@@ -117,36 +117,22 @@ int main(int argc, char** argv)
 	const INSTARScene modelDemo = BuildINSTARModelDemoScene();
 	if (modelDemo.surfaces.size() != 1U || modelDemo.surfaces[0].name != "MODEL_DEMO" || modelDemo.triangleVertices.empty())
 		return 1;
-	INSTARScene tarima;
-	tarima.inputCanvasWidth = 1920;
-	tarima.inputCanvasHeight = 1080;
-	tarima.inputPlanes = {
+	INSTARScene sliced;
+	sliced.inputCanvasWidth = 1920;
+	sliced.inputCanvasHeight = 1080;
+	sliced.inputPlanes = {
 		{"MAIN_BANNER", 100.0f, 100.0f, 1600.0f, 700.0f},
 		{"TOTEM_L", 20.0f, 120.0f, 60.0f, 420.0f},
 		{"TOTEM_R", 1840.0f, 120.0f, 60.0f, 420.0f},
 	};
-	ApplyINSTARInputPlaneDepths(tarima, std::vector<float>{0.0f, 0.2f, -0.2f});
-	const size_t tarimaPlaneLineCount = tarima.lineVertices.size();
-	const auto tarimaPlanesBefore = tarima.inputPlanes;
-	INSTARTarimaConfig tarimaConfig;
-	tarimaConfig.tilt = 90.0f;
-	tarimaConfig.totemCount = 4;
-	ApplyINSTARTarima(tarima, tarimaConfig);
-	bool inputPlanesPreserved = tarima.inputPlanes.size() == tarimaPlanesBefore.size();
-	for (size_t index = 0; inputPlanesPreserved && index < tarima.inputPlanes.size(); ++index)
-	{
-		const INSTARInputPlane& before = tarimaPlanesBefore[index];
-		const INSTARInputPlane& after = tarima.inputPlanes[index];
-		inputPlanesPreserved = before.name == after.name && before.x == after.x && before.y == after.y &&
-			before.width == after.width && before.height == after.height && before.depth == after.depth;
-	}
-	if (tarima.lineVertices.size() <= tarimaPlaneLineCount || tarima.triangleVertices.empty() || !inputPlanesPreserved)
+	ApplyINSTARInputPlaneDepths(sliced, std::vector<float>{0.0f, 0.2f, -0.2f});
+	if (sliced.lineVertices.size() != 24U || sliced.triangleVertices.size() != 18U || sliced.inputPlanes.size() != 3U)
 		return 1;
-	if (tarima.lineVertices.front().textureEnabled < 0.5f || tarima.lineVertices[tarimaPlaneLineCount].textureEnabled > 0.5f)
+	if (sliced.inputPlanes[0].depth != 0.0f || sliced.inputPlanes[1].depth != 0.2f || sliced.inputPlanes[2].depth != -0.2f)
 		return 1;
-	for (const INSTARVertex& vertex : tarima.lineVertices)
+	for (const INSTARVertex& vertex : sliced.lineVertices)
 	{
-		if (!std::isfinite(vertex.position.x) || !std::isfinite(vertex.position.y) || !std::isfinite(vertex.position.z))
+		if (vertex.textureEnabled < 0.5f || !std::isfinite(vertex.position.x) || !std::isfinite(vertex.position.y) || !std::isfinite(vertex.position.z))
 			return 1;
 	}
 	const INSTARCamera aerial = SelectINSTARCamera(0, 0.5f, 0.5f, 0.55f);
