@@ -79,7 +79,7 @@ static CFFGLPluginInfo PluginInfo(
 	1,
 	0,
 	FF_SOURCE,
-	"FLUJO-style venue Capture and explicit raster mapping export for Resolume.",
+	"Raster mapping export and Advanced Output plane preview for Resolume.",
 	"LUCIDA RESOLUME"
 );
 
