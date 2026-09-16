@@ -415,12 +415,7 @@ bool INSTAR::ExportMapXml()
 		FFGLLog::LogToHost("INSTAR: MapFile vacío; ExportMapXML requiere PNG/JPG");
 		return false;
 	}
-	if (templatePath.empty())
-	{
-		FFGLLog::LogToHost("INSTAR: TemplateXML vacío; se requiere un Advanced Output real");
-		return false;
-	}
-	if (PathsEquivalent(templatePath, outputPath))
+	if (!templatePath.empty() && PathsEquivalent(templatePath, outputPath))
 	{
 		FFGLLog::LogToHost("INSTAR: OutputXML no puede sobrescribir TemplateXML");
 		return false;
@@ -434,33 +429,44 @@ bool INSTAR::ExportMapXml()
 		FFGLLog::LogToHost(message.c_str());
 		return false;
 	}
-	std::ifstream templateFile(templatePath.c_str());
-	if (!templateFile.is_open())
-	{
-		FFGLLog::LogToHost("INSTAR: no se pudo abrir TemplateXML");
-		return false;
-	}
-	const std::string templateXml((std::istreambuf_iterator<char>(templateFile)), std::istreambuf_iterator<char>());
-	INSTARTemplateInfo templateInfo;
-	std::string templateError;
-	if (!ReadINSTARAdvancedOutputTemplateInfo(templateXml, templateInfo, templateError))
-	{
-		const std::string message = "INSTAR: TemplateXML inválido: " + templateError;
-		FFGLLog::LogToHost(message.c_str());
-		return false;
-	}
 	const std::vector<INSTARSurface> surfaces = DetectINSTARSurfaces(image, image.width, image.height);
 	if (surfaces.empty())
 	{
 		FFGLLog::LogToHost("INSTAR: no se detectaron superficies; no se genera XML");
 		return false;
 	}
-	const std::vector<INSTARSurfaceMapping> mappings = ScaleINSTARSurfacesToTemplate(
-		surfaces, image.width, image.height, templateInfo);
-	const std::string xml = BuildINSTARAdvancedOutputXmlFromTemplate(templateXml, mappings);
+	std::string xml;
+	std::string exportMessage;
+	if (templatePath.empty())
+	{
+		xml = BuildINSTARAdvancedOutputXml(image.width, image.height, surfaces);
+		exportMessage = "INSTAR: AdvancedOutput.xml virtual generado; sin routing físico confirmado";
+	}
+	else
+	{
+		std::ifstream templateFile(templatePath.c_str());
+		if (!templateFile.is_open())
+		{
+			FFGLLog::LogToHost("INSTAR: no se pudo abrir TemplateXML");
+			return false;
+		}
+		const std::string templateXml((std::istreambuf_iterator<char>(templateFile)), std::istreambuf_iterator<char>());
+		INSTARTemplateInfo templateInfo;
+		std::string templateError;
+		if (!ReadINSTARAdvancedOutputTemplateInfo(templateXml, templateInfo, templateError))
+		{
+			const std::string message = "INSTAR: TemplateXML inválido: " + templateError;
+			FFGLLog::LogToHost(message.c_str());
+			return false;
+		}
+		const std::vector<INSTARSurfaceMapping> mappings = ScaleINSTARSurfacesToTemplate(
+			surfaces, image.width, image.height, templateInfo);
+		xml = BuildINSTARAdvancedOutputXmlFromTemplate(templateXml, mappings);
+		exportMessage = "INSTAR: AdvancedOutput.xml generado desde template; routing físico conservado";
+	}
 	if (xml.empty())
 	{
-		FFGLLog::LogToHost("INSTAR: no se pudo construir XML desde TemplateXML");
+		FFGLLog::LogToHost("INSTAR: no se pudo construir un Advanced Output compatible");
 		return false;
 	}
 	std::ofstream file(outputPath.c_str(), std::ios::out | std::ios::trunc);
@@ -485,7 +491,8 @@ bool INSTAR::ExportMapXml()
 		previewTemplatePath = outputPath;
 		loadedPath.clear();
 		sceneDirty = true;
-		FFGLLog::LogToHost("INSTAR: AdvancedOutput.xml generado; se carga automáticamente en XML_PLANES");
+		FFGLLog::LogToHost(exportMessage.c_str());
+		FFGLLog::LogToHost("INSTAR: OutputXML validado y cargado automáticamente en XML_PLANES");
 	}
 	else
 		FFGLLog::LogToHost("INSTAR: error al escribir AdvancedOutput.xml");

@@ -82,11 +82,13 @@ texturizar esas superficies solo cuando pertenece a la misma composición.
 
 También conserva `VENUE_3D`, que lee el JSON de polilíneas de FLUJO, y
 `RASTER_PIXEL_MAP`, que muestra un `MapFile` raster conservando proporciones.
-`ExportMapXML` sigue siendo explícito y genera desde el PNG/JPG usando
-`TemplateXML` real como autoridad de composición, pantalla, dispositivo e IDs.
-Solo reemplaza los `InputRect` existentes en correspondencia uno a uno; si el
-número de superficies detectadas no coincide con el número de slices, rechaza
-la salida para no inventar routing físico.
+`ExportMapXML` sigue siendo explícito y genera desde el PNG/JPG. Con un
+`TemplateXML` real, este es la autoridad de composición, pantalla, dispositivo,
+IDs, `OutputRect`, warpers y routing: solo se reemplazan los `InputRect`
+existentes en correspondencia uno a uno. Si el número de superficies detectadas
+no coincide con el número de slices, rechaza la salida para no inventar routing
+físico. Sin template, INSTAR produce un XML virtual estructuralmente válido
+para preview, pero lo marca como sin routing físico confirmado.
 Después de escribirlo, `OutputXML` pasa a ser automáticamente la fuente del
 preview XML; el template original no se sobrescribe.
 `OutputRect`, warpers y routing no se inventan desde la imagen. Un escenario
