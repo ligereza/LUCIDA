@@ -253,7 +253,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Detecta superficies grandes en una imagen de mapping y genera un XML candidato para Resolume Arena.",
     )
     image_mapping.add_argument("image", help="PNG/JPG/PDF rasterizado con el plano de mapping.")
-    image_mapping.add_argument("--canvas-size", type=_resolution, required=True, help="Resolución del canvas descrita por el plano.")
+    image_mapping.add_argument("--canvas-size", type=_resolution, help="Resolución del canvas; si falta, se intenta obtener del OCR.")
     image_mapping.add_argument("--output-size", type=_resolution, help="Resolución del output; por defecto usa el canvas.")
     image_mapping.add_argument("--xml", required=True, help="Ruta de salida para el XML candidato.")
     image_mapping.add_argument("--svg", help="Guarda también el SVG geométrico intermedio.")

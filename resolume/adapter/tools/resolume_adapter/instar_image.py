@@ -33,6 +33,11 @@ _HUE_BANDS = (
 )
 _OCR_LINE = re.compile(r"^OCR_LINE\s+x=([-+]?\d+(?:\.\d+)?)\s+y=([-+]?\d+(?:\.\d+)?)\s+w=([-+]?\d+(?:\.\d+)?)\s+h=([-+]?\d+(?:\.\d+)?)\s+text=(.*)$")
 _PIXEL_DIMENSIONS = re.compile(r"\bW\s*(\d+)\s*(?:[x×]\s*)?H\s*(\d+)\b", re.IGNORECASE)
+_CANVAS_DIMENSIONS = re.compile(r"\b(\d{3,5})\s*PX\s*[x×]\s*(\d{3,5})\s*PX\b", re.IGNORECASE)
+_PANEL_SPEC = re.compile(r"\bP\s*(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)\s*CM\b", re.IGNORECASE)
+_PANEL_COUNT = re.compile(r"\b(\d{2,5})\s*(?:UN|UNIDADES?)\b", re.IGNORECASE)
+_AREA = re.compile(r"\b(\d+(?:[.,]\d+)?)\s*M2\b", re.IGNORECASE)
+_ESTIMATED_SIZE = re.compile(r"\b(\d+(?:[.,]\d+)?)\s*M\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*M\b", re.IGNORECASE)
 
 
 def _require_backend() -> None:
@@ -146,6 +151,7 @@ def _normalise_ocr_text(value: str) -> str:
 
 def _parse_ocr_output(stdout: str) -> dict[str, Any]:
     language_match = re.search(r"^OCR_LANGUAGE\s+(.+)$", stdout, re.MULTILINE)
+    text_match = re.search(r"OCR_TEXT_BEGIN\s*\n(.*?)\nOCR_TEXT_END", stdout, re.DOTALL)
     lines: list[dict[str, Any]] = []
     for raw_line in stdout.splitlines():
         match = _OCR_LINE.match(raw_line.strip())
@@ -155,7 +161,11 @@ def _parse_ocr_output(stdout: str) -> dict[str, Any]:
         text = match.group(5).strip()
         if text:
             lines.append({"x": x, "y": y, "width": width, "height": height, "text": text})
-    return {"language": language_match.group(1).strip() if language_match else None, "lines": lines}
+    return {
+        "language": language_match.group(1).strip() if language_match else None,
+        "text": text_match.group(1).strip() if text_match else "",
+        "lines": lines,
+    }
 
 
 def _run_ocr_once(binary: Path, source: Path, timeout_seconds: int) -> dict[str, Any]:
@@ -201,6 +211,7 @@ def run_ocr_command(
         return {"available": False, "reason": f"ocr_executable_not_found:{binary}", "lines": []}
     full_pass = _run_ocr_once(binary, source, timeout_seconds)
     all_lines = list(full_pass.get("lines") or [])
+    all_text = [full_pass.get("text", "")]
     languages = [full_pass.get("language")] if full_pass.get("language") else []
     passes = 1
     if region_boxes and cv2 is not None:
@@ -223,6 +234,8 @@ def run_ocr_command(
                     passes += 1
                     if crop_pass.get("language"):
                         languages.append(crop_pass["language"])
+                    if crop_pass.get("text"):
+                        all_text.append(crop_pass["text"])
                     for line in crop_pass.get("lines") or []:
                         all_lines.append({
                             **line,
@@ -242,6 +255,7 @@ def run_ocr_command(
     return {
         "available": available,
         "language": next((language for language in languages if language), None),
+        "text": "\n".join(text for text in all_text if text),
         "lines": deduplicated,
         "passes": passes,
         "returncode": full_pass.get("returncode"),
@@ -279,6 +293,39 @@ def _semantic_name(text: str) -> str | None:
 def _declared_dimensions(text: str) -> tuple[int, int] | None:
     match = _PIXEL_DIMENSIONS.search(_normalise_ocr_text(text))
     return (int(match.group(1)), int(match.group(2))) if match else None
+
+
+def _ocr_combined_text(ocr: dict[str, Any]) -> str:
+    return "\n".join(
+        value for value in [ocr.get("text", ""), *(line.get("text", "") for line in ocr.get("lines") or [])]
+        if value
+    )
+
+
+def _decimal(value: str) -> float:
+    return float(value.replace(",", "."))
+
+
+def _extract_ocr_metadata(ocr: dict[str, Any]) -> dict[str, Any]:
+    text = _normalise_ocr_text(_ocr_combined_text(ocr))
+    metadata: dict[str, Any] = {"source": "ocr", "raw_text_available": bool(text)}
+    canvas = _CANVAS_DIMENSIONS.search(text)
+    if canvas:
+        metadata["canvas_size"] = {"width": int(canvas.group(1)), "height": int(canvas.group(2)), "source": "ocr"}
+    panel = _PANEL_SPEC.search(text)
+    if panel:
+        metadata["pixel_pitch_mm"] = _decimal(panel.group(1))
+        metadata["panel_size_cm"] = {"width": _decimal(panel.group(2)), "height": _decimal(panel.group(3))}
+    count = _PANEL_COUNT.search(text)
+    if count:
+        metadata["active_panels"] = int(count.group(1))
+    area = _AREA.search(text)
+    if area:
+        metadata["physical_area_m2"] = _decimal(area.group(1))
+    estimated = _ESTIMATED_SIZE.search(text)
+    if estimated:
+        metadata["estimated_size_m"] = {"width": _decimal(estimated.group(1)), "height": _decimal(estimated.group(2))}
+    return metadata
 
 
 def _annotate_regions(report: dict[str, Any]) -> int:
@@ -388,6 +435,46 @@ def _reconcile_detected_layout(report: dict[str, Any]) -> bool:
     return changed
 
 
+def _derive_panel_metrics(report: dict[str, Any]) -> None:
+    metadata = report.get("metadata") or {}
+    pitch = metadata.get("pixel_pitch_mm")
+    panel_size = metadata.get("panel_size_cm") or {}
+    if not pitch or not panel_size.get("width") or not panel_size.get("height"):
+        return
+    panel_width_px = round(float(panel_size["width"]) * 10.0 / float(pitch))
+    panel_height_px = round(float(panel_size["height"]) * 10.0 / float(pitch))
+    metadata["panel_resolution_px"] = {"width": panel_width_px, "height": panel_height_px, "source": "pitch_and_panel_size"}
+    total = 0
+    for region in report.get("regions") or []:
+        resolution = region.get("declared_resolution")
+        if not resolution:
+            continue
+        columns = round(float(resolution["width"]) / panel_width_px)
+        rows = round(float(resolution["height"]) / panel_height_px)
+        width_error = abs(float(resolution["width"]) - columns * panel_width_px)
+        height_error = abs(float(resolution["height"]) - rows * panel_height_px)
+        if width_error > panel_width_px * 0.05 or height_error > panel_height_px * 0.05:
+            region["panel_grid"] = {"status": "REVIEW", "reason": "la resolución no forma una grilla cercana al tamaño de panel declarado"}
+            continue
+        region["panel_grid"] = {
+            "columns": columns,
+            "rows": rows,
+            "panels": columns * rows,
+            "panel_resolution_px": {"width": panel_width_px, "height": panel_height_px},
+            "source": "declared_resolution_and_ocr_panel_spec",
+        }
+        total += columns * rows
+    if total:
+        metadata["derived_panel_count"] = total
+        active = metadata.get("active_panels")
+        metadata["panel_count_check"] = {
+            "status": "PASS" if active == total else "REVIEW",
+            "derived": total,
+            "declared": active,
+        }
+    report["metadata"] = metadata
+
+
 def detect_raster_surfaces(image_path: str | Path, *, canvas_size: tuple[int, int], min_area_ratio: float = 0.005) -> dict[str, Any]:
     """Detecta superficies grandes y las normaliza al canvas declarado.
 
@@ -429,7 +516,7 @@ def detect_raster_surfaces(image_path: str | Path, *, canvas_size: tuple[int, in
             ],
         },
         "limitations": [
-            "No interpreta todavía OCR, números de panel, orden de puertos ni asignación de procesadores.",
+            "No interpreta todavía el orden de puertos ni la asignación de procesadores.",
             "La detección por color depende de que las superficies tengan rellenos diferenciables y suficientemente grandes.",
         ],
     }
@@ -470,13 +557,19 @@ def build_raster_mapping(
     image_path: str | Path,
     xml_output: str | Path,
     *,
-    canvas_size: tuple[int, int],
+    canvas_size: tuple[int, int] | None,
     output_size: tuple[int, int] | None = None,
     svg_output: str | Path | None = None,
     screen_name: str = "INSTAR Raster Map",
     min_area_ratio: float = 0.005,
     ocr_executable: str | Path | None = None,
 ) -> dict[str, Any]:
+    initial_ocr = run_ocr_command(image_path, ocr_executable) if canvas_size is None else None
+    if canvas_size is None:
+        inferred_canvas = _extract_ocr_metadata(initial_ocr or {}).get("canvas_size")
+        if not inferred_canvas:
+            raise ResolumeAdapterError("No se pudo obtener el canvas del OCR; entrega --canvas-size o un OCR compatible.")
+        canvas_size = (inferred_canvas["width"], inferred_canvas["height"])
     report = detect_raster_surfaces(image_path, canvas_size=canvas_size, min_area_ratio=min_area_ratio)
     report["ocr"] = run_ocr_command(
         image_path,
@@ -486,6 +579,8 @@ def build_raster_mapping(
     resolved_names = _annotate_regions(report)
     _infer_paired_banner_dimensions(report)
     _reconcile_detected_layout(report)
+    report["metadata"] = _extract_ocr_metadata(report["ocr"])
+    _derive_panel_metrics(report)
     if report["ocr"].get("available"):
         report["validation"]["warnings"] = [
             warning for warning in report["validation"]["warnings"] if warning.get("code") != "labels_not_read"
@@ -529,6 +624,9 @@ def raster_mapping_text_report(report: dict[str, Any]) -> str:
         f"XML candidato: {report.get('artifacts', {}).get('advanced_output_xml')}",
         f"Estado: {validation.get('status', 'UNKNOWN')}",
     ]
+    metadata = report.get("metadata") or {}
+    if metadata.get("active_panels") is not None:
+        lines.append(f"Paneles declarados/derivados: {metadata.get('active_panels')}/{metadata.get('derived_panel_count', 'UNKNOWN')}")
     for region in report.get("regions") or []:
         bounds = region["bounds"]
         lines.append(

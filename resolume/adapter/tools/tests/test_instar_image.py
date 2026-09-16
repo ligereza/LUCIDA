@@ -7,7 +7,7 @@ import unittest
 import cv2
 import numpy as np
 
-from resolume_adapter.instar_image import _annotate_regions, build_raster_mapping, detect_raster_surfaces
+from resolume_adapter.instar_image import _annotate_regions, _extract_ocr_metadata, build_raster_mapping, detect_raster_surfaces
 from resolume_adapter.resolume import extract_advanced_output_map
 
 
@@ -69,6 +69,18 @@ class InstarRasterMappingTests(unittest.TestCase):
             self.assertEqual(central["bounds"]["width"], 2560.0)
             self.assertEqual(central["bounds"]["height"], 1024.0)
             self.assertEqual(central["geometry_source"], "raster_detection_plus_ocr_dimensions")
+
+    def test_ocr_metadata_extracts_canvas_panel_spec_and_total(self) -> None:
+        metadata = _extract_ocr_metadata({
+            "text": "Resolución Total: 4186px x 1283px Paneles Activos: 320 un. P3.9 50 50 cm Área Física Total: 80.00 m2",
+            "lines": [],
+        })
+
+        self.assertEqual(metadata["canvas_size"], {"width": 4186, "height": 1283, "source": "ocr"})
+        self.assertEqual(metadata["pixel_pitch_mm"], 3.9)
+        self.assertEqual(metadata["panel_size_cm"], {"width": 50.0, "height": 50.0})
+        self.assertEqual(metadata["active_panels"], 320)
+        self.assertEqual(metadata["physical_area_m2"], 80.0)
 
 
 if __name__ == "__main__":
