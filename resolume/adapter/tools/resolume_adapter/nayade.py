@@ -31,6 +31,20 @@ def _load_json(path: str | Path) -> tuple[Path, dict[str, Any]]:
     return resolved, document
 
 
+def _load_source(path: str | Path) -> tuple[Path, dict[str, Any]]:
+    """Load either an existing report or a real Advanced Output XML preset."""
+
+    resolved = Path(path).expanduser().resolve()
+    if resolved.suffix.casefold() == ".xml":
+        try:
+            from .resolume import extract_advanced_output_map
+
+            return resolved, extract_advanced_output_map(resolved)
+        except (OSError, ValueError, ResolumeAdapterError) as exc:
+            raise ResolumeAdapterError(f"No se pudo leer el Advanced Output XML: {resolved}") from exc
+    return _load_json(resolved)
+
+
 def _load_adaptation_plan(path: str | Path) -> tuple[Path, dict[str, Any]]:
     resolved, document = _load_json(path)
     if document.get("plan_type") != "InstarTargetSpecificAdaptationPlan":
@@ -189,7 +203,7 @@ def create_session(
 ) -> dict[str, Any]:
     """Crea una sesión NAYADE sin alterar el informe fuente."""
 
-    source, document = _load_json(source_path)
+    source, document = _load_source(source_path)
     slices = _source_slices(document)
     assets: list[dict[str, Any]] = []
     catalog = None
@@ -251,7 +265,7 @@ def create_session(
         "read_only_source": True,
         "source": {
             "path": str(source),
-            "type": document.get("plan_type") or document.get("testcard_type") or "unknown",
+            "type": document.get("plan_type") or document.get("testcard_type") or document.get("map_type") or "unknown",
             "mapping_hash": mapping_hash,
         },
         "composition": document.get("composition"),

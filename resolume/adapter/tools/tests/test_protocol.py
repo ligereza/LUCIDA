@@ -104,6 +104,29 @@ def test_protocol_can_be_attached_to_a_nayade_session(tmp_path):
     assert list(Draft202012Validator(schema).iter_errors(session)) == []
 
 
+def test_session_can_start_directly_from_advanced_output_xml(tmp_path):
+    source_path = tmp_path / "advanced-output.xml"
+    session_path = tmp_path / "session.json"
+    source_path.write_text(
+        '''<?xml version="1.0" encoding="utf-8"?>
+<XmlState><ScreenSetup><CurrentCompositionTextureSize width="1000" height="500"/><screens>
+<Screen name="Screen" uniqueId="screen-1"><Params name="Params"><Param name="Name" value="Screen"/><Param name="Enabled" value="1"/></Params>
+<OutputDevice><OutputDeviceVirtual name="Virtual" deviceId="Virtual" width="1920" height="1080"/></OutputDevice><layers>
+<Slice uniqueId="slice-1"><Params name="Common"><Param name="Name" value="MAIN"/><Param name="Enabled" value="1"/></Params>
+<Params name="Input"/><InputRect><v x="0" y="0"/><v x="100" y="0"/><v x="100" y="100"/><v x="0" y="100"/></InputRect>
+<OutputRect><v x="0" y="0"/><v x="400" y="0"/><v x="400" y="200"/><v x="0" y="200"/></OutputRect></Slice>
+</layers></Screen></screens></ScreenSetup></XmlState>''',
+        encoding="utf-8",
+    )
+
+    session = create_session(source_path, session_path)
+
+    assert session["source"]["type"] == "ResolumeAdvancedOutputMap"
+    assert session["targets"]["slices"][0]["slice_name"] == "MAIN"
+    assert session["targets"]["input_groups"] == ["input-group-001"]
+    assert session_path.is_file()
+
+
 def test_session_bridge_rejects_incomplete_protocol():
     with pytest.raises(ResolumeAdapterError, match="Protocolo NAYADE inválido"):
         protocol_session_steps({"protocol_type": "NayadeSoundcheckProtocol", "steps": []})

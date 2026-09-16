@@ -1,8 +1,9 @@
 # NAYADE: sesión reproducible de soundcheck
 
 NAYADE convierte las pruebas que normalmente quedan en la memoria del VJ en
-un registro portable. La sesión se inicia desde un informe de mapping o desde
-la tarjeta geométrica y conserva el `input_group_id` como unidad de prueba.
+un registro portable. La sesión puede iniciarse directamente desde un
+Advanced Output XML real de INSTAR, desde un informe de mapping o desde la
+tarjeta geométrica, y conserva el `input_group_id` como unidad de prueba.
 Esto evita tratar como independientes varias slices que comparten el mismo
 InputRect.
 
@@ -10,7 +11,7 @@ InputRect.
 
 ~~~powershell
 python .\tools\resolume_adapter_cli.py nayade-session init `
-  "Z:\RESOLUME_ADAPTER\runs\plox-geometry-testcard-video.json" `
+  "C:\Users\issvk\Documents\Resolume Arena\Presets\Advanced Output\VENUE.xml" `
   --output "Z:\RESOLUME_ADAPTER\runs\plox-nayade-soundcheck.json" `
   --name "PLOX — Soundcheck Mapping" `
   --seed 4821 `

@@ -363,7 +363,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     session_commands = session.add_subparsers(dest="session_command", required=True)
     session_init = session_commands.add_parser("init", help="Inicia la matriz de experimentación desde un informe INSTAR/NAYADE.")
-    session_init.add_argument("source", help="Informe JSON de mapping o tarjeta de prueba.")
+    session_init.add_argument("source", help="Advanced Output XML real o informe JSON de mapping/tarjeta de prueba.")
     session_init.add_argument("-o", "--output", required=True, help="Archivo JSON de sesión a crear.")
     session_init.add_argument("--name", help="Nombre legible de la sesión.")
     session_init.add_argument("--seed", type=int, help="Semilla reproducible para variaciones futuras.")
