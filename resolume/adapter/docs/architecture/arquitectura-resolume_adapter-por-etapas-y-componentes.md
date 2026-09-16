@@ -44,7 +44,9 @@ Las etapas de uso quedan como una taxonomía independiente:
 
 INSTAR tiene dos superficies coordinadas: el plugin FFGL que trabaja dentro de
 Resolume y el parser offline que prepara entradas PDF/PNG/SVG. El plugin recibe
-un pixel-map raster, no solicita un `AdvancedOutput.xml` real y genera uno. Los
+un pixel-map raster u OBJ con grupos de superficie, no solicita un
+`AdvancedOutput.xml` real y genera uno; OBJ y CAPTURE comparten proyección 3D.
+Los
 reportes y estadísticas son evidencia transversal, no una cuarta etapa.
 
 ## Tipos de componente
@@ -254,7 +256,8 @@ Plugin FFGL de Resolume para el VJ, acompañado por un parser offline:
 - prepara o valida DXV;
 - registra estado de GPU, disco, memoria y temperatura;
 - genera el perfil inicial de señal;
-- genera un `AdvancedOutput.xml` válido desde el canvas y el pixel-map raster;
+- genera un `AdvancedOutput.xml` válido desde el canvas y el pixel-map raster u
+  OBJ;
 - muestra una guía visual de bajo consumo durante la preparación y el show;
 - el parser offline rasteriza PDF y prepara entradas cuando la fuente no es raster.
 

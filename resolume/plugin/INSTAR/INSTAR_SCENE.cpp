@@ -10,6 +10,13 @@
 
 namespace
 {
+struct INSTARMaterialColour
+{
+	float red = 1.0f;
+	float green = 1.0f;
+	float blue = 1.0f;
+};
+
 void AddEdge(std::vector<INSTARVertex>& output, const INSTARVec3& first, const INSTARVec3& second, float red, float green, float blue)
 {
 	output.push_back({first, red, green, blue});
@@ -82,6 +89,48 @@ int ObjIndex(const std::string& token, int positionCount)
 	return index >= 0 && index < positionCount ? static_cast<int>(index) : -1;
 }
 
+std::string DirectoryOf(const std::string& path)
+{
+	const size_t slash = path.find_last_of("/\\");
+	return slash == std::string::npos ? std::string() : path.substr(0, slash + 1);
+}
+
+void LoadMtlFile(
+	const std::string& objPath,
+	const std::string& mtlName,
+	std::map<std::string, INSTARMaterialColour>& materials
+)
+{
+	std::ifstream file((DirectoryOf(objPath) + mtlName).c_str());
+	if (!file.is_open())
+		return;
+	std::string currentMaterial;
+	std::string line;
+	while (std::getline(file, line))
+	{
+		std::istringstream input(line);
+		std::string command;
+		input >> command;
+		if (command == "newmtl")
+		{
+			input >> currentMaterial;
+			if (!currentMaterial.empty())
+				materials[currentMaterial] = INSTARMaterialColour();
+		}
+		else if (command == "Kd" && !currentMaterial.empty())
+		{
+			INSTARMaterialColour colour;
+			if (input >> colour.red >> colour.green >> colour.blue)
+			{
+				colour.red = std::max(0.0f, std::min(1.0f, colour.red));
+				colour.green = std::max(0.0f, std::min(1.0f, colour.green));
+				colour.blue = std::max(0.0f, std::min(1.0f, colour.blue));
+				materials[currentMaterial] = colour;
+			}
+		}
+	}
+}
+
 void AddBox(INSTARScene& scene, const INSTARVec3& centre, const INSTARVec3& size, float red, float green, float blue)
 {
 	const float x = size.x * 0.5f;
@@ -139,7 +188,9 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 	}
 	std::vector<INSTARVec3> positions;
 	std::map<std::string, std::vector<int>> groupPositions;
+	std::map<std::string, INSTARMaterialColour> materials;
 	std::string currentGroup = "OBJ";
+	std::string currentMaterial;
 	std::string line;
 	unsigned int faceNumber = 0;
 	while (std::getline(file, line))
@@ -163,6 +214,18 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 				currentGroup = "OBJ";
 			continue;
 		}
+		if (command == "mtllib")
+		{
+			std::string materialLibrary;
+			while (input >> materialLibrary)
+				LoadMtlFile(path, materialLibrary, materials);
+			continue;
+		}
+		if (command == "usemtl")
+		{
+			input >> currentMaterial;
+			continue;
+		}
 		if (command != "f")
 			continue;
 
@@ -177,18 +240,25 @@ bool LoadINSTARObj(const std::string& path, INSTARScene& scene, std::string& err
 		if (face.size() < 3)
 			continue;
 		groupPositions[currentGroup].insert(groupPositions[currentGroup].end(), face.begin(), face.end());
-		const float red = 0.35f + static_cast<float>((faceNumber * 37U) % 55U) / 100.0f;
-		const float green = 0.45f + static_cast<float>((faceNumber * 19U) % 45U) / 100.0f;
-		const float blue = 0.55f + static_cast<float>((faceNumber * 11U) % 35U) / 100.0f;
+		INSTARMaterialColour colour;
+		const auto material = materials.find(currentMaterial);
+		if (material != materials.end())
+			colour = material->second;
+		else
+		{
+			colour.red = 0.35f + static_cast<float>((faceNumber * 37U) % 55U) / 100.0f;
+			colour.green = 0.45f + static_cast<float>((faceNumber * 19U) % 45U) / 100.0f;
+			colour.blue = 0.55f + static_cast<float>((faceNumber * 11U) % 35U) / 100.0f;
+		}
 		for (size_t index = 1; index + 1 < face.size(); ++index)
 		{
 			const INSTARVec3& first = positions[face[0]];
 			const INSTARVec3& second = positions[face[index]];
 			const INSTARVec3& third = positions[face[index + 1]];
-			AddEdge(scene.lineVertices, first, second, red, green, blue);
-			AddEdge(scene.lineVertices, second, third, red, green, blue);
-			AddEdge(scene.lineVertices, third, first, red, green, blue);
-			AddTriangle(scene.triangleVertices, first, second, third, red, green, blue);
+			AddEdge(scene.lineVertices, first, second, colour.red, colour.green, colour.blue);
+			AddEdge(scene.lineVertices, second, third, colour.red, colour.green, colour.blue);
+			AddEdge(scene.lineVertices, third, first, colour.red, colour.green, colour.blue);
+			AddTriangle(scene.triangleVertices, first, second, third, colour.red, colour.green, colour.blue);
 		}
 		++faceNumber;
 	}

@@ -10,25 +10,35 @@
 int main()
 {
 	const char* path = "INSTAR_SCENE_CONTRACT.obj";
+	const char* materialPath = "INSTAR_SCENE_CONTRACT.mtl";
+	{
+		std::ofstream material(materialPath, std::ios::out | std::ios::trunc);
+		material << "newmtl central_red\nKd 0.8 0.2 0.1\n";
+	}
 	{
 		std::ofstream fixture(path, std::ios::out | std::ios::trunc);
-		fixture << "o screen_central\n"
-			       "v 0 0 0\n"
-			       "v 2 0 0\n"
-			       "v 2 1 0\n"
-			       "v 0 1 0\n"
-			       "f 1 2 3 4\n";
+		fixture << "mtllib INSTAR_SCENE_CONTRACT.mtl\n"
+		       << "o screen_central\n"
+		       "v 0 0 0\n"
+		       "v 2 0 0\n"
+		       "v 2 1 0\n"
+		       "v 0 1 0\n"
+		       "usemtl central_red\n"
+		       "f 1 2 3 4\n";
 	}
 
 	INSTARScene scene;
 	std::string error;
 	const bool loaded = LoadINSTARObj(path, scene, error);
 	std::remove(path);
+	std::remove(materialPath);
 	if (!loaded || !scene.fromObj || scene.lineVertices.size() != 12U || scene.triangleVertices.size() != 6U || scene.surfaces.size() != 1U || scene.surfaces[0].name != "screen_central")
 	{
 		std::fprintf(stderr, "load=%d fromObj=%d lines=%zu triangles=%zu surfaces=%zu name=%s\\n", loaded, scene.fromObj, scene.lineVertices.size(), scene.triangleVertices.size(), scene.surfaces.size(), scene.surfaces.empty() ? "" : scene.surfaces[0].name.c_str());
 		return 1;
 	}
+	if (scene.triangleVertices[0].red < 0.79f || scene.triangleVertices[0].green > 0.21f || scene.triangleVertices[0].blue > 0.11f)
+		return 1;
 	for (const INSTARVertex& vertex : scene.lineVertices)
 	{
 		if (vertex.position.x < -1.001f || vertex.position.x > 1.001f ||

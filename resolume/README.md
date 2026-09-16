@@ -264,14 +264,17 @@ An `ExportXML` event projects named OBJ groups containing `screen`, `led`,
 `banner`, `cctv`, `display`, `surface` or `panel` into the same
 `AdvancedOutput.xml` serializer used by INSTAR MAP.
 
+OBJ `mtllib`/`usemtl` records are read for diffuse material colours; when no
+material is available, deterministic fallback colours keep the scene legible.
+
 The three view modes use one shared camera selector in the native scene core,
 so the preview and the exported projection use the same AEREO/PISTA/LIBRE
 interpretation.
 
 This is the Capture-like visualization layer: it is not a NovaStar controller
 and it does not pretend that a 3D preview is a physical patch. OBJ geometry is
-the first importer; materials, textures and additional formats are deliberately
-not claimed yet. Unnamed geometry remains visible in the 3D preview but does not
+the first importer; image textures and additional formats are deliberately not
+claimed yet. Unnamed geometry remains visible in the 3D preview but does not
 become a slice; this prevents truss or scenery from being mistaken for an LED
 surface.
 
