@@ -96,6 +96,36 @@ __global__ void PreprocessKernel(
 	}
 }
 
+template <typename T>
+__global__ void PreprocessHostKernel(
+	const uchar4* source,
+	T* destination,
+	int width,
+	int height,
+	int sourceWidth,
+	int sourceHeight)
+{
+	const int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const int y = blockIdx.y * blockDim.y + threadIdx.y;
+	if (x >= width || y >= height)
+		return;
+
+	const int sourceX = min(sourceWidth - 1, static_cast<int>((static_cast<float>(x) + 0.5f) * sourceWidth / width));
+	const int sourceY = min(sourceHeight - 1, static_cast<int>((static_cast<float>(y) + 0.5f) * sourceHeight / height));
+	const uchar4 pixel = source[sourceY * sourceWidth + sourceX];
+	const float channels[3] = {
+		static_cast<float>(pixel.x) / 255.0f,
+		static_cast<float>(pixel.y) / 255.0f,
+		static_cast<float>(pixel.z) / 255.0f
+	};
+	const float mean[3] = {0.485f, 0.456f, 0.406f};
+	const float standardDeviation[3] = {0.229f, 0.224f, 0.225f};
+	const int plane = width * height;
+	const int index = y * width + x;
+	for (int channel = 0; channel < 3; ++channel)
+		destination[channel * plane + index] = StoreValue<T>((channels[channel] - mean[channel]) / standardDeviation[channel]);
+}
+
 __global__ void ConvertFloatKernel(const float* source, float* destination, int count)
 {
 	const int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -189,6 +219,8 @@ struct DEPTHFX_CUDA
 
 	cudaStream_t stream = nullptr;
 	void* inputDevice = nullptr;
+	uchar4* sourceDevice = nullptr;
+	size_t sourceCapacity = 0;
 	void* outputDevice = nullptr;
 	float* outputFloatDevice = nullptr;
 	float* minimumDevice = nullptr;
@@ -263,6 +295,8 @@ struct DEPTHFX_CUDA
 			cudaFree(outputDevice);
 		if (inputDevice != nullptr)
 			cudaFree(inputDevice);
+		if (sourceDevice != nullptr)
+			cudaFree(sourceDevice);
 		if (stream != nullptr)
 			cudaStreamDestroy(stream);
 		blockMaximumDevice = nullptr;
@@ -272,6 +306,8 @@ struct DEPTHFX_CUDA
 		outputFloatDevice = nullptr;
 		outputDevice = nullptr;
 		inputDevice = nullptr;
+		sourceDevice = nullptr;
+		sourceCapacity = 0;
 		stream = nullptr;
 		reductionBlocks = 0;
 	}
@@ -318,6 +354,22 @@ struct DEPTHFX_CUDA
 			return Fail(CudaError("cudaMalloc(block minimum)", cudaGetLastError()));
 		if (cudaMalloc(reinterpret_cast<void**>(&blockMaximumDevice), static_cast<size_t>(reductionBlocks) * sizeof(float)) != cudaSuccess)
 			return Fail(CudaError("cudaMalloc(block maximum)", cudaGetLastError()));
+		return true;
+	}
+
+	bool EnsureSourceBuffer(int width, int height)
+	{
+		const size_t required = static_cast<size_t>(width) * static_cast<size_t>(height) * sizeof(uchar4);
+		if (sourceDevice != nullptr && sourceCapacity >= required)
+			return true;
+		if (sourceDevice != nullptr)
+			cudaFree(sourceDevice);
+		sourceDevice = nullptr;
+		sourceCapacity = 0;
+		const cudaError_t error = cudaMalloc(reinterpret_cast<void**>(&sourceDevice), required);
+		if (error != cudaSuccess)
+			return Fail(CudaError("cudaMalloc(source)", error));
+		sourceCapacity = required;
 		return true;
 	}
 
@@ -614,6 +666,104 @@ struct DEPTHFX_CUDA
 			return Fail(CudaError("cudaGraphicsUnmapResources", error));
 		return true;
 	}
+
+	bool ProcessHost(
+		const unsigned char* rgbaPixels,
+		int sourceWidth,
+		int sourceHeight,
+		int destinationWidth,
+		int destinationHeight,
+		float* destination,
+		size_t destinationCount)
+	{
+		lastError.clear();
+		if (!ready)
+			return Fail("el engine TensorRT no está cargado");
+		if (rgbaPixels == nullptr || destination == nullptr)
+			return Fail("la entrada o la salida host es nula");
+		if (sourceWidth <= 0 || sourceHeight <= 0 || destinationWidth <= 0 || destinationHeight <= 0)
+			return Fail("la textura host no tiene resolución válida");
+		if (destinationCount < static_cast<size_t>(destinationWidth) * static_cast<size_t>(destinationHeight) * 4)
+			return Fail("la salida host no tiene espacio suficiente");
+		if (!EnsureSourceBuffer(sourceWidth, sourceHeight))
+			return false;
+
+		const size_t sourceBytes = static_cast<size_t>(sourceWidth) * static_cast<size_t>(sourceHeight) * sizeof(uchar4);
+		cudaError_t error = cudaMemcpyAsync(sourceDevice, rgbaPixels, sourceBytes, cudaMemcpyHostToDevice, stream);
+		if (error != cudaSuccess)
+			return Fail(CudaError("cudaMemcpyAsync(source)", error));
+
+		const dim3 block2D(16, 16);
+		const dim3 grid2D(
+			static_cast<unsigned int>((inputWidth + block2D.x - 1) / block2D.x),
+			static_cast<unsigned int>((inputHeight + block2D.y - 1) / block2D.y)
+		);
+		if (inputType == nvinfer1::DataType::kHALF)
+			PreprocessHostKernel<<<grid2D, block2D, 0, stream>>>(sourceDevice, reinterpret_cast<__half*>(inputDevice), inputWidth, inputHeight, sourceWidth, sourceHeight);
+		else
+			PreprocessHostKernel<<<grid2D, block2D, 0, stream>>>(sourceDevice, reinterpret_cast<float*>(inputDevice), inputWidth, inputHeight, sourceWidth, sourceHeight);
+		error = cudaGetLastError();
+		if (error != cudaSuccess)
+			return Fail(CudaError("PreprocessHostKernel", error));
+
+		std::vector<void*> bindings(static_cast<size_t>(engine->getNbBindings()), nullptr);
+		bindings[static_cast<size_t>(inputBinding)] = inputDevice;
+		bindings[static_cast<size_t>(outputBinding)] = outputDevice;
+		if (!context->enqueueV2(bindings.data(), stream, nullptr))
+			return Fail("TensorRT rechazó enqueueV2 para la entrada host");
+
+		const int outputCount = static_cast<int>(outputElements);
+		const int blocks = (outputCount + 255) / 256;
+		if (outputType == nvinfer1::DataType::kHALF)
+			ConvertHalfKernel<<<blocks, 256, 0, stream>>>(reinterpret_cast<const __half*>(outputDevice), outputFloatDevice, outputCount);
+		else
+			ConvertFloatKernel<<<blocks, 256, 0, stream>>>(reinterpret_cast<const float*>(outputDevice), outputFloatDevice, outputCount);
+		error = cudaGetLastError();
+		if (error != cudaSuccess)
+			return Fail(CudaError("ConvertOutputHostKernel", error));
+
+		const int pixels = modelWidth * modelHeight;
+		std::vector<float> rawDepth(static_cast<size_t>(pixels));
+		error = cudaMemcpyAsync(rawDepth.data(), outputFloatDevice, rawDepth.size() * sizeof(float), cudaMemcpyDeviceToHost, stream);
+		if (error != cudaSuccess)
+			return Fail(CudaError("cudaMemcpyAsync(depth)", error));
+		error = cudaStreamSynchronize(stream);
+		if (error != cudaSuccess)
+			return Fail(CudaError("cudaStreamSynchronize(host)", error));
+
+		float minimum = FLT_MAX;
+		float maximum = -FLT_MAX;
+		for (const float value : rawDepth)
+		{
+			if (std::isfinite(value))
+			{
+				minimum = std::min(minimum, value);
+				maximum = std::max(maximum, value);
+			}
+		}
+		if (!std::isfinite(minimum) || !std::isfinite(maximum) || maximum - minimum <= 1.0e-6f)
+		{
+			minimum = 0.0f;
+			maximum = 1.0f;
+		}
+		const float range = maximum - minimum;
+		for (int y = 0; y < destinationHeight; ++y)
+		{
+			const int sourceY = min(modelHeight - 1, static_cast<int>((static_cast<float>(y) + 0.5f) * modelHeight / destinationHeight));
+			for (int x = 0; x < destinationWidth; ++x)
+			{
+				const int sourceX = min(modelWidth - 1, static_cast<int>((static_cast<float>(x) + 0.5f) * modelWidth / destinationWidth));
+				const float value = rawDepth[static_cast<size_t>(sourceY) * modelWidth + sourceX];
+				const float normalized = std::isfinite(value) ? std::max(0.0f, std::min(1.0f, (value - minimum) / range)) : 0.5f;
+				const size_t index = (static_cast<size_t>(y) * destinationWidth + x) * 4;
+				destination[index + 0] = normalized;
+				destination[index + 1] = normalized;
+				destination[index + 2] = normalized;
+				destination[index + 3] = 1.0f;
+			}
+		}
+		return true;
+	}
 };
 
 extern "C"
@@ -658,6 +808,29 @@ bool DEPTHFX_CUDA_Process(
 		return false;
 	}
 	const bool success = bridge->Process(inputTexture, inputWidth, inputHeight, outputTexture, outputWidth, outputHeight);
+	if (!success)
+		SetError(errorMessage, errorMessageSize, bridge->lastError);
+	return success;
+}
+
+bool DEPTHFX_CUDA_ProcessHost(
+	DEPTHFX_CUDA* bridge,
+	const unsigned char* rgbaPixels,
+	int inputWidth,
+	int inputHeight,
+	int outputWidth,
+	int outputHeight,
+	float* outputPixels,
+	size_t outputPixelCount,
+	char* errorMessage,
+	size_t errorMessageSize)
+{
+	if (bridge == nullptr)
+	{
+		SetError(errorMessage, errorMessageSize, "bridge CUDA nulo");
+		return false;
+	}
+	const bool success = bridge->ProcessHost(rgbaPixels, inputWidth, inputHeight, outputWidth, outputHeight, outputPixels, outputPixelCount);
 	if (!success)
 		SetError(errorMessage, errorMessageSize, bridge->lastError);
 	return success;

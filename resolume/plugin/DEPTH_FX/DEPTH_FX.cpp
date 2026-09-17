@@ -183,6 +183,71 @@ void DEPTHFX::ReleaseDepthTexture()
 	depthHeight = 0;
 }
 
+bool DEPTHFX::ProcessHostReadback(const FFGLTextureStruct& input, std::string& errorMessage)
+{
+	const size_t pixelCount = static_cast<size_t>(input.Width) * static_cast<size_t>(input.Height);
+	if (pixelCount == 0)
+	{
+		errorMessage = "la textura de entrada no tiene píxeles";
+		return false;
+	}
+	readbackPixels.resize(pixelCount * 4);
+	GLint previousTexture = 0;
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture);
+	glBindTexture(GL_TEXTURE_2D, input.Handle);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, readbackPixels.data());
+	const GLenum readError = glGetError();
+	glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(previousTexture));
+	if (readError != GL_NO_ERROR)
+	{
+		errorMessage = "glGetTexImage falló con código " + std::to_string(static_cast<unsigned int>(readError));
+		return false;
+	}
+
+	hostDepthPixels.resize(static_cast<size_t>(depthWidth) * static_cast<size_t>(depthHeight) * 4);
+	char cudaErrorMessage[1024] = {};
+	if (!DEPTHFX_CUDA_ProcessHost(
+		cudaBridge,
+		readbackPixels.data(),
+		static_cast<int>(input.Width),
+		static_cast<int>(input.Height),
+		depthWidth,
+		depthHeight,
+		hostDepthPixels.data(),
+		hostDepthPixels.size(),
+		cudaErrorMessage,
+		sizeof(cudaErrorMessage)
+	))
+	{
+		errorMessage = cudaErrorMessage[0] == '\0' ? "falló la inferencia de respaldo CUDA/TensorRT" : cudaErrorMessage;
+		return false;
+	}
+	UploadDepthPixels();
+	return true;
+}
+
+void DEPTHFX::UploadDepthPixels()
+{
+	if (depthTexture == 0 || hostDepthPixels.empty())
+		return;
+	GLint previousTexture = 0;
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture);
+	glBindTexture(GL_TEXTURE_2D, depthTexture);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexSubImage2D(
+		GL_TEXTURE_2D,
+		0,
+		0,
+		0,
+		depthWidth,
+		depthHeight,
+		GL_RGBA,
+		GL_FLOAT,
+		hostDepthPixels.data()
+	);
+	glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(previousTexture));
+}
+
 void DEPTHFX::MarkCudaFailure(const std::string& message)
 {
 	if (!cudaFailureLogged)
@@ -243,20 +308,37 @@ FFResult DEPTHFX::Render(ProcessOpenGLStruct* inputTextures)
 
 	if (!enginePath.empty() && cudaBridge != nullptr && !cudaFailureLogged)
 	{
-		char errorMessage[1024] = {};
-		if (!DEPTHFX_CUDA_Process(
-			cudaBridge,
-			input.Handle,
-			static_cast<int>(input.Width),
-			static_cast<int>(input.Height),
-			depthTexture,
-			depthWidth,
-			depthHeight,
-			errorMessage,
-			sizeof(errorMessage)
-		))
+		bool processed = false;
+		std::string primaryError;
+		if (!interopDisabled)
 		{
-			MarkCudaFailure(errorMessage[0] == '\0' ? "falló la inferencia CUDA/TensorRT" : errorMessage);
+			char errorMessage[1024] = {};
+			processed = DEPTHFX_CUDA_Process(
+				cudaBridge,
+				input.Handle,
+				static_cast<int>(input.Width),
+				static_cast<int>(input.Height),
+				depthTexture,
+				depthWidth,
+				depthHeight,
+				errorMessage,
+				sizeof(errorMessage)
+			);
+			if (!processed)
+			{
+				interopDisabled = true;
+				primaryError = errorMessage[0] == '\0' ? "falló CUDA/OpenGL interop" : errorMessage;
+			}
+		}
+		if (!processed)
+		{
+			std::string fallbackError;
+			processed = ProcessHostReadback(input, fallbackError);
+			if (!processed)
+			{
+				const std::string prefix = primaryError.empty() ? std::string() : primaryError + "; ";
+				MarkCudaFailure(prefix + fallbackError);
+			}
 		}
 	}
 
@@ -283,6 +365,7 @@ FFResult DEPTHFX::SetTextParameter(unsigned int index, const char* value)
 		enginePath = DecodeFileUri(value);
 		engineDirty = true;
 		cudaFailureLogged = false;
+		interopDisabled = false;
 		return FF_SUCCESS;
 	}
 	return Effect::SetTextParameter(index, value);

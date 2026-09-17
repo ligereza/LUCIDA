@@ -5,6 +5,7 @@
 #include <ffglex/FFGLShader.h>
 
 #include <string>
+#include <vector>
 
 struct DEPTHFX_CUDA;
 
@@ -26,6 +27,18 @@ bool DEPTHFX_CUDA_Process(
 	unsigned int outputTexture,
 	int outputWidth,
 	int outputHeight,
+	char* errorMessage,
+	size_t errorMessageSize
+);
+bool DEPTHFX_CUDA_ProcessHost(
+	DEPTHFX_CUDA* bridge,
+	const unsigned char* rgbaPixels,
+	int inputWidth,
+	int inputHeight,
+	int outputWidth,
+	int outputHeight,
+	float* outputPixels,
+	size_t outputPixelCount,
 	char* errorMessage,
 	size_t errorMessageSize
 );
@@ -57,6 +70,8 @@ private:
 	void Log(const std::string& message) const;
 	void EnsureDepthTexture(int width, int height);
 	void ReleaseDepthTexture();
+	bool ProcessHostReadback(const FFGLTextureStruct& input, std::string& errorMessage);
+	void UploadDepthPixels();
 	void MarkCudaFailure(const std::string& message);
 
 	static constexpr unsigned int PARAM_ENGINE_FILE = 0;
@@ -71,4 +86,7 @@ private:
 	int depthHeight = 0;
 	bool engineDirty = true;
 	bool cudaFailureLogged = false;
+	bool interopDisabled = false;
+	std::vector<unsigned char> readbackPixels;
+	std::vector<float> hostDepthPixels;
 };
