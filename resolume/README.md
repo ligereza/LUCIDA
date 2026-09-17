@@ -319,6 +319,22 @@ Resolume Preferences → Video → FFGL Directories and restart Resolume. The
 native build and contracts are verified locally; live host loading still
 requires the final installation step on a machine with Resolume.
 
+## Native DEPTH_FX effect
+
+`resolume/plugin/DEPTH_FX/` is a real-time FFGL effect, not a video player and
+not a frame-sequence reader. Resolume supplies its current clip/capture texture
+through the FFGL input texture on every render call. The effect shares that
+OpenGL texture with CUDA, runs the selected TensorRT Depth Anything engine, and
+uses the resulting depth texture to displace the same input in the fragment
+shader.
+
+The only file parameter is `DepthEngine`, which selects a compatible TensorRT
+`.engine` model. It never selects or opens a video. If the engine is absent,
+incompatible, or CUDA/OpenGL interop fails, the effect keeps the input image
+instead of inventing a depth result. The current build uses CUDA 11.8,
+TensorRT 8.6, and CUDA architecture 89; the engine must be built for the
+installed TensorRT/runtime combination.
+
 ## Native INSTAR 3D source
 
 `resolume/plugin/INSTAR/INSTAR_3D.cpp` builds `INSTAR_3D.dll` as an independent

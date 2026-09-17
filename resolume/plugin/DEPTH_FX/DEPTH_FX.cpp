@@ -7,19 +7,16 @@
 
 #include "DEPTH_FX.h"
 
-#include "../INSTAR/INSTAR_IMAGE.h"
-
 #include <algorithm>
-#include <cmath>
 #include <cstdlib>
-#include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
+#include <ffgl/FFGLLib.h>
 #include <ffglex/FFGLScopedSamplerActivation.h>
 #include <ffglex/FFGLScopedShaderBinding.h>
 #include <ffglex/FFGLScopedTextureBinding.h>
-#include <ffgl/FFGLLib.h>
 #include <ffglquickstart/FFGLParam.h>
 #include <ffglquickstart/FFGLParamOption.h>
 #include <ffglquickstart/FFGLParamRange.h>
@@ -28,103 +25,7 @@ using namespace ffglqs;
 
 namespace
 {
-std::string DecodeFileUri(const std::string& value)
-{
-	if (value.rfind("file://", 0) != 0)
-		return value;
-	std::string decoded = value.substr(7);
-	if (decoded.rfind("/", 0) == 0 && decoded.size() > 2 && decoded[2] == ':')
-		decoded.erase(decoded.begin());
-	std::string result;
-	result.reserve(decoded.size());
-	for (size_t index = 0; index < decoded.size(); ++index)
-	{
-		if (decoded[index] == '%' && index + 2 < decoded.size())
-		{
-			const std::string hex = decoded.substr(index + 1, 2);
-			char* end = nullptr;
-			const long parsed = std::strtol(hex.c_str(), &end, 16);
-			if (end != nullptr && *end == '\0')
-			{
-				result.push_back(static_cast<char>(parsed));
-				index += 2;
-				continue;
-			}
-		}
-		result.push_back(decoded[index] == '/' ? '\\' : decoded[index]);
-	}
-	return result;
-}
-
-std::string JsonString(const std::string& document, const std::string& key, const std::string& fallback)
-{
-	const std::string marker = "\"" + key + "\"";
-	const size_t keyPosition = document.find(marker);
-	if (keyPosition == std::string::npos)
-		return fallback;
-	const size_t colon = document.find(':', keyPosition + marker.size());
-	if (colon == std::string::npos)
-		return fallback;
-	const size_t firstQuote = document.find('"', colon + 1);
-	if (firstQuote == std::string::npos)
-		return fallback;
-	std::string result;
-	for (size_t index = firstQuote + 1; index < document.size(); ++index)
-	{
-		if (document[index] == '\\' && index + 1 < document.size())
-		{
-			const char escaped = document[++index];
-			if (escaped == 'n')
-				result.push_back('\n');
-			else if (escaped == 'r')
-				result.push_back('\r');
-			else if (escaped == 't')
-				result.push_back('\t');
-			else
-				result.push_back(escaped);
-		}
-		else if (document[index] == '"')
-		{
-			return result;
-		}
-		else
-		{
-			result.push_back(document[index]);
-		}
-	}
-	return fallback;
-}
-
-double JsonNumber(const std::string& document, const std::string& key, double fallback)
-{
-	const std::string marker = "\"" + key + "\"";
-	const size_t keyPosition = document.find(marker);
-	if (keyPosition == std::string::npos)
-		return fallback;
-	const size_t colon = document.find(':', keyPosition + marker.size());
-	if (colon == std::string::npos)
-		return fallback;
-	const char* begin = document.c_str() + colon + 1;
-	char* end = nullptr;
-	const double parsed = std::strtod(begin, &end);
-	return end == begin ? fallback : parsed;
-}
-
-std::string JoinPath(const std::string& directory, const std::string& name)
-{
-	if (directory.empty())
-		return name;
-	if (directory.back() == '\\' || directory.back() == '/')
-		return directory + name;
-	return directory + "\\" + name;
-}
-
-std::string ParentPath(const std::string& path)
-{
-	const size_t separator = path.find_last_of("\\/");
-	return separator == std::string::npos ? std::string() : path.substr(0, separator);
-}
-}
+constexpr int kDepthTextureSize = 518;
 
 static CFFGLPluginInfo PluginInfo(
 	PluginFactory< DEPTHFX >,
@@ -135,13 +36,14 @@ static CFFGLPluginInfo PluginInfo(
 	1,
 	0,
 	FF_EFFECT,
-	"Offline depth-driven displacement effect for Resolume.",
+	"Real-time Depth Anything effect. Resolume supplies the input texture.",
 	"LUCIDA RESOLUME"
 );
+}
 
 DEPTHFX::DEPTHFX()
 {
-	AddParam(Param::Create("DepthManifest", FF_TYPE_FILE, 0.0f));
+	AddParam(Param::Create("DepthEngine", FF_TYPE_FILE, 0.0f));
 	AddParam(ParamRange::Create("DepthAmount", 0.035f, ParamRange::Range(-0.25f, 0.25f)));
 	AddParam(ParamRange::Create("DepthVertical", 0.0f, ParamRange::Range(-0.25f, 0.25f)));
 	AddParam(ParamRange::Create("DepthBias", 0.0f, ParamRange::Range(-1.0f, 1.0f)));
@@ -149,6 +51,7 @@ DEPTHFX::DEPTHFX()
 	AddParam(ParamOption::Create("DepthInvert", {{"OFF", 0.0f}, {"ON", 1.0f}}, 0.0f));
 	AddParam(ParamRange::Create("DepthSmooth", 0.0f, ParamRange::Range(0.0f, 1.0f)));
 	AddParam(ParamRange::Create("EffectMix", 1.0f, ParamRange::Range(0.0f, 1.0f)));
+
 	SetFragmentShader(R"(
 		uniform sampler2D depthTexture;
 		uniform vec2 depthResolution;
@@ -187,32 +90,9 @@ DEPTHFX::DEPTHFX()
 	)");
 }
 
-FFResult DEPTHFX::Init()
+DEPTHFX::~DEPTHFX()
 {
-	glGenTextures(1, &depthTexture);
-	if (depthTexture == 0)
-		return FF_FAIL;
-	glBindTexture(GL_TEXTURE_2D, depthTexture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	const unsigned char neutralDepth[4] = {128, 128, 128, 255};
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, neutralDepth);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	return FF_SUCCESS;
-}
-
-void DEPTHFX::Clean()
-{
-	if (depthTexture != 0)
-		glDeleteTextures(1, &depthTexture);
-	depthTexture = 0;
-	depthImage = INSTARImage();
-	loadedFrame = -1;
-	uploadedWidth = 0;
-	uploadedHeight = 0;
-	depthReady = false;
+	Clean();
 }
 
 void DEPTHFX::Log(const std::string& message) const
@@ -220,127 +100,108 @@ void DEPTHFX::Log(const std::string& message) const
 	FFGLLog::LogToHost(message.c_str());
 }
 
-bool DEPTHFX::LoadManifest()
+std::string DEPTHFX::DecodeFileUri(const char* value)
 {
-	manifestDirty = false;
-	depthReady = false;
-	loadedFrame = -1;
-	sequence = DepthSequence();
-	sequence.manifestPath = manifestPath;
-	if (manifestPath.empty())
+	if (value == nullptr)
+		return std::string();
+	std::string decoded(value);
+	if (decoded.rfind("file://", 0) == 0)
 	{
-		if (!loggedMissingManifest)
+		decoded.erase(0, 7);
+		if (decoded.rfind("/", 0) == 0 && decoded.size() > 2 && decoded[2] == ':')
+			decoded.erase(decoded.begin());
+	}
+	std::string result;
+	result.reserve(decoded.size());
+	for (size_t index = 0; index < decoded.size(); ++index)
+	{
+		if (decoded[index] == '%' && index + 2 < decoded.size())
 		{
-			Log("DEPTH_FX: selecciona un depth-manifest.json; se conserva la imagen original.");
-			loggedMissingManifest = true;
+			const std::string hex = decoded.substr(index + 1, 2);
+			char* end = nullptr;
+			const long parsed = std::strtol(hex.c_str(), &end, 16);
+			if (end != nullptr && *end == '\0')
+			{
+				result.push_back(static_cast<char>(parsed));
+				index += 2;
+				continue;
+			}
 		}
-		return false;
+		result.push_back(decoded[index] == '/' ? '\\' : decoded[index]);
 	}
-
-	std::ifstream input(manifestPath.c_str(), std::ios::in | std::ios::binary);
-	if (!input)
-	{
-		Log("DEPTH_FX: no se pudo abrir DepthManifest: " + manifestPath);
-		return false;
-	}
-	const std::string document((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
-	const std::string framesDirectory = JsonString(document, "frames_dir", "frames");
-	sequence.framesDirectory = framesDirectory.empty() ? ParentPath(manifestPath) : JoinPath(ParentPath(manifestPath), framesDirectory);
-	sequence.prefix = JsonString(document, "prefix", "depth_");
-	sequence.extension = JsonString(document, "extension", ".png");
-	sequence.frameCount = static_cast<int>(JsonNumber(document, "frame_count", 0.0));
-	sequence.startIndex = static_cast<int>(JsonNumber(document, "start_index", 0.0));
-	sequence.zeroPad = static_cast<int>(JsonNumber(document, "zero_pad", 6.0));
-	sequence.fps = static_cast<float>(JsonNumber(document, "fps", 30.0));
-	if (sequence.frameCount <= 0 || sequence.fps <= 0.0f || sequence.extension.empty())
-	{
-		Log("DEPTH_FX: manifest inválido; requiere frame_count, fps y extension válidos.");
-		return false;
-	}
-	loggedMissingManifest = false;
-	Log("DEPTH_FX: depth sequence cargada (" + std::to_string(sequence.frameCount) + " frames, " + std::to_string(sequence.fps) + " fps).");
-	return true;
+	return result;
 }
 
-std::string DEPTHFX::FramePath(int frameIndex) const
+void DEPTHFX::EnsureDepthTexture(int width, int height)
 {
-	std::ostringstream number;
-	if (sequence.zeroPad > 0)
-		number << std::setw(sequence.zeroPad) << std::setfill('0');
-	number << (sequence.startIndex + frameIndex);
-	return JoinPath(sequence.framesDirectory, sequence.prefix + number.str() + sequence.extension);
-}
-
-bool DEPTHFX::LoadDepthFrame(int frameIndex)
-{
-	if (frameIndex < 0 || frameIndex >= sequence.frameCount)
-		return false;
-	if (loadedFrame == frameIndex && depthReady)
-		return true;
-	std::string error;
-	INSTARImage loaded;
-	if (!LoadINSTARImage(FramePath(frameIndex), loaded, error))
-	{
-		Log("DEPTH_FX: no se pudo cargar frame de profundidad " + std::to_string(frameIndex) + ": " + error);
-		depthReady = false;
-		return false;
-	}
-	depthImage = loaded;
-	loadedFrame = frameIndex;
-	depthReady = true;
-	return true;
-}
-
-void DEPTHFX::UploadDepthFrame()
-{
-	if (!depthReady || depthTexture == 0 || depthImage.width == 0 || depthImage.height == 0)
+	if (depthTexture != 0 && depthWidth == width && depthHeight == height)
 		return;
+	ReleaseDepthTexture();
+	glGenTextures(1, &depthTexture);
+	if (depthTexture == 0)
+		return;
+	std::vector<float> neutral(static_cast<size_t>(width) * static_cast<size_t>(height), 0.5f);
 	glBindTexture(GL_TEXTURE_2D, depthTexture);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	if (uploadedWidth != static_cast<int>(depthImage.width) || uploadedHeight != static_cast<int>(depthImage.height))
-	{
-		glTexImage2D(
-			GL_TEXTURE_2D,
-			0,
-			GL_RGBA8,
-			static_cast<GLsizei>(depthImage.width),
-			static_cast<GLsizei>(depthImage.height),
-			0,
-			GL_RGBA,
-			GL_UNSIGNED_BYTE,
-			depthImage.rgba.data()
-		);
-		uploadedWidth = static_cast<int>(depthImage.width);
-		uploadedHeight = static_cast<int>(depthImage.height);
-	}
-	else
-	{
-		glTexSubImage2D(
-			GL_TEXTURE_2D,
-			0,
-			0,
-			0,
-			static_cast<GLsizei>(depthImage.width),
-			static_cast<GLsizei>(depthImage.height),
-			GL_RGBA,
-			GL_UNSIGNED_BYTE,
-			depthImage.rgba.data()
-		);
-	}
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		GL_R32F,
+		width,
+		height,
+		0,
+		GL_RED,
+		GL_FLOAT,
+		neutral.data()
+	);
 	glBindTexture(GL_TEXTURE_2D, 0);
+	depthWidth = width;
+	depthHeight = height;
+}
+
+void DEPTHFX::ReleaseDepthTexture()
+{
+	if (depthTexture != 0)
+		glDeleteTextures(1, &depthTexture);
+	depthTexture = 0;
+	depthWidth = 0;
+	depthHeight = 0;
+}
+
+void DEPTHFX::MarkCudaFailure(const std::string& message)
+{
+	if (!cudaFailureLogged)
+	{
+		Log("DEPTH_FX: " + message + ". Se conserva la textura original.");
+		cudaFailureLogged = true;
+	}
+}
+
+FFResult DEPTHFX::Init()
+{
+	cudaBridge = DEPTHFX_CUDA_Create();
+	if (cudaBridge == nullptr)
+		return FF_FAIL;
+	EnsureDepthTexture(kDepthTextureSize, kDepthTextureSize);
+	return depthTexture == 0 ? FF_FAIL : FF_SUCCESS;
 }
 
 void DEPTHFX::Update()
 {
-	if (manifestDirty)
-		LoadManifest();
-	if (!depthReady)
-		return;
-	int frameIndex = static_cast<int>(std::floor(std::max(0.0, hostTime) * sequence.fps));
-	if (frameIndex >= sequence.frameCount)
-		frameIndex = sequence.frameCount - 1;
-	if (LoadDepthFrame(frameIndex))
-		UploadDepthFrame();
+	// FFGL delivers the current clip texture to Render(). No video is opened here.
+}
+
+void DEPTHFX::Clean()
+{
+	if (cudaBridge != nullptr)
+	{
+		DEPTHFX_CUDA_Destroy(cudaBridge);
+		cudaBridge = nullptr;
+	}
+	ReleaseDepthTexture();
 }
 
 FFResult DEPTHFX::Render(ProcessOpenGLStruct* inputTextures)
@@ -348,16 +209,56 @@ FFResult DEPTHFX::Render(ProcessOpenGLStruct* inputTextures)
 	if (inputTextures == nullptr || inputTextures->numInputTextures < 1 || inputTextures->inputTextures == nullptr || inputTextures->inputTextures[0] == nullptr)
 		return FF_FAIL;
 
+	const FFGLTextureStruct& input = *inputTextures->inputTextures[0];
+	EnsureDepthTexture(kDepthTextureSize, kDepthTextureSize);
+	if (depthTexture == 0)
+		return FF_FAIL;
+
+	if (engineDirty && !enginePath.empty() && cudaBridge != nullptr)
+	{
+		char errorMessage[1024] = {};
+		if (DEPTHFX_CUDA_LoadEngine(cudaBridge, enginePath.c_str(), errorMessage, sizeof(errorMessage)))
+		{
+			cudaFailureLogged = false;
+			Log("DEPTH_FX: engine TensorRT cargado; la inferencia recibe la textura de Resolume.");
+		}
+		else
+		{
+			MarkCudaFailure(errorMessage[0] == '\0' ? "no se pudo cargar el engine TensorRT" : errorMessage);
+		}
+		engineDirty = false;
+	}
+
+	if (!enginePath.empty() && cudaBridge != nullptr && !cudaFailureLogged)
+	{
+		char errorMessage[1024] = {};
+		if (!DEPTHFX_CUDA_Process(
+			cudaBridge,
+			input.Handle,
+			static_cast<int>(input.Width),
+			static_cast<int>(input.Height),
+			depthTexture,
+			depthWidth,
+			depthHeight,
+			errorMessage,
+			sizeof(errorMessage)
+		))
+		{
+			MarkCudaFailure(errorMessage[0] == '\0' ? "falló la inferencia CUDA/TensorRT" : errorMessage);
+		}
+	}
+
+	ffglex::ScopedShaderBinding shaderBinding(shader.GetGLID());
 	ffglex::ScopedSamplerActivation activateSampler0(0);
-	ffglex::Scoped2DTextureBinding textureBinding0(inputTextures->inputTextures[0]->Handle);
+	ffglex::Scoped2DTextureBinding textureBinding0(input.Handle);
 	shader.Set("inputTexture", 0);
 
 	ffglex::ScopedSamplerActivation activateSampler1(1);
 	ffglex::Scoped2DTextureBinding textureBinding1(depthTexture);
 	shader.Set("depthTexture", 1);
-	shader.Set("depthResolution", static_cast<float>(std::max(1, uploadedWidth)), static_cast<float>(std::max(1, uploadedHeight)));
+	shader.Set("depthResolution", static_cast<float>(depthWidth), static_cast<float>(depthHeight));
 
-	const FFGLTexCoords maxCoords = GetMaxGLTexCoords(*inputTextures->inputTextures[0]);
+	const FFGLTexCoords maxCoords = GetMaxGLTexCoords(input);
 	shader.Set("maxUV", maxCoords.s, maxCoords.t);
 	quad.Draw();
 	return FF_SUCCESS;
@@ -365,10 +266,11 @@ FFResult DEPTHFX::Render(ProcessOpenGLStruct* inputTextures)
 
 FFResult DEPTHFX::SetTextParameter(unsigned int index, const char* value)
 {
-	if (index == PARAM_DEPTH_MANIFEST)
+	if (index == PARAM_ENGINE_FILE)
 	{
-		manifestPath = DecodeFileUri(value == nullptr ? "" : value);
-		manifestDirty = true;
+		enginePath = DecodeFileUri(value);
+		engineDirty = true;
+		cudaFailureLogged = false;
 		return FF_SUCCESS;
 	}
 	return Effect::SetTextParameter(index, value);
@@ -376,11 +278,11 @@ FFResult DEPTHFX::SetTextParameter(unsigned int index, const char* value)
 
 char* DEPTHFX::GetTextParameter(unsigned int index)
 {
-	if (index != PARAM_DEPTH_MANIFEST)
+	if (index != PARAM_ENGINE_FILE)
 		return Effect::GetTextParameter(index);
 	static char buffer[4096];
 	std::fill(buffer, buffer + sizeof(buffer), '\0');
-	const size_t length = std::min(manifestPath.size(), sizeof(buffer) - 1);
-	std::copy(manifestPath.begin(), manifestPath.begin() + length, buffer);
+	const size_t length = std::min(enginePath.size(), sizeof(buffer) - 1);
+	std::copy(enginePath.begin(), enginePath.begin() + length, buffer);
 	return buffer;
 }

@@ -2,6 +2,16 @@ cmake_minimum_required(VERSION 3.15)
 
 project(LucidaResolumePlugins LANGUAGES CXX)
 
+set(CUDA_ROOT "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.8" CACHE PATH "CUDA toolkit used by the Depth Anything FFGL effect")
+set(DEPTH_CUDA_ARCHITECTURE "89" CACHE STRING "CUDA architecture for the Depth Anything effect")
+set(NVCC_EXECUTABLE "${CUDA_ROOT}/bin/nvcc.exe" CACHE FILEPATH "nvcc used to compile the Depth Anything bridge")
+find_path(TENSORRT_INCLUDE_DIR NvInfer.h HINTS "${CUDA_ROOT}/include" REQUIRED)
+find_library(TENSORRT_LIBRARY NAMES nvinfer HINTS "${CUDA_ROOT}/lib/x64" REQUIRED)
+set(CUDART_LIBRARY "${CUDA_ROOT}/lib/x64/cudart.lib")
+if(NOT EXISTS "${NVCC_EXECUTABLE}" OR NOT EXISTS "${CUDART_LIBRARY}")
+    message(FATAL_ERROR "CUDA toolkit incompleto: se requieren nvcc.exe y cudart.lib")
+endif()
+
 set(FFGL_ROOT "" CACHE PATH "Path to the official Resolume FFGL checkout")
 if(NOT FFGL_ROOT OR NOT EXISTS "${FFGL_ROOT}/source/lib/FFGLSDK.h")
     message(FATAL_ERROR "Set FFGL_ROOT to the official resolume/ffgl checkout")
@@ -126,25 +136,50 @@ add_custom_command(TARGET INSTAR_3D POST_BUILD
         "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/INSTAR_3D.dll"
 )
 
+set(DEPTH_CUDA_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/DEPTH_FX_CUDA.obj")
+add_custom_command(
+    OUTPUT "${DEPTH_CUDA_OBJECT}"
+    COMMAND "${NVCC_EXECUTABLE}"
+        -allow-unsupported-compiler
+        -D__NV_NO_HOST_COMPILER_CHECK
+        -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
+        -arch=sm_${DEPTH_CUDA_ARCHITECTURE}
+        -std=c++17
+        -Xcompiler=/MT
+        -I"${CUDA_ROOT}/include"
+        -I"${TENSORRT_INCLUDE_DIR}"
+        -c "${CMAKE_CURRENT_SOURCE_DIR}/DEPTH_FX/DEPTH_FX_CUDA.cu"
+        -o "${DEPTH_CUDA_OBJECT}"
+    DEPENDS
+        DEPTH_FX/DEPTH_FX_CUDA.cu
+        DEPTH_FX/DEPTH_FX_CUDA.h
+    VERBATIM
+)
+add_custom_target(DEPTH_FX_CUDA_OBJECT DEPENDS "${DEPTH_CUDA_OBJECT}")
+
 add_library(DEPTH_FX SHARED
     DEPTH_FX/DEPTH_FX.cpp
     DEPTH_FX/DEPTH_FX.h
-    INSTAR/INSTAR_IMAGE.cpp
-    INSTAR/INSTAR_IMAGE.h
+    DEPTH_FX/DEPTH_FX_CUDA.h
+    "${DEPTH_CUDA_OBJECT}"
     ${FFGL_SOURCES}
 )
+add_dependencies(DEPTH_FX DEPTH_FX_CUDA_OBJECT)
 target_include_directories(DEPTH_FX PRIVATE
     "${FFGL_SOURCE_ROOT}"
     "${FFGL_ROOT}/deps/glew-2.1.0/include"
+    "${CUDA_ROOT}/include"
+    "${TENSORRT_INCLUDE_DIR}"
 )
-target_compile_features(DEPTH_FX PRIVATE cxx_std_11)
+target_compile_features(DEPTH_FX PRIVATE cxx_std_17)
 target_compile_definitions(DEPTH_FX PRIVATE GLEW_STATIC)
 set_property(TARGET DEPTH_FX PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
 )
 target_link_libraries(DEPTH_FX PRIVATE
     OpenGL32
-    Gdiplus
+    "${CUDART_LIBRARY}"
+    "${TENSORRT_LIBRARY}"
     "${FFGL_ROOT}/deps/glew-2.1.0/lib/Release/x64/glew32s.lib"
 )
 set_target_properties(DEPTH_FX PROPERTIES

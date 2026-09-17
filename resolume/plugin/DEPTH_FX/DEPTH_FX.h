@@ -4,15 +4,38 @@
 #include <ffglquickstart/FFGLEffect.h>
 #include <ffglex/FFGLShader.h>
 
-#include "../INSTAR/INSTAR_IMAGE.h"
-
 #include <string>
+
+struct DEPTHFX_CUDA;
+
+extern "C"
+{
+DEPTHFX_CUDA* DEPTHFX_CUDA_Create();
+void DEPTHFX_CUDA_Destroy(DEPTHFX_CUDA* bridge);
+bool DEPTHFX_CUDA_LoadEngine(
+	DEPTHFX_CUDA* bridge,
+	const char* enginePath,
+	char* errorMessage,
+	size_t errorMessageSize
+);
+bool DEPTHFX_CUDA_Process(
+	DEPTHFX_CUDA* bridge,
+	unsigned int inputTexture,
+	int inputWidth,
+	int inputHeight,
+	unsigned int outputTexture,
+	int outputWidth,
+	int outputHeight,
+	char* errorMessage,
+	size_t errorMessageSize
+);
+}
 
 class DEPTHFX final : public ffglqs::Effect
 {
 public:
 	DEPTHFX();
-	~DEPTHFX() override = default;
+	~DEPTHFX() override;
 
 	const char* GetShortName() override
 	{
@@ -30,25 +53,13 @@ protected:
 	FFResult Render(ProcessOpenGLStruct* inputTextures) override;
 
 private:
-	struct DepthSequence
-	{
-		std::string manifestPath;
-		std::string framesDirectory;
-		std::string prefix = "depth_";
-		std::string extension = ".png";
-		int frameCount = 0;
-		int startIndex = 0;
-		int zeroPad = 6;
-		float fps = 30.0f;
-	};
-
-	bool LoadManifest();
-	bool LoadDepthFrame(int frameIndex);
-	void UploadDepthFrame();
-	std::string FramePath(int frameIndex) const;
+	static std::string DecodeFileUri(const char* value);
 	void Log(const std::string& message) const;
+	void EnsureDepthTexture(int width, int height);
+	void ReleaseDepthTexture();
+	void MarkCudaFailure(const std::string& message);
 
-	static constexpr unsigned int PARAM_DEPTH_MANIFEST = 0;
+	static constexpr unsigned int PARAM_ENGINE_FILE = 0;
 	static constexpr unsigned int PARAM_DEPTH_AMOUNT = 1;
 	static constexpr unsigned int PARAM_DEPTH_VERTICAL = 2;
 	static constexpr unsigned int PARAM_DEPTH_BIAS = 3;
@@ -57,14 +68,11 @@ private:
 	static constexpr unsigned int PARAM_DEPTH_SMOOTH = 6;
 	static constexpr unsigned int PARAM_EFFECT_MIX = 7;
 
-	std::string manifestPath;
-	DepthSequence sequence;
-	INSTARImage depthImage;
+	std::string enginePath;
+	DEPTHFX_CUDA* cudaBridge = nullptr;
 	GLuint depthTexture = 0;
-	int loadedFrame = -1;
-	int uploadedWidth = 0;
-	int uploadedHeight = 0;
-	bool manifestDirty = true;
-	bool depthReady = false;
-	bool loggedMissingManifest = false;
+	int depthWidth = 0;
+	int depthHeight = 0;
+	bool engineDirty = true;
+	bool cudaFailureLogged = false;
 };
