@@ -2,16 +2,6 @@ cmake_minimum_required(VERSION 3.15)
 
 project(LucidaResolumePlugins LANGUAGES CXX)
 
-set(CUDA_ROOT "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.8" CACHE PATH "CUDA toolkit used by the Depth Anything FFGL effect")
-set(DEPTH_CUDA_ARCHITECTURE "89" CACHE STRING "CUDA architecture for the Depth Anything effect")
-set(NVCC_EXECUTABLE "${CUDA_ROOT}/bin/nvcc.exe" CACHE FILEPATH "nvcc used to compile the Depth Anything bridge")
-find_path(TENSORRT_INCLUDE_DIR NvInfer.h HINTS "${CUDA_ROOT}/include" REQUIRED)
-find_library(TENSORRT_LIBRARY NAMES nvinfer HINTS "${CUDA_ROOT}/lib/x64" REQUIRED)
-set(CUDART_LIBRARY "${CUDA_ROOT}/lib/x64/cudart.lib")
-if(NOT EXISTS "${NVCC_EXECUTABLE}" OR NOT EXISTS "${CUDART_LIBRARY}")
-    message(FATAL_ERROR "CUDA toolkit incompleto: se requieren nvcc.exe y cudart.lib")
-endif()
-
 set(FFGL_ROOT "" CACHE PATH "Path to the official Resolume FFGL checkout")
 if(NOT FFGL_ROOT OR NOT EXISTS "${FFGL_ROOT}/source/lib/FFGLSDK.h")
     message(FATAL_ERROR "Set FFGL_ROOT to the official resolume/ffgl checkout")
@@ -136,72 +126,200 @@ add_custom_command(TARGET INSTAR_3D POST_BUILD
         "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/INSTAR_3D.dll"
 )
 
-set(DEPTH_CUDA_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/DEPTH_FX_CUDA.obj")
-add_custom_command(
-    OUTPUT "${DEPTH_CUDA_OBJECT}"
-    COMMAND "${NVCC_EXECUTABLE}"
-        -allow-unsupported-compiler
-        -D__NV_NO_HOST_COMPILER_CHECK
-        -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
-        -arch=sm_${DEPTH_CUDA_ARCHITECTURE}
-        -std=c++17
-        -Xcompiler=/MT
-        -I"${CUDA_ROOT}/include"
-        -I"${TENSORRT_INCLUDE_DIR}"
-        -c "${CMAKE_CURRENT_SOURCE_DIR}/DEPTH_FX/DEPTH_FX_CUDA.cu"
-        -o "${DEPTH_CUDA_OBJECT}"
-    DEPENDS
-        DEPTH_FX/DEPTH_FX_CUDA.cu
-        DEPTH_FX/DEPTH_FX_CUDA.h
-    VERBATIM
-)
-add_custom_target(DEPTH_FX_CUDA_OBJECT DEPENDS "${DEPTH_CUDA_OBJECT}")
 
-add_library(DEPTH_FX SHARED
-    DEPTH_FX/DEPTH_FX.cpp
-    DEPTH_FX/DEPTH_FX.h
-    DEPTH_FX/DEPTH_FX_CUDA.h
-    "${DEPTH_CUDA_OBJECT}"
+set(LUCIDA_DEPTH_ASSET_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../work/resolume-plugin-build/downloads/depthgen-resources"
+    CACHE PATH "Directory containing verified DepthGen model and runtime resources")
+set(LUCIDA_DEPTH_ORT_ROOT
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../work/resolume-plugin-build/deps/ort-dml-1.17.3"
+    CACHE PATH "ONNX Runtime 1.17.3 DirectML package root")
+
+set(LUCIDA_DEPTH_ZIP_MODEL "${LUCIDA_DEPTH_ASSET_DIR}/zipdepth_base_npu_dynamic.onnx")
+set(LUCIDA_DEPTH_DAV2_MODEL "${LUCIDA_DEPTH_ASSET_DIR}/depth_anything_v2_vits_dml.onnx")
+set(LUCIDA_DEPTH_ORT_DLL "${LUCIDA_DEPTH_ASSET_DIR}/DepthGen-onnxruntime.dll")
+foreach(required_asset IN ITEMS "${LUCIDA_DEPTH_ZIP_MODEL}" "${LUCIDA_DEPTH_DAV2_MODEL}" "${LUCIDA_DEPTH_ORT_DLL}")
+    if(NOT EXISTS "${required_asset}")
+        message(FATAL_ERROR "Missing verified DepthGen asset: ${required_asset}")
+    endif()
+endforeach()
+if(NOT EXISTS "${LUCIDA_DEPTH_ORT_ROOT}/build/native/include/onnxruntime_cxx_api.h")
+    message(FATAL_ERROR "LUCIDA_DEPTH_ORT_ROOT must point to the ONNX Runtime 1.17.3 DirectML package root")
+endif()
+
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH/LUCIDA_Depth.rc.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/LUCIDA_Depth.generated.rc"
+    @ONLY
+)
+
+add_library(LUCIDA_DEPTH SHARED
+    LUCIDA_DEPTH/LUCIDA_Depth.cpp
+    LUCIDA_DEPTH/LUCIDA_Depth.h
+    LUCIDA_DEPTH/LUCIDA_DepthParamMapping.h
+    LUCIDA_DEPTH/LUCIDA_InferenceWorker.cpp
+    LUCIDA_DEPTH/LUCIDA_InferenceWorker.h
+    LUCIDA_DEPTH/LUCIDA_DepthCore.cpp
+    LUCIDA_DEPTH/LUCIDA_DepthCore.h
+    LUCIDA_DEPTH/LUCIDA_OrtEmbed.h
+    LUCIDA_DEPTH/depthgen/DepthGen_Image.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_Image.h
+    LUCIDA_DEPTH/depthgen/DepthGen_Temporal.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_Temporal.h
+    LUCIDA_DEPTH/depthgen/DepthGen_Inference.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_Inference.h
+    LUCIDA_DEPTH/depthgen/DepthGen_ModelIntegrity.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_ModelIntegrity.h
+    LUCIDA_DEPTH/depthgen/DepthGen_EmbeddedModel.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_EmbeddedModel.h
+    LUCIDA_DEPTH/depthgen/DepthGen_OrtHost.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_OrtHost.h
+    "${CMAKE_CURRENT_BINARY_DIR}/LUCIDA_Depth.generated.rc"
     ${FFGL_SOURCES}
 )
-add_dependencies(DEPTH_FX DEPTH_FX_CUDA_OBJECT)
-target_include_directories(DEPTH_FX PRIVATE
+
+target_include_directories(LUCIDA_DEPTH PRIVATE
     "${FFGL_SOURCE_ROOT}"
     "${FFGL_ROOT}/deps/glew-2.1.0/include"
-    "${CUDA_ROOT}/include"
-    "${TENSORRT_INCLUDE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH"
+    "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH/depthgen"
+    "${LUCIDA_DEPTH_ORT_ROOT}/build/native/include"
 )
-target_compile_features(DEPTH_FX PRIVATE cxx_std_17)
-target_compile_definitions(DEPTH_FX PRIVATE GLEW_STATIC)
-set_property(TARGET DEPTH_FX PROPERTY
+
+target_compile_features(LUCIDA_DEPTH PRIVATE cxx_std_17)
+target_compile_definitions(LUCIDA_DEPTH PRIVATE
+    GLEW_STATIC
+    DEPTHGEN_HAS_ORT
+    DEPTHGEN_EMBEDDED_MODEL
+    ORT_API_MANUAL_INIT
+    DEPTHGEN_ORT_DML
+)
+set_property(TARGET LUCIDA_DEPTH PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
 )
-target_link_libraries(DEPTH_FX PRIVATE
+target_link_libraries(LUCIDA_DEPTH PRIVATE
     OpenGL32
-    "${CUDART_LIBRARY}"
-    "${TENSORRT_LIBRARY}"
     "${FFGL_ROOT}/deps/glew-2.1.0/lib/Release/x64/glew32s.lib"
 )
-set_target_properties(DEPTH_FX PROPERTIES
-    OUTPUT_NAME "DEPTH_FX"
+set_target_properties(LUCIDA_DEPTH PROPERTIES
+    OUTPUT_NAME "LUCIDA_Depth"
     PREFIX ""
     SUFFIX ".dll"
 )
-add_custom_command(TARGET DEPTH_FX POST_BUILD
+add_custom_command(TARGET LUCIDA_DEPTH POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
         "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "$<TARGET_FILE:DEPTH_FX>"
-        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/DEPTH_FX.dll"
+        "$<TARGET_FILE:LUCIDA_DEPTH>"
+        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/LUCIDA_Depth.dll"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CUDA_ROOT}/bin/cudart64_110.dll"
-        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/cudart64_110.dll"
+        "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH/README.md"
+        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/LUCIDA_Depth_README.md"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CUDA_ROOT}/bin/nvinfer.dll"
-        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/nvinfer.dll"
+        "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH/THIRD_PARTY_NOTICES.md"
+        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/THIRD_PARTY_NOTICES.md"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH/model-manifest.json"
+        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/model-manifest.json"
 )
 
 enable_testing()
+
+add_executable(LUCIDA_DEPTH_CORE_SMOKE
+    LUCIDA_DEPTH/LUCIDA_DepthCoreSmoke.cpp
+    LUCIDA_DEPTH/LUCIDA_DepthCore.cpp
+    LUCIDA_DEPTH/LUCIDA_DepthCore.h
+    LUCIDA_DEPTH/depthgen/DepthGen_Image.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_Image.h
+    LUCIDA_DEPTH/depthgen/DepthGen_Temporal.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_Temporal.h
+    LUCIDA_DEPTH/depthgen/DepthGen_Inference.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_Inference.h
+    LUCIDA_DEPTH/depthgen/DepthGen_ModelIntegrity.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_ModelIntegrity.h
+    LUCIDA_DEPTH/depthgen/DepthGen_EmbeddedModel.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_EmbeddedModel.h
+    LUCIDA_DEPTH/depthgen/DepthGen_OrtHost.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_OrtHost.h
+    LUCIDA_DEPTH/LUCIDA_OrtEmbed.h
+    "${CMAKE_CURRENT_BINARY_DIR}/LUCIDA_Depth.generated.rc"
+)
+target_include_directories(LUCIDA_DEPTH_CORE_SMOKE PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH"
+    "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH/depthgen"
+    "${LUCIDA_DEPTH_ORT_ROOT}/build/native/include"
+)
+target_compile_features(LUCIDA_DEPTH_CORE_SMOKE PRIVATE cxx_std_17)
+target_compile_definitions(LUCIDA_DEPTH_CORE_SMOKE PRIVATE
+    DEPTHGEN_HAS_ORT
+    DEPTHGEN_EMBEDDED_MODEL
+    ORT_API_MANUAL_INIT
+    DEPTHGEN_ORT_DML
+)
+add_test(NAME LUCIDA_DEPTH_CORE_SMOKE COMMAND LUCIDA_DEPTH_CORE_SMOKE)
+
+add_executable(LUCIDA_DEPTH_PARAM_CONTRACT
+    LUCIDA_DEPTH/LUCIDA_DepthParamContract.cpp
+    LUCIDA_DEPTH/LUCIDA_DepthParamMapping.h
+    LUCIDA_DEPTH/LUCIDA_DepthCore.h
+)
+target_include_directories(LUCIDA_DEPTH_PARAM_CONTRACT PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH"
+    "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH/depthgen"
+    "${LUCIDA_DEPTH_ORT_ROOT}/build/native/include"
+)
+target_compile_features(LUCIDA_DEPTH_PARAM_CONTRACT PRIVATE cxx_std_17)
+add_test(NAME LUCIDA_DEPTH_PARAM_CONTRACT COMMAND LUCIDA_DEPTH_PARAM_CONTRACT)
+
+add_executable(LUCIDA_DEPTH_SHADER_SMOKE
+    LUCIDA_DEPTH/LUCIDA_ShaderSmoke.cpp
+)
+target_include_directories(LUCIDA_DEPTH_SHADER_SMOKE PRIVATE
+    "${FFGL_ROOT}/deps/glew-2.1.0/include"
+)
+target_compile_features(LUCIDA_DEPTH_SHADER_SMOKE PRIVATE cxx_std_17)
+target_compile_definitions(LUCIDA_DEPTH_SHADER_SMOKE PRIVATE GLEW_STATIC FFGL_WINDOWS)
+target_link_libraries(LUCIDA_DEPTH_SHADER_SMOKE PRIVATE
+    OpenGL32
+    "${FFGL_ROOT}/deps/glew-2.1.0/lib/Release/x64/glew32s.lib"
+)
+add_test(
+    NAME LUCIDA_DEPTH_SHADER_SMOKE
+    COMMAND LUCIDA_DEPTH_SHADER_SMOKE
+        "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH/LUCIDA_Depth.cpp"
+)
+
+add_executable(LUCIDA_DEPTH_CORE_BENCH
+    LUCIDA_DEPTH/LUCIDA_DepthCoreBench.cpp
+    LUCIDA_DEPTH/LUCIDA_DepthCore.cpp
+    LUCIDA_DEPTH/LUCIDA_DepthCore.h
+    LUCIDA_DEPTH/depthgen/DepthGen_Image.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_Image.h
+    LUCIDA_DEPTH/depthgen/DepthGen_Temporal.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_Temporal.h
+    LUCIDA_DEPTH/depthgen/DepthGen_Inference.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_Inference.h
+    LUCIDA_DEPTH/depthgen/DepthGen_ModelIntegrity.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_ModelIntegrity.h
+    LUCIDA_DEPTH/depthgen/DepthGen_EmbeddedModel.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_EmbeddedModel.h
+    LUCIDA_DEPTH/depthgen/DepthGen_OrtHost.cpp
+    LUCIDA_DEPTH/depthgen/DepthGen_OrtHost.h
+    LUCIDA_DEPTH/LUCIDA_OrtEmbed.h
+    "${CMAKE_CURRENT_BINARY_DIR}/LUCIDA_Depth.generated.rc"
+)
+target_include_directories(LUCIDA_DEPTH_CORE_BENCH PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH"
+    "${CMAKE_CURRENT_SOURCE_DIR}/LUCIDA_DEPTH/depthgen"
+    "${LUCIDA_DEPTH_ORT_ROOT}/build/native/include"
+)
+target_compile_features(LUCIDA_DEPTH_CORE_BENCH PRIVATE cxx_std_17)
+target_compile_definitions(LUCIDA_DEPTH_CORE_BENCH PRIVATE
+    DEPTHGEN_HAS_ORT
+    DEPTHGEN_EMBEDDED_MODEL
+    ORT_API_MANUAL_INIT
+    DEPTHGEN_ORT_DML
+)
+
 add_executable(INSTAR_XML_CONTRACT
     INSTAR/INSTAR_XML.cpp
     INSTAR/INSTAR_XML.h

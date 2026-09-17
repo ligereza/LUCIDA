@@ -1,0 +1,37 @@
+{
+  "product": "LUCIDA Depth",
+  "upstream_effect": {
+    "name": "DepthGen",
+    "repository": "https://github.com/palf-gh/DepthGen",
+    "release": "v1.0.1",
+    "license": "MIT"
+  },
+  "resources": [
+    {
+      "resource_id": 256,
+      "name": "zipdepth_base_npu_dynamic.onnx",
+      "license": "MIT",
+      "sha256": "0741a0d574609da33c5081b1054a2dd1e8845ecdbed9a5f69c48807c22400d59",
+      "provenance": "DepthGen v1.0.1 verified embedded resource"
+    },
+    {
+      "resource_id": 257,
+      "name": "depth_anything_v2_vits_dml.onnx",
+      "license": "Apache-2.0",
+      "sha256": "237cfaaf329bc97b9914c14e2d2497b1159cc05cca1b6d7a68aa42a262ea99bf",
+      "provenance": "DepthGen v1.0.1 verified embedded resource"
+    },
+    {
+      "resource_id": 258,
+      "name": "DepthGen-onnxruntime.dll",
+      "license": "MIT",
+      "sha256": "e268219a33cf3898c16ae364efc79a4a656c87d2ee67fd872b079aca769fd97e",
+      "provenance": "DepthGen v1.0.1 verified embedded resource; ONNX Runtime 1.17.3 DirectML line"
+    }
+  ],
+  "host_adapter": {
+    "name": "Resolume FFGL",
+    "repository": "https://github.com/resolume/ffgl",
+    "license": "BSD-3-Clause"
+  }
+}

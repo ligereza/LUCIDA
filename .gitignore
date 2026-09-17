@@ -13,3 +13,4 @@ secrets/
 artifacts/
 coverage/
 work/resolume-plugin-build/
+work/resolume-plugin-build-live/

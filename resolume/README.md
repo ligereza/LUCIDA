@@ -319,22 +319,23 @@ Resolume Preferences → Video → FFGL Directories and restart Resolume. The
 native build and contracts are verified locally; live host loading still
 requires the final installation step on a machine with Resolume.
 
-## Native DEPTH_FX effect
+## Native LUCIDA Depth effect
 
-`resolume/plugin/DEPTH_FX/` is a real-time FFGL effect, not a video player and
-not a frame-sequence reader. Resolume supplies its current clip/capture texture
-through the FFGL input texture on every render call. The effect reads that
-OpenGL texture inside the plugin, runs the selected TensorRT Depth Anything
-engine, and uses the resulting depth texture to output a normalized `Inferno`
-depth pass in the fragment shader, matching the reference renderer. A later effect can consume that pass for displacement, masks,
-parallax, particles, or other live visuals.
+`resolume/plugin/LUCIDA_DEPTH/` is the FFGL port of the open-source DepthGen
+effect. It is not a video player or frame-sequence reader: Resolume supplies
+the current clip/camera/Layers Below texture on every render call, the plugin
+passes it through the DepthGen core, and the plugin returns a normalized
+monochrome relative-depth texture with source-alpha handling.
 
-The only file parameter is `DepthEngine`, which selects a compatible TensorRT
-`.engine` model. It never selects or opens a video. If the engine is absent,
-incompatible, or the internal CUDA/TensorRT processing fails, the effect keeps the input image
-instead of inventing a depth result. The current build uses CUDA 11.8,
-TensorRT 8.6, and CUDA architecture 89; the engine must be built for the
-installed TensorRT/runtime combination.
+The port keeps DepthGen's internal model selection, quality sizes, near/far
+percentiles, contrast, inversion, temporal stability, input transfer, alpha
+levels and provider fallback. It does not ask the user for a `.engine`, start
+another process, or download assets during a show. TensorRT/CUDA 11.8 is not
+part of this target.
+
+The output effect appears in Resolume as `LUCIDA Depth`. A later effect can
+consume its depth pass for displacement, masks, parallax, particles or other
+live visuals.
 
 ## Native INSTAR 3D source
 
