@@ -525,7 +525,3 @@ bool DEPTHFX_CUDA_ProcessHost(
 	return success;
 }
 }
-
-
-
-
