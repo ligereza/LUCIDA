@@ -193,6 +193,12 @@ add_custom_command(TARGET DEPTH_FX POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_FILE:DEPTH_FX>"
         "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/DEPTH_FX.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CUDA_ROOT}/bin/cudart64_110.dll"
+        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/cudart64_110.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CUDA_ROOT}/bin/nvinfer.dll"
+        "${CMAKE_CURRENT_BINARY_DIR}/Extra Effects/nvinfer.dll"
 )
 
 enable_testing()
