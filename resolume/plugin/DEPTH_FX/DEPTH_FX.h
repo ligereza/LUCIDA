@@ -56,6 +56,7 @@ protected:
 
 private:
 	static std::string DecodeFileUri(const char* value);
+	static std::string FindDefaultEngine();
 	void Log(const std::string& message) const;
 	void EnsureDepthTexture(int width, int height);
 	void ReleaseDepthTexture();
@@ -76,6 +77,7 @@ private:
 	bool engineDirty = true;
 	bool cudaFailureLogged = false;
 	bool depthAvailable = false;
+	bool renderLogged = false;
 	std::vector<unsigned char> readbackPixels;
 	std::vector<float> hostDepthPixels;
 };

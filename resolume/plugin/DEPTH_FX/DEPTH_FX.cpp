@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <fstream>
 #include <iomanip>
 #include <sstream>
 #include <vector>
@@ -115,6 +116,13 @@ DEPTHFX::~DEPTHFX()
 void DEPTHFX::Log(const std::string& message) const
 {
 	FFGLLog::LogToHost(message.c_str());
+	char temporaryDirectory[MAX_PATH] = {};
+	const DWORD length = GetTempPathA(static_cast<DWORD>(sizeof(temporaryDirectory)), temporaryDirectory);
+	if (length == 0 || length >= sizeof(temporaryDirectory))
+		return;
+	std::ofstream runtimeLog(std::string(temporaryDirectory) + "DEPTH_FX_runtime.log", std::ios::app);
+	if (runtimeLog)
+		runtimeLog << message << '\n';
 }
 
 std::string DEPTHFX::DecodeFileUri(const char* value)
@@ -147,6 +155,19 @@ std::string DEPTHFX::DecodeFileUri(const char* value)
 		result.push_back(decoded[index] == '/' ? '\\' : decoded[index]);
 	}
 	return result;
+}
+
+std::string DEPTHFX::FindDefaultEngine()
+{
+	char userProfile[4096] = {};
+	const DWORD length = GetEnvironmentVariableA("USERPROFILE", userProfile, static_cast<DWORD>(sizeof(userProfile)));
+	if (length == 0 || length >= sizeof(userProfile))
+		return std::string();
+	const std::string candidate = std::string(userProfile) + "\\Desktop\\trash\\depth-anything-tensorrt\\depth_anything_v2_vitb.engine";
+	const DWORD attributes = GetFileAttributesA(candidate.c_str());
+	if (attributes == INVALID_FILE_ATTRIBUTES || (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
+		return std::string();
+	return candidate;
 }
 
 void DEPTHFX::EnsureDepthTexture(int width, int height)
@@ -269,6 +290,9 @@ FFResult DEPTHFX::Init()
 	cudaBridge = DEPTHFX_CUDA_Create();
 	if (cudaBridge == nullptr)
 		return FF_FAIL;
+	enginePath = FindDefaultEngine();
+	if (!enginePath.empty())
+		Log("DEPTH_FX: engine local encontrado: " + enginePath);
 	EnsureDepthTexture(kDepthTextureSize, kDepthTextureSize);
 	return depthTexture == 0 ? FF_FAIL : FF_SUCCESS;
 }
@@ -294,6 +318,11 @@ FFResult DEPTHFX::Render(ProcessOpenGLStruct* inputTextures)
 		return FF_FAIL;
 
 	const FFGLTextureStruct& input = *inputTextures->inputTextures[0];
+	if (!renderLogged)
+	{
+		Log("DEPTH_FX: Render recibido, input=" + std::to_string(input.Width) + "x" + std::to_string(input.Height));
+		renderLogged = true;
+	}
 	EnsureDepthTexture(kDepthTextureSize, kDepthTextureSize);
 	if (depthTexture == 0)
 		return FF_FAIL;
@@ -344,7 +373,14 @@ FFResult DEPTHFX::SetTextParameter(unsigned int index, const char* value)
 {
 	if (index == PARAM_ENGINE_FILE)
 	{
-		enginePath = DecodeFileUri(value);
+		const std::string selectedPath = DecodeFileUri(value);
+		if (selectedPath.empty() && !enginePath.empty())
+		{
+			Log("DEPTH_FX: se ignoró una actualización vacía de DepthEngine.");
+			return FF_SUCCESS;
+		}
+		enginePath = selectedPath;
+		Log("DEPTH_FX: DepthEngine seleccionado: " + enginePath);
 		engineDirty = true;
 		cudaFailureLogged = false;
 		depthAvailable = false;
