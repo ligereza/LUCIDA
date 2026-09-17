@@ -75,6 +75,7 @@ private:
 	int depthHeight = 0;
 	bool engineDirty = true;
 	bool cudaFailureLogged = false;
+	bool depthAvailable = false;
 	std::vector<unsigned char> readbackPixels;
 	std::vector<float> hostDepthPixels;
 };

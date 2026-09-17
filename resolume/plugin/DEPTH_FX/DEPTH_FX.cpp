@@ -54,6 +54,7 @@ DEPTHFX::DEPTHFX()
 		uniform float DepthContrast;
 		uniform float DepthInvert;
 		uniform float DepthSmooth;
+		uniform float DepthAvailable;
 
 		vec3 inferno(float value)
 		{
@@ -94,6 +95,12 @@ DEPTHFX::DEPTHFX()
 
 		void main()
 		{
+			vec4 original = texture(inputTexture, i_uv);
+			if (DepthAvailable < 0.5)
+			{
+				fragColor = original;
+				return;
+			}
 			float depth = readDepth(i_uv);
 			fragColor = vec4(inferno(depth), 1.0);
 		}
@@ -290,6 +297,7 @@ FFResult DEPTHFX::Render(ProcessOpenGLStruct* inputTextures)
 	EnsureDepthTexture(kDepthTextureSize, kDepthTextureSize);
 	if (depthTexture == 0)
 		return FF_FAIL;
+	depthAvailable = false;
 
 	if (engineDirty && !enginePath.empty() && cudaBridge != nullptr)
 	{
@@ -311,6 +319,8 @@ FFResult DEPTHFX::Render(ProcessOpenGLStruct* inputTextures)
 		std::string errorMessage;
 		if (!ProcessHostReadback(input, errorMessage))
 			MarkCudaFailure(errorMessage);
+		else
+			depthAvailable = true;
 	}
 
 	ffglex::ScopedShaderBinding shaderBinding(shader.GetGLID());
@@ -322,6 +332,7 @@ FFResult DEPTHFX::Render(ProcessOpenGLStruct* inputTextures)
 	ffglex::Scoped2DTextureBinding textureBinding1(depthTexture);
 	shader.Set("depthTexture", 1);
 	shader.Set("depthResolution", static_cast<float>(depthWidth), static_cast<float>(depthHeight));
+	shader.Set("DepthAvailable", depthAvailable ? 1.0f : 0.0f);
 
 	const FFGLTexCoords maxCoords = GetMaxGLTexCoords(input);
 	shader.Set("maxUV", maxCoords.s, maxCoords.t);
@@ -336,6 +347,7 @@ FFResult DEPTHFX::SetTextParameter(unsigned int index, const char* value)
 		enginePath = DecodeFileUri(value);
 		engineDirty = true;
 		cudaFailureLogged = false;
+		depthAvailable = false;
 		return FF_SUCCESS;
 	}
 	return Effect::SetTextParameter(index, value);
