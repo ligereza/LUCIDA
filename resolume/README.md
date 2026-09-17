@@ -331,7 +331,7 @@ parallax, particles, or other live visuals.
 
 The only file parameter is `DepthEngine`, which selects a compatible TensorRT
 `.engine` model. It never selects or opens a video. If the engine is absent,
-incompatible, or CUDA/OpenGL interop fails, the effect keeps the input image
+incompatible, or the internal CUDA/TensorRT processing fails, the effect keeps the input image
 instead of inventing a depth result. The current build uses CUDA 11.8,
 TensorRT 8.6, and CUDA architecture 89; the engine must be built for the
 installed TensorRT/runtime combination.
