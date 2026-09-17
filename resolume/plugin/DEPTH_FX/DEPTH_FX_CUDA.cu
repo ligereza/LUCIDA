@@ -110,13 +110,30 @@ __global__ void PreprocessHostKernel(
 	if (x >= width || y >= height)
 		return;
 
-	const int sourceX = min(sourceWidth - 1, static_cast<int>((static_cast<float>(x) + 0.5f) * sourceWidth / width));
-	const int sourceY = min(sourceHeight - 1, static_cast<int>((static_cast<float>(y) + 0.5f) * sourceHeight / height));
-	const uchar4 pixel = source[sourceY * sourceWidth + sourceX];
+	const float sourceX = ((static_cast<float>(x) + 0.5f) * sourceWidth / width) - 0.5f;
+	const float sourceY = ((static_cast<float>(y) + 0.5f) * sourceHeight / height) - 0.5f;
+	const float clampedSourceX = max(0.0f, min(static_cast<float>(sourceWidth - 1), sourceX));
+	const float clampedSourceY = max(0.0f, min(static_cast<float>(sourceHeight - 1), sourceY));
+	const int x0 = max(0, min(sourceWidth - 1, static_cast<int>(floorf(clampedSourceX))));
+	const int y0 = max(0, min(sourceHeight - 1, static_cast<int>(floorf(clampedSourceY))));
+	const int x1 = min(sourceWidth - 1, x0 + 1);
+	const int y1 = min(sourceHeight - 1, y0 + 1);
+	const float wx = clampedSourceX - floorf(clampedSourceX);
+	const float wy = clampedSourceY - floorf(clampedSourceY);
+	const uchar4 p00 = source[y0 * sourceWidth + x0];
+	const uchar4 p10 = source[y0 * sourceWidth + x1];
+	const uchar4 p01 = source[y1 * sourceWidth + x0];
+	const uchar4 p11 = source[y1 * sourceWidth + x1];
+	const float4 pixel = make_float4(
+		(1.0f - wy) * ((1.0f - wx) * p00.x + wx * p10.x) + wy * ((1.0f - wx) * p01.x + wx * p11.x),
+		(1.0f - wy) * ((1.0f - wx) * p00.y + wx * p10.y) + wy * ((1.0f - wx) * p01.y + wx * p11.y),
+		(1.0f - wy) * ((1.0f - wx) * p00.z + wx * p10.z) + wy * ((1.0f - wx) * p01.z + wx * p11.z),
+		255.0f
+	);
 	const float channels[3] = {
-		static_cast<float>(pixel.x) / 255.0f,
-		static_cast<float>(pixel.y) / 255.0f,
-		static_cast<float>(pixel.z) / 255.0f
+		pixel.x / 255.0f,
+		pixel.y / 255.0f,
+		pixel.z / 255.0f
 	};
 	const float mean[3] = {0.485f, 0.456f, 0.406f};
 	const float standardDeviation[3] = {0.229f, 0.224f, 0.225f};
@@ -419,10 +436,12 @@ struct DEPTHFX_CUDA
 		nvinfer1::Dims inputDims = engine->getBindingDimensions(inputBinding);
 		if (inputDims.nbDims != 4)
 			return Fail("la entrada del engine no tiene forma NCHW de 4 dimensiones");
+		bool dynamicInput = false;
 		for (int dimension = 0; dimension < inputDims.nbDims; ++dimension)
 		{
 			if (inputDims.d[dimension] <= 0)
 			{
+				dynamicInput = true;
 				if (dimension == 0)
 					inputDims.d[dimension] = 1;
 				else if (dimension == 1)
@@ -431,10 +450,13 @@ struct DEPTHFX_CUDA
 					inputDims.d[dimension] = 518;
 			}
 		}
-		if (!context->setBindingDimensions(inputBinding, inputDims))
-			return Fail("TensorRT rechazó las dimensiones de entrada");
-		if (!context->allInputDimensionsSpecified())
-			return Fail("TensorRT dejó dimensiones de entrada sin especificar");
+		if (dynamicInput)
+		{
+			if (!context->setBindingDimensions(inputBinding, inputDims))
+				return Fail("TensorRT rechazó las dimensiones de entrada");
+			if (!context->allInputDimensionsSpecified())
+				return Fail("TensorRT dejó dimensiones de entrada sin especificar");
+		}
 
 		const nvinfer1::Dims outputDims = context->getBindingDimensions(outputBinding);
 		if (outputDims.nbDims < 2 || outputDims.d[outputDims.nbDims - 1] <= 0 || outputDims.d[outputDims.nbDims - 2] <= 0)
