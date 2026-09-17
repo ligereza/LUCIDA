@@ -19,17 +19,6 @@ bool DEPTHFX_CUDA_LoadEngine(
 	char* errorMessage,
 	size_t errorMessageSize
 );
-bool DEPTHFX_CUDA_Process(
-	DEPTHFX_CUDA* bridge,
-	unsigned int inputTexture,
-	int inputWidth,
-	int inputHeight,
-	unsigned int outputTexture,
-	int outputWidth,
-	int outputHeight,
-	char* errorMessage,
-	size_t errorMessageSize
-);
 bool DEPTHFX_CUDA_ProcessHost(
 	DEPTHFX_CUDA* bridge,
 	const unsigned char* rgbaPixels,
@@ -86,7 +75,6 @@ private:
 	int depthHeight = 0;
 	bool engineDirty = true;
 	bool cudaFailureLogged = false;
-	bool interopDisabled = false;
 	std::vector<unsigned char> readbackPixels;
 	std::vector<float> hostDepthPixels;
 };

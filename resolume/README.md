@@ -323,10 +323,10 @@ requires the final installation step on a machine with Resolume.
 
 `resolume/plugin/DEPTH_FX/` is a real-time FFGL effect, not a video player and
 not a frame-sequence reader. Resolume supplies its current clip/capture texture
-through the FFGL input texture on every render call. The effect shares that
-OpenGL texture with CUDA, runs the selected TensorRT Depth Anything engine, and
-uses the resulting depth texture to output a normalized `Inferno` depth pass in
-the fragment shader, matching the reference renderer. A later effect can consume that pass for displacement, masks,
+through the FFGL input texture on every render call. The effect reads that
+OpenGL texture inside the plugin, runs the selected TensorRT Depth Anything
+engine, and uses the resulting depth texture to output a normalized `Inferno`
+depth pass in the fragment shader, matching the reference renderer. A later effect can consume that pass for displacement, masks,
 parallax, particles, or other live visuals.
 
 The only file parameter is `DepthEngine`, which selects a compatible TensorRT

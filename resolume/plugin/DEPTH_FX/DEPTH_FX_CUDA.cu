@@ -312,6 +312,12 @@ struct DEPTHFX_CUDA
 		reductionBlocks = 0;
 	}
 
+	bool Fail(const std::string& message)
+	{
+		lastError = message;
+		return false;
+	}
+
 	void UnregisterGraphicsResources()
 	{
 		if (inputResource != nullptr)
@@ -322,12 +328,6 @@ struct DEPTHFX_CUDA
 		outputResource = nullptr;
 		registeredInputTexture = 0;
 		registeredOutputTexture = 0;
-	}
-
-	bool Fail(const std::string& message)
-	{
-		lastError = message;
-		return false;
 	}
 
 	bool AllocateBuffers()

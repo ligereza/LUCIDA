@@ -308,38 +308,9 @@ FFResult DEPTHFX::Render(ProcessOpenGLStruct* inputTextures)
 
 	if (!enginePath.empty() && cudaBridge != nullptr && !cudaFailureLogged)
 	{
-		bool processed = false;
-		std::string primaryError;
-		if (!interopDisabled)
-		{
-			char errorMessage[1024] = {};
-			processed = DEPTHFX_CUDA_Process(
-				cudaBridge,
-				input.Handle,
-				static_cast<int>(input.Width),
-				static_cast<int>(input.Height),
-				depthTexture,
-				depthWidth,
-				depthHeight,
-				errorMessage,
-				sizeof(errorMessage)
-			);
-			if (!processed)
-			{
-				interopDisabled = true;
-				primaryError = errorMessage[0] == '\0' ? "falló CUDA/OpenGL interop" : errorMessage;
-			}
-		}
-		if (!processed)
-		{
-			std::string fallbackError;
-			processed = ProcessHostReadback(input, fallbackError);
-			if (!processed)
-			{
-				const std::string prefix = primaryError.empty() ? std::string() : primaryError + "; ";
-				MarkCudaFailure(prefix + fallbackError);
-			}
-		}
+		std::string errorMessage;
+		if (!ProcessHostReadback(input, errorMessage))
+			MarkCudaFailure(errorMessage);
 	}
 
 	ffglex::ScopedShaderBinding shaderBinding(shader.GetGLID());
@@ -365,7 +336,6 @@ FFResult DEPTHFX::SetTextParameter(unsigned int index, const char* value)
 		enginePath = DecodeFileUri(value);
 		engineDirty = true;
 		cudaFailureLogged = false;
-		interopDisabled = false;
 		return FF_SUCCESS;
 	}
 	return Effect::SetTextParameter(index, value);
