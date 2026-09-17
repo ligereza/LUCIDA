@@ -134,7 +134,8 @@ __global__ void WriteDepthTextureKernel(
 	float normalized = 0.5f;
 	if (isfinite(value) && isfinite(low) && isfinite(high) && range > 1.0e-6f)
 		normalized = (value - low) / range;
-	surf2Dwrite(fminf(1.0f, fmaxf(0.0f, normalized)), destination, x * static_cast<int>(sizeof(float)), y);
+	const float clamped = fminf(1.0f, fmaxf(0.0f, normalized));
+	surf2Dwrite(make_float4(clamped, clamped, clamped, 1.0f), destination, x * static_cast<int>(sizeof(float4)), y);
 }
 
 __global__ void ReduceMinMaxKernel(

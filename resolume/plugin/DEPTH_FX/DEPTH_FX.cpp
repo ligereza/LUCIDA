@@ -55,6 +55,28 @@ DEPTHFX::DEPTHFX()
 		uniform float DepthInvert;
 		uniform float DepthSmooth;
 
+		vec3 inferno(float value)
+		{
+			value = clamp(value, 0.0, 1.0);
+			const vec3 c0 = vec3(0.001462, 0.000466, 0.013866);
+			const vec3 c1 = vec3(0.087411, 0.044556, 0.224813);
+			const vec3 c2 = vec3(0.341500, 0.062325, 0.429425);
+			const vec3 c3 = vec3(0.578304, 0.148039, 0.404411);
+			const vec3 c4 = vec3(0.735683, 0.215906, 0.330245);
+			const vec3 c5 = vec3(0.865006, 0.316822, 0.226055);
+			const vec3 c6 = vec3(0.978422, 0.557937, 0.034931);
+			const vec3 c7 = vec3(0.989587, 0.782004, 0.104551);
+			const vec3 c8 = vec3(0.988362, 0.998364, 0.644924);
+			if (value < 0.125) return mix(c0, c1, value / 0.125);
+			if (value < 0.250) return mix(c1, c2, (value - 0.125) / 0.125);
+			if (value < 0.375) return mix(c2, c3, (value - 0.250) / 0.125);
+			if (value < 0.500) return mix(c3, c4, (value - 0.375) / 0.125);
+			if (value < 0.625) return mix(c4, c5, (value - 0.500) / 0.125);
+			if (value < 0.750) return mix(c5, c6, (value - 0.625) / 0.125);
+			if (value < 0.875) return mix(c6, c7, (value - 0.750) / 0.125);
+			return mix(c7, c8, (value - 0.875) / 0.125);
+		}
+
 		float readDepth(vec2 uv)
 		{
 			float centre = texture(depthTexture, uv).r;
@@ -73,7 +95,7 @@ DEPTHFX::DEPTHFX()
 		void main()
 		{
 			float depth = readDepth(i_uv);
-			fragColor = vec4(depth, depth, depth, 1.0);
+			fragColor = vec4(inferno(depth), 1.0);
 		}
 	)");
 }
@@ -128,7 +150,9 @@ void DEPTHFX::EnsureDepthTexture(int width, int height)
 	glGenTextures(1, &depthTexture);
 	if (depthTexture == 0)
 		return;
-	std::vector<float> neutral(static_cast<size_t>(width) * static_cast<size_t>(height), 0.5f);
+	std::vector<float> neutral(static_cast<size_t>(width) * static_cast<size_t>(height) * 4, 0.5f);
+	for (size_t index = 0; index < neutral.size(); index += 4)
+		neutral[index + 3] = 1.0f;
 	glBindTexture(GL_TEXTURE_2D, depthTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -137,11 +161,11 @@ void DEPTHFX::EnsureDepthTexture(int width, int height)
 	glTexImage2D(
 		GL_TEXTURE_2D,
 		0,
-		GL_R32F,
+		GL_RGBA32F,
 		width,
 		height,
 		0,
-		GL_RED,
+		GL_RGBA,
 		GL_FLOAT,
 		neutral.data()
 	);
