@@ -36,7 +36,7 @@ static CFFGLPluginInfo PluginInfo(
 	1,
 	0,
 	FF_EFFECT,
-	"Real-time Depth Anything effect. Resolume supplies the input texture.",
+	"Real-time Depth Anything depth-pass generator. Resolume supplies the input texture.",
 	"LUCIDA RESOLUME"
 );
 }
@@ -44,24 +44,16 @@ static CFFGLPluginInfo PluginInfo(
 DEPTHFX::DEPTHFX()
 {
 	AddParam(Param::Create("DepthEngine", FF_TYPE_FILE, 0.0f));
-	AddParam(ParamRange::Create("DepthAmount", 0.035f, ParamRange::Range(-0.25f, 0.25f)));
-	AddParam(ParamRange::Create("DepthVertical", 0.0f, ParamRange::Range(-0.25f, 0.25f)));
-	AddParam(ParamRange::Create("DepthBias", 0.0f, ParamRange::Range(-1.0f, 1.0f)));
 	AddParam(ParamRange::Create("DepthContrast", 1.0f, ParamRange::Range(0.0f, 4.0f)));
 	AddParam(ParamOption::Create("DepthInvert", {{"OFF", 0.0f}, {"ON", 1.0f}}, 0.0f));
 	AddParam(ParamRange::Create("DepthSmooth", 0.0f, ParamRange::Range(0.0f, 1.0f)));
-	AddParam(ParamRange::Create("EffectMix", 1.0f, ParamRange::Range(0.0f, 1.0f)));
 
 	SetFragmentShader(R"(
 		uniform sampler2D depthTexture;
 		uniform vec2 depthResolution;
-		uniform float DepthAmount;
-		uniform float DepthVertical;
-		uniform float DepthBias;
 		uniform float DepthContrast;
 		uniform float DepthInvert;
 		uniform float DepthSmooth;
-		uniform float EffectMix;
 
 		float readDepth(vec2 uv)
 		{
@@ -74,18 +66,14 @@ DEPTHFX::DEPTHFX()
 				texture(depthTexture, uv - vec2(0.0, texel.y)).r
 			);
 			float depth = mix(centre, neighbours, clamp(DepthSmooth, 0.0, 1.0));
-			depth = clamp((depth - 0.5) * DepthContrast + 0.5 + DepthBias, 0.0, 1.0);
+			depth = clamp((depth - 0.5) * DepthContrast + 0.5, 0.0, 1.0);
 			return DepthInvert > 0.5 ? 1.0 - depth : depth;
 		}
 
 		void main()
 		{
-			vec4 original = texture(inputTexture, i_uv);
 			float depth = readDepth(i_uv);
-			vec2 displacement = (depth - 0.5) * vec2(DepthAmount, DepthVertical);
-			vec2 displacedUV = clamp(i_uv + displacement, vec2(0.0), vec2(1.0));
-			vec4 displaced = texture(inputTexture, displacedUV);
-			fragColor = mix(original, displaced, clamp(EffectMix, 0.0, 1.0));
+			fragColor = vec4(depth, depth, depth, 1.0);
 		}
 	)");
 }

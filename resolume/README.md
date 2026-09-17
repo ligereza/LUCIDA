@@ -325,8 +325,9 @@ requires the final installation step on a machine with Resolume.
 not a frame-sequence reader. Resolume supplies its current clip/capture texture
 through the FFGL input texture on every render call. The effect shares that
 OpenGL texture with CUDA, runs the selected TensorRT Depth Anything engine, and
-uses the resulting depth texture to displace the same input in the fragment
-shader.
+uses the resulting depth texture to output a normalized depth pass in the
+fragment shader. A later effect can consume that pass for displacement, masks,
+parallax, particles, or other live visuals.
 
 The only file parameter is `DepthEngine`, which selects a compatible TensorRT
 `.engine` model. It never selects or opens a video. If the engine is absent,

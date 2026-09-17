@@ -60,13 +60,9 @@ private:
 	void MarkCudaFailure(const std::string& message);
 
 	static constexpr unsigned int PARAM_ENGINE_FILE = 0;
-	static constexpr unsigned int PARAM_DEPTH_AMOUNT = 1;
-	static constexpr unsigned int PARAM_DEPTH_VERTICAL = 2;
-	static constexpr unsigned int PARAM_DEPTH_BIAS = 3;
-	static constexpr unsigned int PARAM_DEPTH_CONTRAST = 4;
-	static constexpr unsigned int PARAM_DEPTH_INVERT = 5;
-	static constexpr unsigned int PARAM_DEPTH_SMOOTH = 6;
-	static constexpr unsigned int PARAM_EFFECT_MIX = 7;
+	static constexpr unsigned int PARAM_DEPTH_CONTRAST = 1;
+	static constexpr unsigned int PARAM_DEPTH_INVERT = 2;
+	static constexpr unsigned int PARAM_DEPTH_SMOOTH = 3;
 
 	std::string enginePath;
 	DEPTHFX_CUDA* cudaBridge = nullptr;
