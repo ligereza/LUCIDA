@@ -5,7 +5,6 @@
 #endif
 
 #include <cuda_fp16.h>
-#include <cuda_gl_interop.h>
 #include <cuda_runtime.h>
 
 #include <NvInfer.h>
@@ -21,8 +20,6 @@
 
 namespace
 {
-constexpr unsigned int kGLTexture2D = 0x0DE1;
-
 void SetError(char* destination, size_t destinationSize, const std::string& message)
 {
 	if (destination == nullptr || destinationSize == 0)
@@ -157,63 +154,6 @@ __global__ void ConvertHalfKernel(const __half* source, float* destination, int 
 		destination[index] = __half2float(source[index]);
 }
 
-__global__ void WriteDepthTextureKernel(
-	cudaSurfaceObject_t destination,
-	const float* source,
-	int sourceWidth,
-	int sourceHeight,
-	int destinationWidth,
-	int destinationHeight,
-	const float* minimum,
-	const float* maximum)
-{
-	const int x = blockIdx.x * blockDim.x + threadIdx.x;
-	const int y = blockIdx.y * blockDim.y + threadIdx.y;
-	if (x >= destinationWidth || y >= destinationHeight)
-		return;
-
-	const int sourceX = min(sourceWidth - 1, static_cast<int>((static_cast<float>(x) + 0.5f) * sourceWidth / destinationWidth));
-	const int sourceY = min(sourceHeight - 1, static_cast<int>((static_cast<float>(y) + 0.5f) * sourceHeight / destinationHeight));
-	const float low = *minimum;
-	const float high = *maximum;
-	const float value = source[sourceY * sourceWidth + sourceX];
-	const float range = high - low;
-	float normalized = 0.5f;
-	if (isfinite(value) && isfinite(low) && isfinite(high) && range > 1.0e-6f)
-		normalized = (value - low) / range;
-	const float clamped = fminf(1.0f, fmaxf(0.0f, normalized));
-	surf2Dwrite(make_float4(clamped, clamped, clamped, 1.0f), destination, x * static_cast<int>(sizeof(float4)), y);
-}
-
-__global__ void ReduceMinMaxKernel(
-	const float* source,
-	float* blockMinimum,
-	float* blockMaximum,
-	int count)
-{
-	__shared__ float minimumValues[256];
-	__shared__ float maximumValues[256];
-	const int thread = threadIdx.x;
-	const int index = blockIdx.x * blockDim.x + thread;
-	minimumValues[thread] = index < count ? source[index] : FLT_MAX;
-	maximumValues[thread] = index < count ? source[index] : -FLT_MAX;
-	__syncthreads();
-	for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
-	{
-		if (thread < stride)
-		{
-			minimumValues[thread] = fminf(minimumValues[thread], minimumValues[thread + stride]);
-			maximumValues[thread] = fmaxf(maximumValues[thread], maximumValues[thread + stride]);
-		}
-		__syncthreads();
-	}
-	if (thread == 0)
-	{
-		blockMinimum[blockIdx.x] = minimumValues[0];
-		blockMaximum[blockIdx.x] = maximumValues[0];
-	}
-}
-
 class TensorRTLogger final : public nvinfer1::ILogger
 {
 public:
@@ -240,16 +180,7 @@ struct DEPTHFX_CUDA
 	size_t sourceCapacity = 0;
 	void* outputDevice = nullptr;
 	float* outputFloatDevice = nullptr;
-	float* minimumDevice = nullptr;
-	float* maximumDevice = nullptr;
-	float* blockMinimumDevice = nullptr;
-	float* blockMaximumDevice = nullptr;
-	int reductionBlocks = 0;
 
-	cudaGraphicsResource_t inputResource = nullptr;
-	cudaGraphicsResource_t outputResource = nullptr;
-	unsigned int registeredInputTexture = 0;
-	unsigned int registeredOutputTexture = 0;
 
 	int inputBinding = -1;
 	int outputBinding = -1;
@@ -272,7 +203,6 @@ struct DEPTHFX_CUDA
 
 	void Shutdown()
 	{
-		UnregisterGraphicsResources();
 		FreeBuffers();
 		if (context != nullptr)
 			context->destroy();
@@ -298,14 +228,6 @@ struct DEPTHFX_CUDA
 
 	void FreeBuffers()
 	{
-		if (blockMaximumDevice != nullptr)
-			cudaFree(blockMaximumDevice);
-		if (blockMinimumDevice != nullptr)
-			cudaFree(blockMinimumDevice);
-		if (maximumDevice != nullptr)
-			cudaFree(maximumDevice);
-		if (minimumDevice != nullptr)
-			cudaFree(minimumDevice);
 		if (outputFloatDevice != nullptr)
 			cudaFree(outputFloatDevice);
 		if (outputDevice != nullptr)
@@ -316,35 +238,18 @@ struct DEPTHFX_CUDA
 			cudaFree(sourceDevice);
 		if (stream != nullptr)
 			cudaStreamDestroy(stream);
-		blockMaximumDevice = nullptr;
-		blockMinimumDevice = nullptr;
-		maximumDevice = nullptr;
-		minimumDevice = nullptr;
 		outputFloatDevice = nullptr;
 		outputDevice = nullptr;
 		inputDevice = nullptr;
 		sourceDevice = nullptr;
 		sourceCapacity = 0;
 		stream = nullptr;
-		reductionBlocks = 0;
 	}
 
 	bool Fail(const std::string& message)
 	{
 		lastError = message;
 		return false;
-	}
-
-	void UnregisterGraphicsResources()
-	{
-		if (inputResource != nullptr)
-			cudaGraphicsUnregisterResource(inputResource);
-		if (outputResource != nullptr)
-			cudaGraphicsUnregisterResource(outputResource);
-		inputResource = nullptr;
-		outputResource = nullptr;
-		registeredInputTexture = 0;
-		registeredOutputTexture = 0;
 	}
 
 	bool AllocateBuffers()
@@ -361,16 +266,6 @@ struct DEPTHFX_CUDA
 			return Fail(CudaError("cudaMalloc(output)", cudaGetLastError()));
 		if (cudaMalloc(reinterpret_cast<void**>(&outputFloatDevice), static_cast<size_t>(outputElements) * sizeof(float)) != cudaSuccess)
 			return Fail(CudaError("cudaMalloc(output float)", cudaGetLastError()));
-		if (cudaMalloc(reinterpret_cast<void**>(&minimumDevice), sizeof(float)) != cudaSuccess)
-			return Fail(CudaError("cudaMalloc(minimum)", cudaGetLastError()));
-		if (cudaMalloc(reinterpret_cast<void**>(&maximumDevice), sizeof(float)) != cudaSuccess)
-			return Fail(CudaError("cudaMalloc(maximum)", cudaGetLastError()));
-
-		reductionBlocks = (modelWidth * modelHeight + 255) / 256;
-		if (cudaMalloc(reinterpret_cast<void**>(&blockMinimumDevice), static_cast<size_t>(reductionBlocks) * sizeof(float)) != cudaSuccess)
-			return Fail(CudaError("cudaMalloc(block minimum)", cudaGetLastError()));
-		if (cudaMalloc(reinterpret_cast<void**>(&blockMaximumDevice), static_cast<size_t>(reductionBlocks) * sizeof(float)) != cudaSuccess)
-			return Fail(CudaError("cudaMalloc(block maximum)", cudaGetLastError()));
 		return true;
 	}
 
@@ -480,212 +375,6 @@ struct DEPTHFX_CUDA
 
 		loadedEnginePath = path;
 		ready = true;
-		return true;
-	}
-
-	bool EnsureGraphicsResources(unsigned int inputTexture, unsigned int outputTexture)
-	{
-		if (registeredInputTexture != inputTexture || registeredOutputTexture != outputTexture)
-		{
-			UnregisterGraphicsResources();
-			cudaError_t inputRegistration = cudaGraphicsGLRegisterImage(
-				&inputResource,
-				inputTexture,
-				kGLTexture2D,
-				cudaGraphicsRegisterFlagsReadOnly
-			);
-			if (inputRegistration != cudaSuccess)
-				return Fail(CudaError("cudaGraphicsGLRegisterImage(input)", inputRegistration));
-			cudaError_t outputRegistration = cudaGraphicsGLRegisterImage(
-				&outputResource,
-				outputTexture,
-				kGLTexture2D,
-				cudaGraphicsRegisterFlagsWriteDiscard | cudaGraphicsRegisterFlagsSurfaceLoadStore
-			);
-			if (outputRegistration != cudaSuccess)
-			{
-				UnregisterGraphicsResources();
-				return Fail(CudaError("cudaGraphicsGLRegisterImage(output)", outputRegistration));
-			}
-			registeredInputTexture = inputTexture;
-			registeredOutputTexture = outputTexture;
-		}
-		return true;
-	}
-
-	bool Process(
-		unsigned int inputTexture,
-		int sourceWidth,
-		int sourceHeight,
-		unsigned int outputTexture,
-		int destinationWidth,
-		int destinationHeight)
-	{
-		lastError.clear();
-		if (!ready)
-			return Fail("el engine TensorRT no está cargado");
-		if (sourceWidth <= 0 || sourceHeight <= 0 || destinationWidth <= 0 || destinationHeight <= 0)
-			return Fail("la textura de entrada o salida no tiene resolución válida");
-		if (!EnsureGraphicsResources(inputTexture, outputTexture))
-			return false;
-
-		cudaGraphicsResource_t resources[2] = {inputResource, outputResource};
-		cudaError_t error = cudaGraphicsMapResources(2, resources, stream);
-		if (error != cudaSuccess)
-			return Fail(CudaError("cudaGraphicsMapResources", error));
-		bool mapped = true;
-		cudaArray_t inputArray = nullptr;
-		cudaArray_t outputArray = nullptr;
-		cudaTextureObject_t sourceObject = 0;
-		cudaSurfaceObject_t destinationObject = 0;
-
-		auto failMapped = [&](const std::string& message) {
-			cudaStreamSynchronize(stream);
-			if (destinationObject != 0)
-				cudaDestroySurfaceObject(destinationObject);
-			if (sourceObject != 0)
-				cudaDestroyTextureObject(sourceObject);
-			if (mapped)
-				cudaGraphicsUnmapResources(2, resources, stream);
-			return Fail(message);
-		};
-
-		error = cudaGraphicsSubResourceGetMappedArray(&inputArray, inputResource, 0, 0);
-		if (error != cudaSuccess)
-			return failMapped(CudaError("cudaGraphicsSubResourceGetMappedArray(input)", error));
-		error = cudaGraphicsSubResourceGetMappedArray(&outputArray, outputResource, 0, 0);
-		if (error != cudaSuccess)
-			return failMapped(CudaError("cudaGraphicsSubResourceGetMappedArray(output)", error));
-
-		cudaResourceDesc sourceDescription{};
-		sourceDescription.resType = cudaResourceTypeArray;
-		sourceDescription.res.array.array = inputArray;
-		cudaTextureDesc sourceTextureDescription{};
-		sourceTextureDescription.addressMode[0] = cudaAddressModeClamp;
-		sourceTextureDescription.addressMode[1] = cudaAddressModeClamp;
-		sourceTextureDescription.filterMode = cudaFilterModeLinear;
-		sourceTextureDescription.readMode = cudaReadModeNormalizedFloat;
-		sourceTextureDescription.normalizedCoords = 1;
-		error = cudaCreateTextureObject(&sourceObject, &sourceDescription, &sourceTextureDescription, nullptr);
-		if (error != cudaSuccess)
-			return failMapped(CudaError("cudaCreateTextureObject", error));
-
-		cudaResourceDesc destinationDescription{};
-		destinationDescription.resType = cudaResourceTypeArray;
-		destinationDescription.res.array.array = outputArray;
-		error = cudaCreateSurfaceObject(&destinationObject, &destinationDescription);
-		if (error != cudaSuccess)
-			return failMapped(CudaError("cudaCreateSurfaceObject", error));
-
-		const dim3 block2D(16, 16);
-		const dim3 grid2D(
-			static_cast<unsigned int>((inputWidth + block2D.x - 1) / block2D.x),
-			static_cast<unsigned int>((inputHeight + block2D.y - 1) / block2D.y)
-		);
-		if (inputType == nvinfer1::DataType::kHALF)
-			PreprocessKernel<<<grid2D, block2D, 0, stream>>>(sourceObject, reinterpret_cast<__half*>(inputDevice), inputWidth, inputHeight, sourceWidth, sourceHeight);
-		else
-			PreprocessKernel<<<grid2D, block2D, 0, stream>>>(sourceObject, reinterpret_cast<float*>(inputDevice), inputWidth, inputHeight, sourceWidth, sourceHeight);
-		error = cudaGetLastError();
-		if (error != cudaSuccess)
-			return failMapped(CudaError("PreprocessKernel", error));
-
-		std::vector<void*> bindings(static_cast<size_t>(engine->getNbBindings()), nullptr);
-		bindings[static_cast<size_t>(inputBinding)] = inputDevice;
-		bindings[static_cast<size_t>(outputBinding)] = outputDevice;
-		if (!context->enqueueV2(bindings.data(), stream, nullptr))
-			return failMapped("TensorRT rechazó enqueueV2 para el frame de Resolume");
-
-		const int outputCount = static_cast<int>(outputElements);
-		const int blocks = (outputCount + 255) / 256;
-		if (outputType == nvinfer1::DataType::kHALF)
-			ConvertHalfKernel<<<blocks, 256, 0, stream>>>(reinterpret_cast<const __half*>(outputDevice), outputFloatDevice, outputCount);
-		else
-			ConvertFloatKernel<<<blocks, 256, 0, stream>>>(reinterpret_cast<const float*>(outputDevice), outputFloatDevice, outputCount);
-		error = cudaGetLastError();
-		if (error != cudaSuccess)
-			return failMapped(CudaError("ConvertOutputKernel", error));
-
-		const int pixels = modelWidth * modelHeight;
-		ReduceMinMaxKernel<<<reductionBlocks, 256, 0, stream>>>(
-			outputFloatDevice,
-			blockMinimumDevice,
-			blockMaximumDevice,
-			pixels
-		);
-		error = cudaGetLastError();
-		if (error != cudaSuccess)
-			return failMapped(CudaError("ReduceMinMaxKernel", error));
-		std::vector<float> blockMinimum(static_cast<size_t>(reductionBlocks));
-		std::vector<float> blockMaximum(static_cast<size_t>(reductionBlocks));
-		error = cudaMemcpyAsync(
-			blockMinimum.data(),
-			blockMinimumDevice,
-			blockMinimum.size() * sizeof(float),
-			cudaMemcpyDeviceToHost,
-			stream
-		);
-		if (error != cudaSuccess)
-			return failMapped(CudaError("cudaMemcpyAsync(minimum)", error));
-		error = cudaMemcpyAsync(
-			blockMaximum.data(),
-			blockMaximumDevice,
-			blockMaximum.size() * sizeof(float),
-			cudaMemcpyDeviceToHost,
-			stream
-		);
-		if (error != cudaSuccess)
-			return failMapped(CudaError("cudaMemcpyAsync(maximum)", error));
-		error = cudaStreamSynchronize(stream);
-		if (error != cudaSuccess)
-			return failMapped(CudaError("cudaStreamSynchronize(reduction)", error));
-		float minimum = FLT_MAX;
-		float maximum = -FLT_MAX;
-		for (int block = 0; block < reductionBlocks; ++block)
-		{
-			minimum = std::min(minimum, blockMinimum[static_cast<size_t>(block)]);
-			maximum = std::max(maximum, blockMaximum[static_cast<size_t>(block)]);
-		}
-		if (!std::isfinite(minimum) || !std::isfinite(maximum) || maximum - minimum <= 1.0e-6f)
-		{
-			minimum = 0.0f;
-			maximum = 1.0f;
-		}
-		error = cudaMemcpyAsync(&minimumDevice[0], &minimum, sizeof(float), cudaMemcpyHostToDevice, stream);
-		if (error != cudaSuccess)
-			return failMapped(CudaError("cudaMemcpyAsync(minimum device)", error));
-		error = cudaMemcpyAsync(&maximumDevice[0], &maximum, sizeof(float), cudaMemcpyHostToDevice, stream);
-		if (error != cudaSuccess)
-			return failMapped(CudaError("cudaMemcpyAsync(maximum device)", error));
-		const dim3 depthGrid(
-			static_cast<unsigned int>((destinationWidth + block2D.x - 1) / block2D.x),
-			static_cast<unsigned int>((destinationHeight + block2D.y - 1) / block2D.y)
-		);
-		WriteDepthTextureKernel<<<depthGrid, block2D, 0, stream>>>(
-			destinationObject,
-			outputFloatDevice,
-			modelWidth,
-			modelHeight,
-			destinationWidth,
-			destinationHeight,
-			minimumDevice,
-			maximumDevice
-		);
-		error = cudaGetLastError();
-		if (error != cudaSuccess)
-			return failMapped(CudaError("WriteDepthTextureKernel", error));
-
-		error = cudaStreamSynchronize(stream);
-		if (error != cudaSuccess)
-			return failMapped(CudaError("cudaStreamSynchronize", error));
-		cudaDestroySurfaceObject(destinationObject);
-		cudaDestroyTextureObject(sourceObject);
-		destinationObject = 0;
-		sourceObject = 0;
-		error = cudaGraphicsUnmapResources(2, resources, stream);
-		mapped = false;
-		if (error != cudaSuccess)
-			return Fail(CudaError("cudaGraphicsUnmapResources", error));
 		return true;
 	}
 
@@ -813,28 +502,6 @@ bool DEPTHFX_CUDA_LoadEngine(DEPTHFX_CUDA* bridge, const char* enginePath, char*
 	return success;
 }
 
-bool DEPTHFX_CUDA_Process(
-	DEPTHFX_CUDA* bridge,
-	unsigned int inputTexture,
-	int inputWidth,
-	int inputHeight,
-	unsigned int outputTexture,
-	int outputWidth,
-	int outputHeight,
-	char* errorMessage,
-	size_t errorMessageSize)
-{
-	if (bridge == nullptr)
-	{
-		SetError(errorMessage, errorMessageSize, "bridge CUDA nulo");
-		return false;
-	}
-	const bool success = bridge->Process(inputTexture, inputWidth, inputHeight, outputTexture, outputWidth, outputHeight);
-	if (!success)
-		SetError(errorMessage, errorMessageSize, bridge->lastError);
-	return success;
-}
-
 bool DEPTHFX_CUDA_ProcessHost(
 	DEPTHFX_CUDA* bridge,
 	const unsigned char* rgbaPixels,
@@ -858,3 +525,7 @@ bool DEPTHFX_CUDA_ProcessHost(
 	return success;
 }
 }
+
+
+
+
