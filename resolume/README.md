@@ -337,6 +337,32 @@ The output effect appears in Resolume as `LUCIDA Depth`. A later effect can
 consume its depth pass for displacement, masks, parallax, particles or other
 live visuals.
 
+## Native INSTAR 2 live preview effect
+
+`resolume/plugin/INSTAR_2/INSTAR_2.cpp` builds `INSTAR_2.dll` as an `FF_EFFECT`.
+Place one instance at composition scope or on a `Layers Below` effect chain so
+it receives the complete live Resolume texture. Set `Advanced Output XML` to
+the same saved Advanced Output preset used by the venue. The effect creates all
+XML slices in one scene, uses each slice's `InputRect` as the texture UV and
+applies the global/per-slice depth controls; it does not require exporting or
+reloading the video files.
+
+`Follow Active XML` is enabled by default. It reads Resolume's active preset
+name from `Documents\Resolume Arena\Preferences\AdvancedOutput.xml`, resolves
+that name inside `Presets\Advanced Output`, and follows it without a file
+browser. `Use Active XML` forces that resolution again. Each loaded slice also
+gets a `Use <slice>` toggle, so one effect can show all screens or only the
+selected subset.
+
+The effect checks the XML file signature on every frame. A changed XML is parsed
+into a temporary scene and replaces the active scene only after parsing and
+validation succeed. During a partial or invalid write it keeps the last valid
+scene and retries when the file changes again. This is a file-based live update:
+the Advanced Output preset must be saved to disk for the effect to observe it.
+The XML mapping is 2D; physical venue depth still comes from per-slice depth
+controls or the existing `PLANO_3D`/SVG path. `INSTAR.dll` and `INSTAR_3D.dll`
+remain available as the original Sources.
+
 ## Native INSTAR 3D source
 
 `resolume/plugin/INSTAR/INSTAR_3D.cpp` builds `INSTAR_3D.dll` as an independent
@@ -360,4 +386,5 @@ Both DLLs are produced by the same build:
 ```text
 work/resolume-plugin-build/Extra Effects/INSTAR.dll
 work/resolume-plugin-build/Extra Effects/INSTAR_3D.dll
+work/resolume-plugin-build/Extra Effects/INSTAR_2.dll
 ```
